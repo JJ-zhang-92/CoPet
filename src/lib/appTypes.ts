@@ -42,6 +42,7 @@ export type AppState = {
   onboardingComplete: boolean;
   petWindowSize: PetWindowSize;
   agentMessageDisplay: AgentMessageDisplay;
+  responsePaused: boolean;
 };
 
 export type PetWindowSize = number;

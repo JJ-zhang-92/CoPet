@@ -21,6 +21,7 @@ export type AppState = {
   onboardingComplete: boolean;
   petWindowSize?: number;
   agentMessageDisplay?: "all" | "latest";
+  responsePaused?: boolean;
 };
 
 export type AdapterSummary = {
@@ -139,9 +140,13 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "latest",
+    responsePaused: false,
   };
   if (state.agentMessageDisplay === undefined) {
     state = { ...state, agentMessageDisplay: "latest" };
+  }
+  if (state.responsePaused === undefined) {
+    state = { ...state, responsePaused: false };
   }
   let adapters = options.adapters ?? [];
   let codexPets = options.codexPets ?? [];
@@ -300,6 +305,11 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
         }
         if (command === "set_pet_window_size") {
           state = { ...state, petWindowSize: Number(args.size) };
+          await emitAppState();
+          return state;
+        }
+        if (command === "set_response_paused") {
+          state = { ...state, responsePaused: Boolean(args.paused) };
           await emitAppState();
           return state;
         }
