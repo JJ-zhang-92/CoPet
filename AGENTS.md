@@ -50,6 +50,8 @@ Follow Conventional Commits with a scope matching the feature module:
 - `type`: `feat`, `fix`, `refactor`, `style`, `test`, `chore`, `docs`, `perf`.
 - `scope`: feature module or surface area (e.g. `settings`, `window`, `pet`).
 - Summary in the imperative mood, lowercase, no trailing period.
+- Keep the subject short — under ~72 chars. If it doesn't fit, the commit is doing too much; split it.
+- No body by default. Add one only when the *why* is non-obvious from the diff (hidden constraint, subtle interaction, workaround), and keep it brief — no multi-paragraph explanations.
 
 Examples:
 
