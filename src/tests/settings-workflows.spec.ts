@@ -79,7 +79,7 @@ test("settings page uses Chinese copy from app locale", async ({ browser }) => {
   await expect(page.getByRole("button", { name: "导入文件夹" })).toBeVisible();
   await expect(page.getByRole("button", { name: "关闭" })).toBeVisible();
 
-  await page.getByRole("tab", { name: "偏好" }).click();
+  await page.getByRole("tab", { name: "偏好设置" }).click();
   await expect(page.getByRole("slider", { name: "尺寸" })).toBeVisible();
 });
 
