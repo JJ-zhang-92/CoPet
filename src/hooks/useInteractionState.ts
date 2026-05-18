@@ -9,8 +9,13 @@ const TILT_AFTER_HOVER_MS = 1_000;
 const SURPRISED_DURATION_MS = 800;
 const SURPRISED_DEDUPE_WINDOW_MS = 250;
 const LONG_PRESS_THRESHOLD_MS = 800;
+// Keep in sync with HEART_PETTED_SLOW_DURATION_MS in src/hooks/useEmotionState.ts.
 const PETTED_SLOW_DURATION_MS = 1500;
 const LONG_PRESS_MOVE_CANCEL_PX = 5;
+const RAPID_CLICK_WINDOW_MS = 1500;
+const RAPID_CLICK_THRESHOLD = 3;
+// Keep in sync with HEART_PETTED_DURATION_MS in src/hooks/useEmotionState.ts.
+const PETTED_DURATION_MS = 900;
 
 export type InteractionHandlers = {
   onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -38,6 +43,7 @@ export function useInteractionState(): UseInteractionStateResult {
     surprised: number | null;
     longPress: number | null;
     pettedSlow: number | null;
+    petted: number | null;
   }>({
     look: null,
     happy: null,
@@ -45,11 +51,13 @@ export function useInteractionState(): UseInteractionStateResult {
     surprised: null,
     longPress: null,
     pettedSlow: null,
+    petted: null,
   });
   const surprisedLastFiredRef = useRef(0);
+  const clickHistoryRef = useRef<number[]>([]);
   const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised" | "longPress" | "pettedSlow") => {
+  const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised" | "longPress" | "pettedSlow" | "petted") => {
     const id = timersRef.current[key];
     if (id !== null) {
       window.clearTimeout(id);
@@ -64,6 +72,7 @@ export function useInteractionState(): UseInteractionStateResult {
     clearTimer("surprised");
     clearTimer("longPress");
     clearTimer("pettedSlow");
+    clearTimer("petted");
   }, [clearTimer]);
 
   useEffect(() => clearAllTimers, [clearAllTimers]);
@@ -132,10 +141,33 @@ export function useInteractionState(): UseInteractionStateResult {
   const onClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
       if (event.detail >= 2) {
-        // Double-click detected via click with detail >= 2; delegate to surprised.
+        // The detail=1 event that immediately preceded this double-click already
+        // appended a stale timestamp; clear it so the next legitimate single
+        // clicks accumulate from zero.
+        clickHistoryRef.current = [];
         triggerSurprised();
         return;
       }
+
+      const now = Date.now();
+      clickHistoryRef.current = [
+        ...clickHistoryRef.current.filter((t) => now - t <= RAPID_CLICK_WINDOW_MS),
+        now,
+      ];
+
+      if (clickHistoryRef.current.length >= RAPID_CLICK_THRESHOLD) {
+        clickHistoryRef.current = []; // reset so the next click is a fresh happy
+        clearTimer("happy");
+        clearTimer("petted");
+        setState({ kind: "petted" });
+        notifyActivity();
+        timersRef.current.petted = window.setTimeout(() => {
+          timersRef.current.petted = null;
+          setState({ kind: "idle" });
+        }, PETTED_DURATION_MS);
+        return;
+      }
+
       clearTimer("happy");
       clearTimer("tilt");
       setState({ kind: "happy" });

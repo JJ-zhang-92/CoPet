@@ -5,7 +5,10 @@ import type { AgentState, EmotionState, InputState } from "../lib/petAnimation";
 const SPARKLE_DURATION_MS = 600;
 const SMOKE_DURATION_MS = 800;
 const QUESTION_MARK_DURATION_MS = 800;
+// Keep in sync with PETTED_SLOW_DURATION_MS in src/hooks/useInteractionState.ts.
 const HEART_PETTED_SLOW_DURATION_MS = 1500;
+// Keep in sync with PETTED_DURATION_MS in src/hooks/useInteractionState.ts.
+const HEART_PETTED_DURATION_MS = 900;
 
 export function useEmotionState(agent: AgentState, input: InputState): EmotionState {
   const [state, setState] = useState<EmotionState>({ kind: "none" });
@@ -99,6 +102,17 @@ export function useEmotionState(agent: AgentState, input: InputState): EmotionSt
         timerRef.current = null;
         setState({ kind: "none" });
       }, HEART_PETTED_SLOW_DURATION_MS);
+      return;
+    }
+
+    if (input.kind === "petted" && previousInputKind !== "petted") {
+      if (emotionStateRef.current.kind === "loadingBubble") return;
+      clearTimer();
+      setState({ kind: "heart" });
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        setState({ kind: "none" });
+      }, HEART_PETTED_DURATION_MS);
       return;
     }
   }, [input.kind]);

@@ -216,3 +216,49 @@ test("long-press (>800ms hold without movement) triggers pettedSlow + heart", as
     window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1 } as PointerEventInit));
   });
 });
+
+test("3 clicks within 1.5s escalate to petted + heart", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const sprite = page.locator(".pet-sprite");
+
+  for (let i = 0; i < 3; i++) {
+    await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
+    await page.waitForTimeout(150);
+  }
+  await expect(sprite).toHaveAttribute("data-pet-state", "jumping");
+  await expect(spriteFrame).toHaveAttribute("data-emotion", "heart");
+});
+
+test("double-click does not contaminate rapid-click history", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const sprite = page.locator(".pet-sprite");
+
+  // A double-click followed by exactly TWO single clicks should NOT escalate to petted.
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 2 });
+  await page.waitForTimeout(950); // let surprised reaction time out
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
+  await page.waitForTimeout(150);
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
+  await page.waitForTimeout(50);
+
+  // After 2 deliberate single-clicks post-doubleclick, sprite should be happy
+  // (jumping) — NOT petted (also jumping). They share the sprite row, so
+  // discriminate via emotion overlay: petted shows heart, happy shows nothing.
+  await expect(spriteFrame).not.toHaveAttribute("data-emotion", "heart");
+});
