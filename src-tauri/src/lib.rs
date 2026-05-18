@@ -124,6 +124,53 @@ fn set_locale_preference(
     Ok(state)
 }
 
+// Temporary stub — replaced by the real implementation in the tray-menu refactor task.
+fn refresh_tray_menu(_app: &AppHandle, _state: &AppState) {}
+
+#[tauri::command]
+fn set_response_paused(app: tauri::AppHandle, paused: bool) -> Result<AppState, String> {
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.set_response_paused(paused))
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(&app, &state)?;
+    refresh_tray_menu(&app, &state);
+    Ok(state)
+}
+
+#[tauri::command]
+fn toggle_pet_window_visibility(app: tauri::AppHandle) -> Result<bool, String> {
+    let Some(window) = app.get_webview_window("pet") else {
+        return Err(t(current_locale(), MessageKey::SettingsWindowNotFound).to_string());
+    };
+    let visible = window.is_visible().map_err(|error| error.to_string())?;
+    if visible {
+        window.hide().map_err(|error| error.to_string())?;
+    } else {
+        window.show().map_err(|error| error.to_string())?;
+        schedule_pet_window_z_order_reassertions(&app);
+    }
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.app_state())
+        .map_err(localize_store_error)?;
+    refresh_tray_menu(&app, &state);
+    let new_visibility = app
+        .get_webview_window("pet")
+        .and_then(|w| w.is_visible().ok())
+        .unwrap_or(true);
+    Ok(new_visibility)
+}
+
+#[tauri::command]
+fn open_about_section(app: tauri::AppHandle) -> Result<(), String> {
+    show_settings_window(&app)?;
+    app.emit_to(
+        EventTarget::webview_window("settings"),
+        "pethover-navigate-to-section",
+        "about",
+    )
+    .map_err(|error| error.to_string())
+}
+
 #[tauri::command]
 fn set_agent_message_display(
     app: tauri::AppHandle,
@@ -420,6 +467,9 @@ pub fn run() {
             set_pet_window_size,
             set_locale_preference,
             set_agent_message_display,
+            set_response_paused,
+            toggle_pet_window_visibility,
+            open_about_section,
             list_pets,
             list_codex_pets,
             install_codex_pet,
