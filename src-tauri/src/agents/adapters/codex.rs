@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use serde::Serialize;
+use sha2::{Digest, Sha256};
 use toml_edit::{value, DocumentMut, Item, Table};
 
 use super::super::{
@@ -64,15 +66,11 @@ impl CliAdapter for CodexCliAdapter {
     }
 
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError> {
-        install_json_hooks(
-            manager,
-            self.id(),
-            &self.config_path(manager.home()),
-            EVENTS,
-            1,
-        )?;
+        let hooks_path = self.config_path(manager.home());
+        install_json_hooks(manager, self.id(), &hooks_path, EVENTS, 1)?;
         update_codex_config_toml(manager.home(), |document| {
             set_features_hooks_true(document);
+            apply_trusted_hashes(document, &hooks_path)
         })
     }
 
@@ -93,7 +91,7 @@ fn codex_config_path(home: &Path) -> PathBuf {
 /// write atomically only if the serialized output differs.
 fn update_codex_config_toml<F>(home: &Path, update: F) -> Result<(), AdapterError>
 where
-    F: FnOnce(&mut DocumentMut),
+    F: FnOnce(&mut DocumentMut) -> Result<(), AdapterError>,
 {
     let path = codex_config_path(home);
     let content = match std::fs::read_to_string(&path) {
@@ -108,7 +106,7 @@ where
             .parse::<DocumentMut>()
             .map_err(|_| AdapterError::InvalidJson(path.clone()))?
     };
-    update(&mut document);
+    update(&mut document)?;
     let next = document.to_string();
     if next != content {
         write_atomic(&path, next.as_bytes())?;
@@ -128,4 +126,202 @@ fn set_features_hooks_true(document: &mut DocumentMut) {
     if features.contains_key("codex_hooks") {
         features.insert("codex_hooks", value(true));
     }
+}
+
+/// Compact description of a single PetHover-owned Codex hook handler.
+/// Mirrors the inputs Codex feeds into command_hook_hash.
+struct PetHoverCodexHandler<'a> {
+    event_label: &'a str, // "pre_tool_use" / "user_prompt_submit" / ...
+    matcher: Option<&'a str>,
+    command: &'a str,
+    timeout_sec: u64, // already .max(1)
+    status_message: Option<&'a str>,
+    // r#async stays false (PetHover never writes async)
+}
+
+/// Vendored from openai/codex-rs/hooks/src/engine/discovery.rs:538 (NormalizedHookIdentity)
+/// + config/src/hook_config.rs (HookHandlerConfig::Command / MatcherGroup).
+/// Field renames must mirror the source serde tags exactly so the
+/// canonical JSON keys match Codex byte-for-byte.
+#[derive(Serialize)]
+struct NormalizedHookIdentity<'a> {
+    event_name: &'a str,
+    #[serde(flatten)]
+    group: VendoredMatcherGroup<'a>,
+}
+
+#[derive(Serialize)]
+struct VendoredMatcherGroup<'a> {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    matcher: Option<&'a str>,
+    hooks: [VendoredHookHandlerConfig<'a>; 1],
+}
+
+#[derive(Serialize)]
+#[serde(tag = "type")]
+enum VendoredHookHandlerConfig<'a> {
+    #[serde(rename = "command")]
+    Command {
+        command: &'a str,
+        #[serde(rename = "commandWindows", skip_serializing_if = "Option::is_none")]
+        command_windows: Option<&'a str>,
+        #[serde(rename = "timeout", skip_serializing_if = "Option::is_none")]
+        timeout_sec: Option<u64>,
+        r#async: bool,
+        #[serde(rename = "statusMessage", skip_serializing_if = "Option::is_none")]
+        status_message: Option<&'a str>,
+    },
+}
+
+/// Replicates command_hook_hash → version_for_toml from openai/codex-rs.
+fn compute_trusted_hash(handler: &PetHoverCodexHandler) -> String {
+    let identity = NormalizedHookIdentity {
+        event_name: handler.event_label,
+        group: VendoredMatcherGroup {
+            matcher: handler.matcher,
+            hooks: [VendoredHookHandlerConfig::Command {
+                command: handler.command,
+                command_windows: None,
+                timeout_sec: Some(handler.timeout_sec.max(1)),
+                r#async: false,
+                status_message: handler.status_message,
+            }],
+        },
+    };
+    let toml_value =
+        toml::Value::try_from(&identity).expect("NormalizedHookIdentity must serialize to TOML");
+    let json_value = serde_json::to_value(&toml_value).unwrap_or(serde_json::Value::Null);
+    let canonical = canonical_json(&json_value);
+    let bytes = serde_json::to_vec(&canonical).unwrap_or_default();
+    let digest = Sha256::digest(&bytes);
+    let hex = digest
+        .iter()
+        .map(|b| format!("{b:02x}"))
+        .collect::<String>();
+    format!("sha256:{hex}")
+}
+
+/// Vendored from openai/codex-rs/config/src/fingerprint.rs:51.
+/// Recursively sorts object keys; arrays and scalars unchanged.
+fn canonical_json(value: &serde_json::Value) -> serde_json::Value {
+    match value {
+        serde_json::Value::Object(map) => {
+            let mut keys: Vec<&String> = map.keys().collect();
+            keys.sort();
+            let mut sorted = serde_json::Map::new();
+            for key in keys {
+                if let Some(child) = map.get(key) {
+                    sorted.insert(key.clone(), canonical_json(child));
+                }
+            }
+            serde_json::Value::Object(sorted)
+        }
+        serde_json::Value::Array(items) => {
+            serde_json::Value::Array(items.iter().map(canonical_json).collect())
+        }
+        other => other.clone(),
+    }
+}
+
+/// Mirrors hook_key from openai/codex-rs/hooks/src/lib.rs:91.
+/// PetHover always writes one group / one handler per event, so indexes are 0:0.
+fn hook_state_key(hooks_file_abs_path: &Path, event_label: &str) -> String {
+    format!("{}:{event_label}:0:0", hooks_file_abs_path.display())
+}
+
+/// Codex hook_event_key_label snake-case label for each Codex `cli_event` PetHover uses.
+fn cli_event_to_label(cli_event: &str) -> Option<&'static str> {
+    match cli_event {
+        "PreToolUse" => Some("pre_tool_use"),
+        "PermissionRequest" => Some("permission_request"),
+        "PostToolUse" => Some("post_tool_use"),
+        "PreCompact" => Some("pre_compact"),
+        "PostCompact" => Some("post_compact"),
+        "SessionStart" => Some("session_start"),
+        "UserPromptSubmit" => Some("user_prompt_submit"),
+        "Stop" => Some("stop"),
+        _ => None, // Notification etc. — Codex doesn't recognize, skip
+    }
+}
+
+/// Read the just-written hooks.json, derive one trust entry per handler,
+/// and merge into `[hooks.state."<key>"].trusted_hash`. Leaves unrelated
+/// state entries intact.
+fn apply_trusted_hashes(
+    document: &mut DocumentMut,
+    hooks_file_abs_path: &Path,
+) -> Result<(), AdapterError> {
+    let hooks_content = std::fs::read(hooks_file_abs_path)?;
+    let hooks_json: serde_json::Value = serde_json::from_slice(&hooks_content)
+        .map_err(|_| AdapterError::InvalidJson(hooks_file_abs_path.to_path_buf()))?;
+
+    let hooks_table = hooks_json
+        .get("hooks")
+        .and_then(serde_json::Value::as_object)
+        .cloned()
+        .unwrap_or_default();
+
+    // Ensure [hooks] and [hooks.state] tables exist in DocumentMut.
+    let hooks_doc_table = document
+        .entry("hooks")
+        .or_insert_with(|| Item::Table(Table::new()))
+        .as_table_mut()
+        .expect("[hooks] must be a TOML table");
+    // Allow [hooks] to dot into [hooks.state] cleanly.
+    hooks_doc_table.set_implicit(true);
+
+    let state_table = hooks_doc_table
+        .entry("state")
+        .or_insert_with(|| Item::Table(Table::new()))
+        .as_table_mut()
+        .expect("[hooks.state] must be a TOML table");
+
+    for (cli_event, groups) in hooks_table.iter() {
+        let Some(event_label) = cli_event_to_label(cli_event.as_str()) else {
+            continue;
+        };
+        let Some(groups) = groups.as_array() else {
+            continue;
+        };
+        // Iterate every group/handler PetHover wrote (today: exactly 1 group, 1 handler each).
+        for (_group_index, group) in groups.iter().enumerate() {
+            let matcher = group.get("matcher").and_then(serde_json::Value::as_str);
+            let Some(handlers) = group.get("hooks").and_then(serde_json::Value::as_array) else {
+                continue;
+            };
+            for (_handler_index, handler) in handlers.iter().enumerate() {
+                let Some(command) = handler.get("command").and_then(serde_json::Value::as_str)
+                else {
+                    continue;
+                };
+                // Only own hooks PetHover authored (defensive: helper name in command).
+                if !command.contains(crate::agents::HELPER_NAME) {
+                    continue;
+                }
+                let timeout_sec = handler
+                    .get("timeout")
+                    .and_then(serde_json::Value::as_u64)
+                    .unwrap_or(600);
+                let status_message = handler
+                    .get("statusMessage")
+                    .and_then(serde_json::Value::as_str);
+                let descriptor = PetHoverCodexHandler {
+                    event_label,
+                    matcher,
+                    command,
+                    timeout_sec,
+                    status_message,
+                };
+                let key = hook_state_key(hooks_file_abs_path, event_label);
+                let trusted_hash = compute_trusted_hash(&descriptor);
+                let entry = state_table
+                    .entry(&key)
+                    .or_insert_with(|| Item::Table(Table::new()))
+                    .as_table_mut()
+                    .expect("hook state entry must be a TOML table");
+                entry.insert("trusted_hash", value(trusted_hash));
+            }
+        }
+    }
+    Ok(())
 }

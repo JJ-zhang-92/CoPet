@@ -718,6 +718,59 @@ fn codex_install_preserves_user_comments_and_unrelated_keys_in_config_toml() {
     );
 }
 
+#[test]
+fn codex_install_writes_trusted_hashes_for_all_pethover_hooks() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".pethover");
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("codex").unwrap();
+
+    let config = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
+    let hooks_path = home.join(".codex/hooks.json");
+    let hooks_abs = hooks_path.display().to_string();
+    let sha_re = regex_lite_match_sha256;
+
+    for event_label in [
+        "user_prompt_submit",
+        "pre_tool_use",
+        "post_tool_use",
+        "permission_request",
+        "stop",
+    ] {
+        let header = format!("[hooks.state.\"{hooks_abs}:{event_label}:0:0\"]");
+        assert!(
+            config.contains(&header),
+            "missing trust entry header `{header}` in:\n{config}",
+        );
+        let trusted_hash = config
+            .lines()
+            .skip_while(|line| !line.contains(&header))
+            .find(|line| line.trim_start().starts_with("trusted_hash"))
+            .unwrap_or_else(|| panic!("trusted_hash not found under {header} in:\n{config}"));
+        assert!(
+            sha_re(trusted_hash),
+            "trusted_hash line not shaped like `trusted_hash = \"sha256:<64 hex>\"`: {trusted_hash}",
+        );
+    }
+}
+
+fn regex_lite_match_sha256(line: &str) -> bool {
+    // Match: trusted_hash = "sha256:<64 lowercase hex>"
+    let Some(rest) = line.trim_start().strip_prefix("trusted_hash") else {
+        return false;
+    };
+    let Some(rest) = rest.trim_start().strip_prefix('=') else {
+        return false;
+    };
+    let trimmed = rest.trim().trim_matches('"');
+    let Some(hex) = trimmed.strip_prefix("sha256:") else {
+        return false;
+    };
+    hex.len() == 64 && hex.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f'))
+}
+
 fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
     let _guard = OPENCODE_ENV_LOCK.lock().unwrap();
     let temp = tempfile::tempdir().unwrap();
