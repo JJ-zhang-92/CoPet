@@ -211,20 +211,7 @@ fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
 }
 
 fn handle_toggle_visibility(app: &AppHandle) -> Result<(), String> {
-    let Some(window) = app.get_webview_window("pet") else {
-        return Err("pet window was not found".to_string());
-    };
-    let visible = window.is_visible().map_err(|error| error.to_string())?;
-    if visible {
-        window.hide().map_err(|error| error.to_string())?;
-    } else {
-        window.show().map_err(|error| error.to_string())?;
-        schedule_pet_window_z_order_reassertions(app);
-    }
-    let state = ConfigStore::from_home()
-        .and_then(|store| store.app_state())
-        .map_err(localize_store_error)?;
-    refresh_tray_menu(app, &state);
+    toggle_pet_window_visibility(app.clone())?;
     Ok(())
 }
 
@@ -244,11 +231,7 @@ fn handle_reset_position(app: &AppHandle) -> Result<(), String> {
 }
 
 fn handle_set_locale(app: &AppHandle, preference: LocalePreference) -> Result<(), String> {
-    let state = ConfigStore::from_home()
-        .and_then(|store| store.set_locale_preference(preference))
-        .map_err(localize_store_error)?;
-    emit_app_state_changed(app, &state)?;
-    refresh_tray_menu(app, &state);
+    set_locale_preference(app.clone(), preference)?;
     Ok(())
 }
 
