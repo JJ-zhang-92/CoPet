@@ -84,6 +84,7 @@ select {
 }
 
 .pet-agent-messages {
+  position: relative;
   display: grid;
   justify-self: center;
   gap: 3px;
@@ -100,6 +101,19 @@ select {
   font-weight: 500;
   line-height: 1.25;
   text-align: left;
+}
+
+.pet-agent-messages::after {
+  content: "";
+  position: absolute;
+  bottom: -5px;
+  left: 50%;
+  width: 10px;
+  height: 6px;
+  transform: translateX(-50%);
+  background: inherit;
+  clip-path: polygon(0 0, 100% 0, 50% 100%);
+  filter: drop-shadow(0 1px 0.5px hsl(var(--border) / 0.25));
 }
 
 .pet-agent-message {
@@ -127,9 +141,7 @@ select {
 
 .pet-agent-text {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
 }
 
 .pet-agent-message-dismiss {

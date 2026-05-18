@@ -1461,9 +1461,9 @@ test("pet window renders simultaneous hook activity for all supported agents", a
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "running");
 });
 
-test("pet agent message truncates long text with ellipsis", async ({ browser }) => {
+test("pet agent message wraps long text within the bubble", async ({ browser }) => {
   const longText =
-    "This is a very long message that should definitely exceed the maximum width of the message bubble container and thus should be truncated with an ellipsis instead of wrapping to multiple lines.";
+    "This is a very long message that should definitely exceed the maximum width of the message bubble container and thus should wrap onto multiple lines instead of being truncated.";
   const harness = await createAppHarness(browser, {
     runtimeStatus: {
       port: 8765,
@@ -1493,10 +1493,16 @@ test("pet agent message truncates long text with ellipsis", async ({ browser }) 
   await expect(message.locator("img.pet-agent-icon")).toBeVisible();
 
   const text = message.locator(".pet-agent-text");
-  // Verify CSS properties for truncation on the text span
-  await expect(text).toHaveCSS("text-overflow", "ellipsis");
-  await expect(text).toHaveCSS("white-space", "nowrap");
-  await expect(text).toHaveCSS("overflow", "hidden");
+  await expect(text).toHaveCSS("overflow-wrap", "anywhere");
+
+  const { lineHeight, height } = await text.evaluate((node) => {
+    const style = window.getComputedStyle(node);
+    return {
+      lineHeight: parseFloat(style.lineHeight),
+      height: node.getBoundingClientRect().height,
+    };
+  });
+  expect(height).toBeGreaterThan(lineHeight * 1.5);
 });
 
 test("clicking the x icon on an agent message temporarily hides it on the page", async ({
