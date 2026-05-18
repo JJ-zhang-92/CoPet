@@ -243,3 +243,51 @@ test("composeLayers maps questionMark overlay through", () => {
   });
   expect(view.emotionOverlay).toBe("question-mark");
 });
+
+test("critical agent state (hurt) is not preempted by input click", () => {
+  const view = composeLayers({
+    base: { kind: "blink" },
+    agent: { kind: "hurt", agent: "claude" },
+    input: { kind: "happy" },
+    motion: { kind: "anchored" },
+    emotion: { kind: "smoke" },
+  });
+  expect(view.bodySpriteRow).toBe("failed");
+  expect(view.emotionOverlay).toBe("smoke");
+});
+
+test("critical agent state (awaitingApproval) is not preempted by input click", () => {
+  const view = composeLayers({
+    base: { kind: "blink" },
+    agent: { kind: "awaitingApproval", agent: "claude" },
+    input: { kind: "happy" },
+    motion: { kind: "anchored" },
+    emotion: { kind: "none" },
+  });
+  expect(view.bodySpriteRow).toBe("waiting");
+  expect(view.emotionOverlay).toBe(null);
+});
+
+test("non-critical agent (thinking) IS preempted by input click", () => {
+  const view = composeLayers({
+    base: { kind: "blink" },
+    agent: { kind: "thinking", agent: "claude" },
+    input: { kind: "happy" },
+    motion: { kind: "anchored" },
+    emotion: { kind: "loadingBubble" },
+  });
+  expect(view.bodySpriteRow).toBe("jumping");
+  expect(view.emotionOverlay).toBe("loading-bubble");
+});
+
+test("dragging still wins over critical agent", () => {
+  const view = composeLayers({
+    base: { kind: "blink" },
+    agent: { kind: "hurt", agent: "claude" },
+    input: { kind: "happy" },
+    motion: { kind: "dragging", direction: "right" },
+    emotion: { kind: "smoke" },
+  });
+  expect(view.bodySpriteRow).toBe("running-right");
+  expect(view.dragging).toBe(true);
+});

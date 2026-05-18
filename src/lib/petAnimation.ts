@@ -121,12 +121,25 @@ function emotionId(state: Exclude<EmotionState, { kind: "none" }>): EmotionOverl
 
 // ---------- Composer ----------
 
+export function isCriticalAgent(state: AgentState): boolean {
+  return state.kind === "hurt" || state.kind === "awaitingApproval";
+}
+
 export function composeLayers(layers: PetLayers): ComposedView {
   if (layers.motion.kind === "dragging") {
     return {
       bodySpriteRow: dragSpriteRow(layers.motion.direction),
       emotionOverlay: null,
       dragging: true,
+    };
+  }
+
+  if (isCriticalAgent(layers.agent)) {
+    return {
+      bodySpriteRow: agentSpriteRow(layers.agent),
+      emotionOverlay:
+        layers.emotion.kind === "none" ? null : emotionId(layers.emotion),
+      dragging: false,
     };
   }
 
