@@ -7,21 +7,21 @@ const HAPPY_DURATION_MS = 600;
 const LOOK_RESET_MS = 400;
 const TILT_AFTER_HOVER_MS = 1_000;
 
-export type InputHandlers = {
+export type InteractionHandlers = {
   onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerLeave: (event: ReactPointerEvent<HTMLElement>) => void;
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;
 };
 
-export type UseInputStateResult = {
+export type UseInteractionStateResult = {
   state: InputState;
-  handlers: InputHandlers;
+  handlers: InteractionHandlers;
   notifyActivity: () => void;
   lastActivityAtMs: number;
 };
 
-export function useInputState(): UseInputStateResult {
+export function useInteractionState(): UseInteractionStateResult {
   const [state, setState] = useState<InputState>({ kind: "idle" });
   const [lastActivityAtMs, setLastActivityAtMs] = useState(() => Date.now());
   const timersRef = useRef<{ look: number | null; happy: number | null; tilt: number | null }>({

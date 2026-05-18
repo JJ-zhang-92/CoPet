@@ -4,7 +4,7 @@ import type { CSSProperties } from "react";
 import type { PetStateId, PetSummary } from "../lib/appTypes";
 import type { ComposedView } from "../lib/petAnimation";
 import { petStates } from "../lib/petStates";
-import type { InputHandlers } from "../hooks/useInputState";
+import type { InteractionHandlers } from "../hooks/useInteractionState";
 import type { MotionHandlers } from "../hooks/useMotionState";
 
 export type PetSpriteProps = {
@@ -12,7 +12,7 @@ export type PetSpriteProps = {
   composed: ComposedView;
   scale?: number;
   animated?: boolean;
-  inputHandlers?: InputHandlers;
+  inputHandlers?: InteractionHandlers;
   motionHandlers?: MotionHandlers;
 };
 

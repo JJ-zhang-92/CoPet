@@ -4,7 +4,7 @@ import { useAppData } from "./useAppData";
 import { useAgentState } from "./useAgentState";
 import { useBaseState } from "./useBaseState";
 import { useEmotionState } from "./useEmotionState";
-import { useInputState } from "./useInputState";
+import { useInteractionState } from "./useInteractionState";
 import { useMotionState } from "./useMotionState";
 import { composeLayers } from "../lib/petAnimation";
 import type {
@@ -13,20 +13,20 @@ import type {
   MotionState,
   PetLayers,
 } from "../lib/petAnimation";
-import type { InputHandlers } from "./useInputState";
+import type { InteractionHandlers } from "./useInteractionState";
 import type { MotionHandlers } from "./useMotionState";
 
 export type UseLayeredPetStateResult = {
   layers: PetLayers;
   composed: ComposedView;
-  bindInput: () => InputHandlers;
+  bindInput: () => InteractionHandlers;
   bindMotion: () => MotionHandlers;
 };
 
 export function useLayeredPetState(): UseLayeredPetStateResult {
   const { petState, agentMessages } = useAppData();
   const agent = useAgentState({ petState, agentMessages });
-  const input = useInputState();
+  const input = useInteractionState();
   const motion = useMotionState();
   const emotion = useEmotionState(agent);
 
