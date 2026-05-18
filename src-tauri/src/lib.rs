@@ -45,16 +45,6 @@ fn resolve_builtin_pets_dir(app: &tauri::App) -> Option<PathBuf> {
     dev_path.is_dir().then_some(dev_path)
 }
 
-#[allow(dead_code)]
-fn resolve_builtin_pets_dir_from_handle(app: &AppHandle) -> Option<PathBuf> {
-    if let Ok(path) = app.path().resolve("assets/pets", BaseDirectory::Resource) {
-        if path.is_dir() {
-            return Some(path);
-        }
-    }
-    let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets");
-    dev_path.is_dir().then_some(dev_path)
-}
 const TRAY_MENU_BRAND_HEADER_ID: &str = "brand-header";
 const TRAY_MENU_VISIBILITY_ID: &str = "toggle-visibility";
 const TRAY_MENU_PAUSE_ID: &str = "toggle-pause";
