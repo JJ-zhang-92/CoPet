@@ -40,4 +40,6 @@ pub struct AppState {
     pub onboarding_complete: bool,
     pub pet_window_size: PetWindowSize,
     pub agent_message_display: AgentMessageDisplay,
+    #[serde(default)]
+    pub response_paused: bool,
 }

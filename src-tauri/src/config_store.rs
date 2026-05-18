@@ -124,6 +124,7 @@ impl ConfigStore {
             onboarding_complete: config.onboarding_complete,
             pet_window_size: normalized_pet_window_size,
             agent_message_display: config.agent_message_display,
+            response_paused: config.response_paused,
         })
     }
 
@@ -243,6 +244,14 @@ impl ConfigStore {
         self.app_state()?;
         let mut config = self.load_or_create_config()?;
         config.agent_message_display = agent_message_display;
+        self.save_config(&config)?;
+        self.app_state()
+    }
+
+    pub fn set_response_paused(&self, paused: bool) -> Result<AppState, StoreError> {
+        self.app_state()?;
+        let mut config = self.load_or_create_config()?;
+        config.response_paused = paused;
         self.save_config(&config)?;
         self.app_state()
     }
@@ -606,6 +615,8 @@ struct StoredConfig {
     pet_window_size: PetWindowSize,
     #[serde(default)]
     agent_message_display: AgentMessageDisplay,
+    #[serde(default)]
+    response_paused: bool,
 }
 
 impl Default for StoredConfig {
@@ -616,6 +627,7 @@ impl Default for StoredConfig {
             locale_preference: LocalePreference::System,
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
             agent_message_display: AgentMessageDisplay::Latest,
+            response_paused: false,
         }
     }
 }

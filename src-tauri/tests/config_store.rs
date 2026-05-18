@@ -457,6 +457,49 @@ fn install_codex_pet_rejects_builtin_id_collision() {
     assert!(!store.root().join("pets/goku").exists());
 }
 
+#[test]
+fn response_paused_defaults_to_false() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+
+    let state = store.ensure_ready().unwrap();
+
+    assert!(!state.response_paused);
+}
+
+#[test]
+fn set_response_paused_persists_and_round_trips() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+
+    let updated = store.set_response_paused(true).unwrap();
+    assert!(updated.response_paused);
+
+    // Open a fresh handle pointed at the same root; field must survive.
+    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir());
+    let state = reopened.app_state().unwrap();
+    assert!(state.response_paused);
+}
+
+#[test]
+fn legacy_config_missing_response_paused_defaults_to_false() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".pethover");
+    fs::create_dir_all(&root).unwrap();
+    // Write a config.json that resembles the old schema — no responsePaused key.
+    fs::write(
+        root.join("config.json"),
+        r#"{"currentPetId":"pethover","onboardingComplete":false,"petWindowSize":30}"#,
+    )
+    .unwrap();
+
+    let store = ConfigStore::with_builtin_dir(root, builtin_pets_dir());
+    let state = store.app_state().unwrap();
+
+    assert!(!state.response_paused);
+}
+
 fn create_user_pet(root: &Path, id: &str, display_name: &str) {
     let dir = root.join("pets").join(id);
     create_pet_package(&dir, id, display_name);
