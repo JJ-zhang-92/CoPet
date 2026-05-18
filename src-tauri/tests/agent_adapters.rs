@@ -847,3 +847,44 @@ fn codex_install_idempotent_trusted_hashes_stable_across_runs() {
         "config.toml diverged between two consecutive installs"
     );
 }
+
+#[test]
+fn codex_repair_refreshes_trusted_hashes_after_helper_path_changes() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root_a = temp.path().join(".pethover-a");
+    let root_b = temp.path().join(".pethover-b");
+
+    let manager_a = manager_with_fake_agents(&root_a, &home);
+    manager_a.install("codex").unwrap();
+    let config_after_a = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
+    let hash_a = extract_first_trusted_hash(&config_after_a);
+
+    let manager_b = manager_with_fake_agents(&root_b, &home);
+    manager_b.repair("codex").unwrap();
+    let config_after_b = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
+    let hash_b = extract_first_trusted_hash(&config_after_b);
+
+    assert_ne!(
+        hash_a, hash_b,
+        "trusted_hash should differ when helper path changes (command string differs):\nA: {hash_a}\nB: {hash_b}",
+    );
+    // No leaked entries pointing to root_a helper.
+    let helper_a = root_a.join("hooks/pethover-hook.sh").display().to_string();
+    assert!(
+        !config_after_b.contains(&helper_a),
+        "stale reference to old helper path: {config_after_b}",
+    );
+}
+
+fn extract_first_trusted_hash(config: &str) -> String {
+    config
+        .lines()
+        .find_map(|line| {
+            line.trim_start()
+                .strip_prefix("trusted_hash")
+                .and_then(|rest| rest.split_once('='))
+                .map(|(_, value)| value.trim().trim_matches('"').to_string())
+        })
+        .expect("at least one trusted_hash should exist")
+}
