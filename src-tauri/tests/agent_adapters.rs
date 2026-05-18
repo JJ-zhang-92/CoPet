@@ -888,3 +888,66 @@ fn extract_first_trusted_hash(config: &str) -> String {
         })
         .expect("at least one trusted_hash should exist")
 }
+
+#[test]
+#[cfg(unix)]
+fn codex_trusted_hash_matches_golden_for_pinned_fixture() {
+    // Goldens captured 2026-05-18 against PetHover's vendored hash algorithm
+    // (replica of openai/codex command_hook_hash). If Codex changes the upstream
+    // algorithm, this test fails — regenerate by running and pasting actual values.
+    const FIXTURE_BASE: &str = "/tmp/pethover-codex-golden-fixture";
+    const GOLDEN: &[(&str, &str)] = &[
+        (
+            "user_prompt_submit",
+            "sha256:2e9ef56962305e9a5a1257833ea0157e051b80c4c8a45aead9e13ff47410642b",
+        ),
+        (
+            "pre_tool_use",
+            "sha256:b1ac8a302df1a7b291d7654014729b9437ac71ae96e93eb65ba9a4d7bd837343",
+        ),
+        (
+            "post_tool_use",
+            "sha256:84b17bd84f5871e6c94df8daecf10ddccaf5f911d7df8451696d672533b10eb0",
+        ),
+        (
+            "permission_request",
+            "sha256:b5997d3dec5768a6ade68a0aa30a5d35aa554bbe057fd003c20f7b9623ab410c",
+        ),
+        (
+            "stop",
+            "sha256:1004765f3fc06681d1b6c77e2892a9b274f02bdf401b253e9077519a5c2b4a64",
+        ),
+    ];
+
+    let base = std::path::PathBuf::from(FIXTURE_BASE);
+    let _ = std::fs::remove_dir_all(&base);
+    let home = base.join("home");
+    let root = base.join(".pethover");
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("codex").unwrap();
+
+    let config = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
+    let hooks_abs = home.join(".codex/hooks.json").display().to_string();
+
+    for (event_label, expected_hash) in GOLDEN {
+        let header = format!("[hooks.state.\"{hooks_abs}:{event_label}:0:0\"]");
+        let actual = config
+            .lines()
+            .skip_while(|line| !line.contains(&header))
+            .find_map(|line| {
+                line.trim_start()
+                    .strip_prefix("trusted_hash")
+                    .and_then(|rest| rest.split_once('='))
+                    .map(|(_, value)| value.trim().trim_matches('"').to_string())
+            })
+            .unwrap_or_else(|| panic!("missing trusted_hash for {event_label} in:\n{config}"));
+        assert_eq!(
+            &actual, expected_hash,
+            "{event_label}: golden drift — Codex algorithm may have changed; rerun Task 8 procedure",
+        );
+    }
+
+    // Cleanup
+    let _ = std::fs::remove_dir_all(&base);
+}
