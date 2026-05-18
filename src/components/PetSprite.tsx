@@ -31,6 +31,7 @@ export function PetSprite({
   const handlePointerMove = inputHandlers?.onPointerMove;
   const handlePointerLeave = inputHandlers?.onPointerLeave;
   const handleClick = inputHandlers?.onClick;
+  const handleDoubleClick = inputHandlers?.onDoubleClick;
   const handlePointerDown = motionHandlers?.onPointerDown;
 
   return (
@@ -44,6 +45,7 @@ export function PetSprite({
       onPointerMove={handlePointerMove}
       onPointerLeave={handlePointerLeave}
       onClick={handleClick}
+      onDoubleClick={handleDoubleClick}
       onPointerDown={handlePointerDown}
       style={
         {

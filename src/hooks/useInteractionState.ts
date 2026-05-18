@@ -6,12 +6,15 @@ import type { InputState } from "../lib/petAnimation";
 const HAPPY_DURATION_MS = 600;
 const LOOK_RESET_MS = 400;
 const TILT_AFTER_HOVER_MS = 1_000;
+const SURPRISED_DURATION_MS = 800;
+const SURPRISED_DEDUPE_WINDOW_MS = 250;
 
 export type InteractionHandlers = {
   onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerMove: (event: ReactPointerEvent<HTMLElement>) => void;
   onPointerLeave: (event: ReactPointerEvent<HTMLElement>) => void;
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;
+  onDoubleClick: (event: ReactMouseEvent<HTMLElement>) => void;
 };
 
 export type UseInteractionStateResult = {
@@ -24,13 +27,20 @@ export type UseInteractionStateResult = {
 export function useInteractionState(): UseInteractionStateResult {
   const [state, setState] = useState<InputState>({ kind: "idle" });
   const [lastActivityAtMs, setLastActivityAtMs] = useState(() => Date.now());
-  const timersRef = useRef<{ look: number | null; happy: number | null; tilt: number | null }>({
+  const timersRef = useRef<{
+    look: number | null;
+    happy: number | null;
+    tilt: number | null;
+    surprised: number | null;
+  }>({
     look: null,
     happy: null,
     tilt: null,
+    surprised: null,
   });
+  const surprisedLastFiredRef = useRef(0);
 
-  const clearTimer = useCallback((key: "look" | "happy" | "tilt") => {
+  const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised") => {
     const id = timersRef.current[key];
     if (id !== null) {
       window.clearTimeout(id);
@@ -42,6 +52,7 @@ export function useInteractionState(): UseInteractionStateResult {
     clearTimer("look");
     clearTimer("happy");
     clearTimer("tilt");
+    clearTimer("surprised");
   }, [clearTimer]);
 
   useEffect(() => clearAllTimers, [clearAllTimers]);
@@ -91,8 +102,29 @@ export function useInteractionState(): UseInteractionStateResult {
     setState((current) => (current.kind === "happy" ? current : { kind: "idle" }));
   }, [clearTimer]);
 
+  const triggerSurprised = useCallback(() => {
+    const now = Date.now();
+    if (now - surprisedLastFiredRef.current < SURPRISED_DEDUPE_WINDOW_MS) {
+      return;
+    }
+    surprisedLastFiredRef.current = now;
+    clearTimer("happy");
+    clearTimer("surprised");
+    setState({ kind: "surprised" });
+    notifyActivity();
+    timersRef.current.surprised = window.setTimeout(() => {
+      timersRef.current.surprised = null;
+      setState({ kind: "idle" });
+    }, SURPRISED_DURATION_MS);
+  }, [clearTimer, notifyActivity]);
+
   const onClick = useCallback(
-    (_event: ReactMouseEvent<HTMLElement>) => {
+    (event: ReactMouseEvent<HTMLElement>) => {
+      if (event.detail >= 2) {
+        // Double-click detected via click with detail >= 2; delegate to surprised.
+        triggerSurprised();
+        return;
+      }
       clearTimer("happy");
       clearTimer("tilt");
       setState({ kind: "happy" });
@@ -102,12 +134,19 @@ export function useInteractionState(): UseInteractionStateResult {
         setState({ kind: "idle" });
       }, HAPPY_DURATION_MS);
     },
-    [clearTimer, notifyActivity],
+    [clearTimer, notifyActivity, triggerSurprised],
+  );
+
+  const onDoubleClick = useCallback(
+    (_event: ReactMouseEvent<HTMLElement>) => {
+      triggerSurprised();
+    },
+    [triggerSurprised],
   );
 
   return {
     state,
-    handlers: { onPointerEnter, onPointerMove, onPointerLeave, onClick },
+    handlers: { onPointerEnter, onPointerMove, onPointerLeave, onClick, onDoubleClick },
     notifyActivity,
     lastActivityAtMs,
   };

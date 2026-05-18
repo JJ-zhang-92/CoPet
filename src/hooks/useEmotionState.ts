@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 
-import type { AgentState, EmotionState } from "../lib/petAnimation";
+import type { AgentState, EmotionState, InputState } from "../lib/petAnimation";
 
 const SPARKLE_DURATION_MS = 600;
 const SMOKE_DURATION_MS = 800;
+const QUESTION_MARK_DURATION_MS = 800;
 
-export function useEmotionState(agent: AgentState): EmotionState {
+export function useEmotionState(agent: AgentState, input: InputState): EmotionState {
   const [state, setState] = useState<EmotionState>({ kind: "none" });
-  const previousKindRef = useRef<AgentState["kind"]>(agent.kind);
+  const previousAgentKindRef = useRef<AgentState["kind"]>(agent.kind);
+  const previousInputKindRef = useRef<InputState["kind"]>(input.kind);
   const timerRef = useRef<number | null>(null);
+  const emotionStateRef = useRef<EmotionState>({ kind: "none" });
 
   useEffect(() => {
     const clearTimer = () => {
@@ -18,8 +21,8 @@ export function useEmotionState(agent: AgentState): EmotionState {
       }
     };
 
-    const previousKind = previousKindRef.current;
-    previousKindRef.current = agent.kind;
+    const previousKind = previousAgentKindRef.current;
+    previousAgentKindRef.current = agent.kind;
 
     if (agent.kind === "thinking") {
       clearTimer();
@@ -53,6 +56,39 @@ export function useEmotionState(agent: AgentState): EmotionState {
       setState((current) => (current.kind === "loadingBubble" ? { kind: "none" } : current));
     }
   }, [agent.kind]);
+
+  // Keep emotionStateRef in sync so the input effect can read the latest
+  // emotion state without adding `state` to its dependency array.
+  useEffect(() => {
+    emotionStateRef.current = state;
+  }, [state]);
+
+  useEffect(() => {
+    const clearTimer = () => {
+      if (timerRef.current !== null) {
+        window.clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
+    };
+
+    const previousInputKind = previousInputKindRef.current;
+    previousInputKindRef.current = input.kind;
+
+    if (input.kind === "surprised" && previousInputKind !== "surprised") {
+      // Do not preempt a persistent agent overlay (loadingBubble).
+      // Transient overlays (sparkle, smoke) will time out on their own; replacing
+      // them with questionMark for a brief interaction acknowledgment is OK.
+      if (emotionStateRef.current.kind === "loadingBubble") {
+        return;
+      }
+      clearTimer();
+      setState({ kind: "questionMark" });
+      timerRef.current = window.setTimeout(() => {
+        timerRef.current = null;
+        setState({ kind: "none" });
+      }, QUESTION_MARK_DURATION_MS);
+    }
+  }, [input.kind]);
 
   useEffect(() => {
     return () => {

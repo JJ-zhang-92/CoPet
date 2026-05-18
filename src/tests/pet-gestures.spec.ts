@@ -114,3 +114,72 @@ test("dragging the pet sprite triggers directional running and dragging flag", a
   });
   await expect(spriteFrame).toHaveAttribute("data-dragging", "false");
 });
+
+test("double-clicking the pet triggers surprised + questionMark overlay", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const sprite = page.locator(".pet-sprite");
+
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 2 });
+  await expect(sprite).toHaveAttribute("data-pet-state", "waving");
+  await expect(spriteFrame).toHaveAttribute("data-emotion", "question-mark");
+});
+
+test("double-click while agent is thinking does not dismiss the loading bubble", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const sprite = page.locator(".pet-sprite");
+
+  // Wait for the initial render to settle.
+  await expect(sprite).toHaveAttribute("data-pet-state", "idle");
+
+  // Drive the agent into "thinking" state via the existing emitRuntimeUpdate helper.
+  await harness.emitRuntimeUpdate(page, {
+    currentState: { state: "jumping" },
+    messages: [
+      { agent: "claude", displayName: "Claude", text: "thinking", updatedAtMs: 1000 },
+    ],
+  });
+  await page.waitForTimeout(100);
+  await expect(spriteFrame).toHaveAttribute("data-emotion", "loading-bubble");
+
+  // Simulate a double-click (detail=2). Even though the input transitions to
+  // surprised, the emotion overlay must remain loadingBubble.
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 2 });
+  await page.waitForTimeout(1000);
+  await expect(spriteFrame).toHaveAttribute("data-emotion", "loading-bubble");
+});
+
+test("double-click no longer opens settings window", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+
+  const before = harness.calls.filter((c) => c.command === "open_settings_window").length;
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 2 });
+  await page.waitForTimeout(200);
+  const after = harness.calls.filter((c) => c.command === "open_settings_window").length;
+  expect(after - before).toBe(0);
+});

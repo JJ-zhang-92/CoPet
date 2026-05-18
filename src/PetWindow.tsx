@@ -1,10 +1,8 @@
-import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { X } from "lucide-react";
 import type {
   CSSProperties,
-  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
@@ -155,22 +153,7 @@ export function PetWindow() {
     };
   }, []);
 
-  const openSettingsWindow = () => {
-    void invoke("open_settings_window");
-  };
-
-  const handleDoubleClick = (event: ReactMouseEvent<HTMLElement>) => {
-    if (event.button !== 0) {
-      return;
-    }
-    openSettingsWindow();
-  };
-
   const handlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button === 0 && event.detail >= 2) {
-      openSettingsWindow();
-      return;
-    }
     motionHandlers.onPointerDown(event);
   };
 
@@ -189,7 +172,6 @@ export function PetWindow() {
       className="pet-window"
       data-tauri-drag-region
       onPointerDown={handlePointerDown}
-      onDoubleClick={handleDoubleClick}
     >
       <div
         className="pet-window-stack"

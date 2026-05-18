@@ -28,7 +28,7 @@ export function useLayeredPetState(): UseLayeredPetStateResult {
   const agent = useAgentState({ petState, agentMessages });
   const input = useInteractionState();
   const motion = useMotionState();
-  const emotion = useEmotionState(agent);
+  const emotion = useEmotionState(agent, input.state as InputState);
 
   const agentActivityRef = useRef(Date.now());
   if (agent.kind !== "none") {

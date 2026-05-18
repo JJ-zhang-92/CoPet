@@ -34,9 +34,6 @@ export function useMotionState(): UseMotionStateResult {
       if (event.button !== 0) {
         return;
       }
-      if (event.detail >= 2) {
-        return; // double-click is reserved for opening settings on the window
-      }
       dragPointerRef.current = { lastClientX: event.clientX };
       nativeDragRef.current = { lastX: null };
       setState({ kind: "dragging", direction: "still" });
