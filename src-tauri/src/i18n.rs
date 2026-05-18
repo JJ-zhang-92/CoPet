@@ -47,6 +47,16 @@ pub enum MessageKey {
     TraySettings,
     TrayQuit,
     SettingsWindowNotFound,
+    TrayShowPet,
+    TrayHidePet,
+    TrayPauseResponse,
+    TrayResumeResponse,
+    TrayResetPosition,
+    TrayLanguageMenu,
+    TrayLanguageSystem,
+    TrayLanguageEnglish,
+    TrayLanguageChinese,
+    TrayAbout,
 }
 
 pub fn default_locale() -> Locale {
@@ -81,13 +91,37 @@ where
 
 pub fn t(locale: Locale, key: MessageKey) -> &'static str {
     match (locale, key) {
+        // Existing
         (Locale::EnUs, MessageKey::TrayBrand) => "PetHover",
-        (Locale::EnUs, MessageKey::TraySettings) => "Settings",
+        (Locale::EnUs, MessageKey::TraySettings) => "Settings…",
         (Locale::EnUs, MessageKey::TrayQuit) => "Quit",
         (Locale::EnUs, MessageKey::SettingsWindowNotFound) => "settings window was not found",
         (Locale::ZhCn, MessageKey::TrayBrand) => "PetHover",
-        (Locale::ZhCn, MessageKey::TraySettings) => "设置中心",
+        (Locale::ZhCn, MessageKey::TraySettings) => "偏好设置…",
         (Locale::ZhCn, MessageKey::TrayQuit) => "退出应用",
         (Locale::ZhCn, MessageKey::SettingsWindowNotFound) => "未找到设置窗口",
+        // New: Pet lifecycle
+        (Locale::EnUs, MessageKey::TrayShowPet) => "Show Pet",
+        (Locale::EnUs, MessageKey::TrayHidePet) => "Hide Pet",
+        (Locale::EnUs, MessageKey::TrayPauseResponse) => "Pause Reactions",
+        (Locale::EnUs, MessageKey::TrayResumeResponse) => "Resume Reactions",
+        (Locale::EnUs, MessageKey::TrayResetPosition) => "Reset Pet Position",
+        (Locale::ZhCn, MessageKey::TrayShowPet) => "显示宠物",
+        (Locale::ZhCn, MessageKey::TrayHidePet) => "隐藏宠物",
+        (Locale::ZhCn, MessageKey::TrayPauseResponse) => "暂停响应",
+        (Locale::ZhCn, MessageKey::TrayResumeResponse) => "恢复响应",
+        (Locale::ZhCn, MessageKey::TrayResetPosition) => "重置宠物位置",
+        // New: Language submenu
+        (Locale::EnUs, MessageKey::TrayLanguageMenu) => "Language",
+        (Locale::EnUs, MessageKey::TrayLanguageSystem) => "System Default",
+        (Locale::EnUs, MessageKey::TrayLanguageEnglish) => "English",
+        (Locale::EnUs, MessageKey::TrayLanguageChinese) => "中文",
+        (Locale::ZhCn, MessageKey::TrayLanguageMenu) => "语言",
+        (Locale::ZhCn, MessageKey::TrayLanguageSystem) => "跟随系统",
+        (Locale::ZhCn, MessageKey::TrayLanguageEnglish) => "English",
+        (Locale::ZhCn, MessageKey::TrayLanguageChinese) => "中文",
+        // New: About
+        (Locale::EnUs, MessageKey::TrayAbout) => "About…",
+        (Locale::ZhCn, MessageKey::TrayAbout) => "关于…",
     }
 }
