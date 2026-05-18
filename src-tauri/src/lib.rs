@@ -226,13 +226,7 @@ fn handle_set_locale(app: &AppHandle, preference: LocalePreference) -> Result<()
 }
 
 fn handle_open_about(app: &AppHandle) -> Result<(), String> {
-    show_settings_window(app)?;
-    app.emit_to(
-        EventTarget::webview_window("settings"),
-        "pethover-navigate-to-section",
-        "about",
-    )
-    .map_err(|error| error.to_string())
+    open_about_section(app.clone())
 }
 
 #[tauri::command]
