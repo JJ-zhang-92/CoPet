@@ -1,5 +1,7 @@
 use std::path::{Path, PathBuf};
 
+use toml_edit::{value, DocumentMut, Item, Table};
+
 use super::super::{
     install_json_hooks, json_config_has_pethover_hook, remove_json_hooks, write_atomic,
     AdapterError, AgentManager, CliAdapter, HookEvent,
@@ -69,7 +71,9 @@ impl CliAdapter for CodexCliAdapter {
             EVENTS,
             1,
         )?;
-        ensure_codex_hooks_feature(manager.home())
+        update_codex_config_toml(manager.home(), |document| {
+            set_features_hooks_true(document);
+        })
     }
 
     fn uninstall(&self, manager: &AgentManager) -> Result<(), AdapterError> {
@@ -85,88 +89,43 @@ fn codex_config_path(home: &Path) -> PathBuf {
     home.join(".codex").join("config.toml")
 }
 
-fn ensure_codex_hooks_feature(home: &Path) -> Result<(), AdapterError> {
+/// Read ~/.codex/config.toml, let `update` mutate the parsed document,
+/// write atomically only if the serialized output differs.
+fn update_codex_config_toml<F>(home: &Path, update: F) -> Result<(), AdapterError>
+where
+    F: FnOnce(&mut DocumentMut),
+{
     let path = codex_config_path(home);
     let content = match std::fs::read_to_string(&path) {
         Ok(content) => content,
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => String::new(),
         Err(error) => return Err(error.into()),
     };
-    let next = set_codex_hooks_feature(&content);
+    let mut document = if content.is_empty() {
+        DocumentMut::new()
+    } else {
+        content
+            .parse::<DocumentMut>()
+            .map_err(|_| AdapterError::InvalidJson(path.clone()))?
+    };
+    update(&mut document);
+    let next = document.to_string();
     if next != content {
         write_atomic(&path, next.as_bytes())?;
     }
     Ok(())
 }
 
-fn set_codex_hooks_feature(content: &str) -> String {
-    let mut lines = content.lines().map(ToString::to_string).collect::<Vec<_>>();
-    let had_trailing_newline = content.ends_with('\n');
-    let mut features_header = None;
-    let mut features_end = lines.len();
-
-    for (index, line) in lines.iter().enumerate() {
-        let trimmed = line.trim();
-        if is_toml_table(trimmed) {
-            if features_header.is_some() {
-                features_end = index;
-                break;
-            }
-            if trimmed == "[features]" {
-                features_header = Some(index);
-            }
-        }
+/// Set [features].hooks = true, creating the table if needed. Also normalize
+/// any legacy `codex_hooks` key by leaving it true (parity with previous impl).
+fn set_features_hooks_true(document: &mut DocumentMut) {
+    let features = document
+        .entry("features")
+        .or_insert_with(|| Item::Table(Table::new()))
+        .as_table_mut()
+        .expect("[features] must be a TOML table");
+    features.insert("hooks", value(true));
+    if features.contains_key("codex_hooks") {
+        features.insert("codex_hooks", value(true));
     }
-
-    if let Some(header) = features_header {
-        let mut has_hooks = false;
-        for line in lines.iter_mut().take(features_end).skip(header + 1) {
-            match toml_key(line) {
-                Some("hooks") => {
-                    *line = "hooks = true".to_string();
-                    has_hooks = true;
-                }
-                Some("codex_hooks") => {
-                    // Keep old configs unambiguous while writing the canonical key below.
-                    *line = "codex_hooks = true".to_string();
-                }
-                _ => {}
-            }
-        }
-        if has_hooks {
-            return finish_toml(lines, had_trailing_newline);
-        }
-        lines.insert(header + 1, "hooks = true".to_string());
-        return finish_toml(lines, had_trailing_newline);
-    }
-
-    if !lines.is_empty() && lines.last().is_some_and(|line| !line.is_empty()) {
-        lines.push(String::new());
-    }
-    lines.push("[features]".to_string());
-    lines.push("hooks = true".to_string());
-    finish_toml(lines, true)
-}
-
-fn is_toml_table(trimmed: &str) -> bool {
-    trimmed.starts_with('[') && trimmed.ends_with(']')
-}
-
-fn toml_key(line: &str) -> Option<&str> {
-    let trimmed = line.trim_start();
-    if trimmed.starts_with('#') {
-        return None;
-    }
-    trimmed
-        .split_once('=')
-        .map(|(key, _)| key.trim())
-        .filter(|key| !key.is_empty())
-}
-
-fn finish_toml(lines: Vec<String>, trailing_newline: bool) -> String {
-    let mut content = lines.join("\n");
-    if trailing_newline && !content.ends_with('\n') {
-        content.push('\n');
-    }
-    content
 }

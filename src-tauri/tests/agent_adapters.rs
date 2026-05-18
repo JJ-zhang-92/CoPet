@@ -98,9 +98,21 @@ fn codex_install_omits_notification_event_unknown_to_codex() {
     manager.install("codex").unwrap();
     let hooks = fs::read_to_string(home.join(".codex/hooks.json")).unwrap();
 
-    assert!(!hooks.contains("\"Notification\""), "Codex does not recognize Notification; hooks.json must omit it: {hooks}");
-    for event in ["UserPromptSubmit", "PreToolUse", "PostToolUse", "PermissionRequest", "Stop"] {
-        assert!(hooks.contains(&format!("\"{event}\"")), "missing expected event {event}: {hooks}");
+    assert!(
+        !hooks.contains("\"Notification\""),
+        "Codex does not recognize Notification; hooks.json must omit it: {hooks}"
+    );
+    for event in [
+        "UserPromptSubmit",
+        "PreToolUse",
+        "PostToolUse",
+        "PermissionRequest",
+        "Stop",
+    ] {
+        assert!(
+            hooks.contains(&format!("\"{event}\"")),
+            "missing expected event {event}: {hooks}"
+        );
     }
 }
 
@@ -657,6 +669,53 @@ fn manager_with_fake_agents(root: impl Into<PathBuf>, home: impl Into<PathBuf>) 
         }
     }
     AgentManager::new_with_executable_search_paths(root, home, vec![bin])
+}
+
+#[test]
+fn codex_install_preserves_user_comments_and_unrelated_keys_in_config_toml() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".pethover");
+    let config = home.join(".codex/config.toml");
+    fs::create_dir_all(config.parent().unwrap()).unwrap();
+    fs::write(
+        &config,
+        "# user comment line one\n\
+         model = \"gpt-5.1-codex\"  # inline comment\n\
+         \n\
+         [profiles.default]\n\
+         approval_policy = \"on-request\"\n",
+    )
+    .unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("codex").unwrap();
+    let after = fs::read_to_string(&config).unwrap();
+
+    assert!(
+        after.contains("# user comment line one"),
+        "leading comment lost: {after}"
+    );
+    assert!(
+        after.contains("# inline comment"),
+        "inline comment lost: {after}"
+    );
+    assert!(
+        after.contains("model = \"gpt-5.1-codex\""),
+        "model line lost: {after}"
+    );
+    assert!(
+        after.contains("[profiles.default]"),
+        "profile table lost: {after}"
+    );
+    assert!(
+        after.contains("approval_policy = \"on-request\""),
+        "profile field lost: {after}"
+    );
+    assert!(
+        after.contains("hooks = true"),
+        "[features] hooks=true not written: {after}"
+    );
 }
 
 fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
