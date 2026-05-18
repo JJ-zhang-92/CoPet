@@ -33,6 +33,8 @@ export type EmotionState =
   | { kind: "heart" }
   | { kind: "questionMark" };
 
+// "still" is reserved for the drag-land transition introduced in Task 7;
+// "anchored" represents the resting state before any drag.
 export type MotionState =
   | { kind: "anchored" }
   | { kind: "dragging"; direction: "left" | "right" | "still" };

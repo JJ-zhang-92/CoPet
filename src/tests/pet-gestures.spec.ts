@@ -93,13 +93,15 @@ test("dragging the pet sprite triggers directional running and dragging flag", a
     pointerType: "mouse",
     detail: 1,
   });
-  await expect(spriteFrame).toHaveAttribute("data-dragging", "true");
+  // data-dragging stays false until actual movement (matches user-visible semantic)
+  await expect(spriteFrame).toHaveAttribute("data-dragging", "false");
 
   await page.evaluate(() => {
     window.dispatchEvent(
       new PointerEvent("pointermove", { clientX: 90, clientY: 50, pointerId: 1 } as PointerEventInit),
     );
   });
+  await expect(spriteFrame).toHaveAttribute("data-dragging", "true");
   await expect(sprite).toHaveAttribute("data-pet-state", "running-right");
 
   await page.evaluate(() => {
@@ -182,4 +184,35 @@ test("double-click no longer opens settings window", async ({ browser }) => {
   await page.waitForTimeout(200);
   const after = harness.calls.filter((c) => c.command === "open_settings_window").length;
   expect(after - before).toBe(0);
+});
+
+test("long-press (>800ms hold without movement) triggers pettedSlow + heart", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const sprite = page.locator(".pet-sprite");
+
+  await spriteFrame.dispatchEvent("pointerdown", {
+    button: 0,
+    clientX: 50,
+    clientY: 50,
+    pointerId: 1,
+    pointerType: "mouse",
+    isPrimary: true,
+    detail: 1,
+  });
+
+  await page.waitForTimeout(900);
+  await expect(sprite).toHaveAttribute("data-pet-state", "waiting");
+  await expect(spriteFrame).toHaveAttribute("data-emotion", "heart");
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new PointerEvent("pointerup", { pointerId: 1 } as PointerEventInit));
+  });
 });

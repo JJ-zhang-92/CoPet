@@ -171,6 +171,12 @@ test("drag suppresses emotion overlay even during agent thinking", async ({ brow
     pointerType: "mouse",
     detail: 1,
   });
+  // Dragging only begins after actual pointer movement (not on pointerdown alone)
+  await page.evaluate(() => {
+    window.dispatchEvent(
+      new PointerEvent("pointermove", { clientX: 90, clientY: 50, pointerId: 1 } as PointerEventInit),
+    );
+  });
   await expect(frame).toHaveAttribute("data-dragging", "true");
   await expect(frame).toHaveAttribute("data-emotion", "");
 

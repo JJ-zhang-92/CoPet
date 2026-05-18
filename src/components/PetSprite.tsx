@@ -1,5 +1,5 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
-import type { CSSProperties } from "react";
+import type { CSSProperties, PointerEvent as ReactPointerEvent } from "react";
 
 import type { PetStateId, PetSummary } from "../lib/appTypes";
 import type { ComposedView } from "../lib/petAnimation";
@@ -32,7 +32,13 @@ export function PetSprite({
   const handlePointerLeave = inputHandlers?.onPointerLeave;
   const handleClick = inputHandlers?.onClick;
   const handleDoubleClick = inputHandlers?.onDoubleClick;
-  const handlePointerDown = motionHandlers?.onPointerDown;
+
+  // Run input first so the long-press position ref is set before motion's
+  // OS-level startDragging() consumes the pointer.
+  const handlePointerDown = (event: ReactPointerEvent<HTMLElement>) => {
+    inputHandlers?.onPointerDownHold?.(event);
+    motionHandlers?.onPointerDown?.(event);
+  };
 
   return (
     <div

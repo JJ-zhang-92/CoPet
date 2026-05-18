@@ -36,7 +36,6 @@ export function useMotionState(): UseMotionStateResult {
       }
       dragPointerRef.current = { lastClientX: event.clientX };
       nativeDragRef.current = { lastX: null };
-      setState({ kind: "dragging", direction: "still" });
       notifyActivity();
       void getCurrentWebviewWindow().startDragging();
     },

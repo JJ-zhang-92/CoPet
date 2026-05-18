@@ -8,6 +8,9 @@ const LOOK_RESET_MS = 400;
 const TILT_AFTER_HOVER_MS = 1_000;
 const SURPRISED_DURATION_MS = 800;
 const SURPRISED_DEDUPE_WINDOW_MS = 250;
+const LONG_PRESS_THRESHOLD_MS = 800;
+const PETTED_SLOW_DURATION_MS = 1500;
+const LONG_PRESS_MOVE_CANCEL_PX = 5;
 
 export type InteractionHandlers = {
   onPointerEnter: (event: ReactPointerEvent<HTMLElement>) => void;
@@ -15,6 +18,7 @@ export type InteractionHandlers = {
   onPointerLeave: (event: ReactPointerEvent<HTMLElement>) => void;
   onClick: (event: ReactMouseEvent<HTMLElement>) => void;
   onDoubleClick: (event: ReactMouseEvent<HTMLElement>) => void;
+  onPointerDownHold: (event: ReactPointerEvent<HTMLElement>) => void;
 };
 
 export type UseInteractionStateResult = {
@@ -32,15 +36,20 @@ export function useInteractionState(): UseInteractionStateResult {
     happy: number | null;
     tilt: number | null;
     surprised: number | null;
+    longPress: number | null;
+    pettedSlow: number | null;
   }>({
     look: null,
     happy: null,
     tilt: null,
     surprised: null,
+    longPress: null,
+    pettedSlow: null,
   });
   const surprisedLastFiredRef = useRef(0);
+  const pointerDownPosRef = useRef<{ x: number; y: number } | null>(null);
 
-  const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised") => {
+  const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised" | "longPress" | "pettedSlow") => {
     const id = timersRef.current[key];
     if (id !== null) {
       window.clearTimeout(id);
@@ -53,6 +62,8 @@ export function useInteractionState(): UseInteractionStateResult {
     clearTimer("happy");
     clearTimer("tilt");
     clearTimer("surprised");
+    clearTimer("longPress");
+    clearTimer("pettedSlow");
   }, [clearTimer]);
 
   useEffect(() => clearAllTimers, [clearAllTimers]);
@@ -144,9 +155,61 @@ export function useInteractionState(): UseInteractionStateResult {
     [triggerSurprised],
   );
 
+  const onPointerDownHold = useCallback(
+    (event: ReactPointerEvent<HTMLElement>) => {
+      if (event.button !== 0) return;
+      clearTimer("longPress");
+      pointerDownPosRef.current = { x: event.clientX, y: event.clientY };
+      timersRef.current.longPress = window.setTimeout(() => {
+        timersRef.current.longPress = null;
+        pointerDownPosRef.current = null;
+        clearTimer("pettedSlow");
+        setState({ kind: "pettedSlow" });
+        notifyActivity();
+        timersRef.current.pettedSlow = window.setTimeout(() => {
+          timersRef.current.pettedSlow = null;
+          setState({ kind: "idle" });
+        }, PETTED_SLOW_DURATION_MS);
+      }, LONG_PRESS_THRESHOLD_MS);
+    },
+    [clearTimer, notifyActivity],
+  );
+
+  useEffect(() => {
+    const onMove = (event: PointerEvent) => {
+      const start = pointerDownPosRef.current;
+      if (!start) return;
+      const dx = event.clientX - start.x;
+      const dy = event.clientY - start.y;
+      if (Math.hypot(dx, dy) > LONG_PRESS_MOVE_CANCEL_PX) {
+        clearTimer("longPress");
+        pointerDownPosRef.current = null;
+      }
+    };
+    const onUp = () => {
+      pointerDownPosRef.current = null;
+      clearTimer("longPress");
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+    return () => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+    };
+  }, [clearTimer]);
+
   return {
     state,
-    handlers: { onPointerEnter, onPointerMove, onPointerLeave, onClick, onDoubleClick },
+    handlers: {
+      onPointerEnter,
+      onPointerMove,
+      onPointerLeave,
+      onClick,
+      onDoubleClick,
+      onPointerDownHold,
+    },
     notifyActivity,
     lastActivityAtMs,
   };
