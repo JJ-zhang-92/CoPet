@@ -16,12 +16,12 @@ use config_store::{set_builtin_pets_dir, ConfigStore, PetImportResult};
 use i18n::{default_locale, t, Locale, LocalePreference, MessageKey};
 use pet_package::PetSummary;
 use runtime_server::{RuntimeManager, RuntimeSnapshot, RuntimeUpdate};
-use std::{io, path::PathBuf, process::Command};
+use std::path::PathBuf;
 use tauri::{
-    menu::{Menu, MenuItem, PredefinedMenuItem},
+    menu::{CheckMenuItem, Menu, MenuItem, PredefinedMenuItem, Submenu},
     path::BaseDirectory,
     tray::{TrayIcon, TrayIconBuilder},
-    AppHandle, Emitter, EventTarget, Manager, State,
+    AppHandle, Emitter, EventTarget, Manager, State, Wry,
 };
 #[cfg(target_os = "macos")]
 use tauri_nspanel::WebviewWindowExt;
@@ -55,10 +55,31 @@ fn resolve_builtin_pets_dir_from_handle(app: &AppHandle) -> Option<PathBuf> {
     let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets");
     dev_path.is_dir().then_some(dev_path)
 }
-const PROJECT_HOMEPAGE_URL: &str = "https://github.com/ChanceYu/pethover";
-const TRAY_MENU_BRAND_ID: &str = "brand-homepage";
-const TRAY_MENU_SETTINGS_ID: &str = "settings-center";
+const TRAY_MENU_BRAND_HEADER_ID: &str = "brand-header";
+const TRAY_MENU_VISIBILITY_ID: &str = "toggle-visibility";
+const TRAY_MENU_PAUSE_ID: &str = "toggle-pause";
+const TRAY_MENU_RESET_POSITION_ID: &str = "reset-pet-position";
+const TRAY_MENU_PREFERENCES_ID: &str = "open-preferences";
+const TRAY_MENU_LANGUAGE_SUBMENU_ID: &str = "language-submenu";
+const TRAY_MENU_LANG_SYSTEM_ID: &str = "lang-system";
+const TRAY_MENU_LANG_EN_ID: &str = "lang-en-us";
+const TRAY_MENU_LANG_ZH_ID: &str = "lang-zh-cn";
+const TRAY_MENU_ABOUT_ID: &str = "open-about";
 const TRAY_MENU_QUIT_ID: &str = "quit-app";
+
+struct TrayMenuHandles {
+    brand: MenuItem<Wry>,
+    visibility: MenuItem<Wry>,
+    pause: MenuItem<Wry>,
+    reset_position: MenuItem<Wry>,
+    preferences: MenuItem<Wry>,
+    language_menu: Submenu<Wry>,
+    language_system: CheckMenuItem<Wry>,
+    language_en: CheckMenuItem<Wry>,
+    language_zh: CheckMenuItem<Wry>,
+    about: MenuItem<Wry>,
+    quit: MenuItem<Wry>,
+}
 
 fn current_locale() -> Locale {
     ConfigStore::from_home()
@@ -121,11 +142,125 @@ fn set_locale_preference(
         .and_then(|store| store.set_locale_preference(locale_preference))
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
+    refresh_tray_menu(&app, &state);
     Ok(state)
 }
 
-// Temporary stub — replaced by the real implementation in the tray-menu refactor task.
-fn refresh_tray_menu(_app: &AppHandle, _state: &AppState) {}
+fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
+    let Some(handles) = app.try_state::<TrayMenuHandles>() else {
+        return;
+    };
+    let locale = state.locale_preference.effective_locale(default_locale());
+    let pet_visible = app
+        .get_webview_window("pet")
+        .and_then(|window| window.is_visible().ok())
+        .unwrap_or(true);
+
+    let _ = handles.brand.set_text(format!(
+        "{} · v{}",
+        t(locale, MessageKey::TrayBrand),
+        env!("CARGO_PKG_VERSION")
+    ));
+    let _ = handles.visibility.set_text(t(
+        locale,
+        if pet_visible {
+            MessageKey::TrayHidePet
+        } else {
+            MessageKey::TrayShowPet
+        },
+    ));
+    let _ = handles.pause.set_text(t(
+        locale,
+        if state.response_paused {
+            MessageKey::TrayResumeResponse
+        } else {
+            MessageKey::TrayPauseResponse
+        },
+    ));
+    let _ = handles
+        .reset_position
+        .set_text(t(locale, MessageKey::TrayResetPosition));
+    let _ = handles
+        .preferences
+        .set_text(t(locale, MessageKey::TraySettings));
+    let _ = handles
+        .language_menu
+        .set_text(t(locale, MessageKey::TrayLanguageMenu));
+    let _ = handles
+        .language_system
+        .set_text(t(locale, MessageKey::TrayLanguageSystem));
+    let _ = handles
+        .language_en
+        .set_text(t(locale, MessageKey::TrayLanguageEnglish));
+    let _ = handles
+        .language_zh
+        .set_text(t(locale, MessageKey::TrayLanguageChinese));
+    let _ = handles.about.set_text(t(locale, MessageKey::TrayAbout));
+    let _ = handles.quit.set_text(t(locale, MessageKey::TrayQuit));
+
+    let pref = state.locale_preference;
+    let _ = handles
+        .language_system
+        .set_checked(matches!(pref, LocalePreference::System));
+    let _ = handles
+        .language_en
+        .set_checked(matches!(pref, LocalePreference::EnUs));
+    let _ = handles
+        .language_zh
+        .set_checked(matches!(pref, LocalePreference::ZhCn));
+}
+
+fn handle_toggle_visibility(app: &AppHandle) -> Result<(), String> {
+    let Some(window) = app.get_webview_window("pet") else {
+        return Err("pet window was not found".to_string());
+    };
+    let visible = window.is_visible().map_err(|error| error.to_string())?;
+    if visible {
+        window.hide().map_err(|error| error.to_string())?;
+    } else {
+        window.show().map_err(|error| error.to_string())?;
+        schedule_pet_window_z_order_reassertions(app);
+    }
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.app_state())
+        .map_err(localize_store_error)?;
+    refresh_tray_menu(app, &state);
+    Ok(())
+}
+
+fn handle_toggle_pause(app: &AppHandle) -> Result<(), String> {
+    let store = ConfigStore::from_home().map_err(localize_store_error)?;
+    let current = store.app_state().map_err(localize_store_error)?;
+    let new_state = store
+        .set_response_paused(!current.response_paused)
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(app, &new_state)?;
+    refresh_tray_menu(app, &new_state);
+    Ok(())
+}
+
+fn handle_reset_position(app: &AppHandle) -> Result<(), String> {
+    commands::reset_pet_window_position(app.clone())
+}
+
+fn handle_set_locale(app: &AppHandle, preference: LocalePreference) -> Result<(), String> {
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.set_locale_preference(preference))
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(app, &state)?;
+    refresh_tray_menu(app, &state);
+    Ok(())
+}
+
+fn handle_open_about(app: &AppHandle) -> Result<(), String> {
+    show_settings_window(app)?;
+    app.emit_to(
+        EventTarget::webview_window("settings"),
+        "pethover-navigate-to-section",
+        "about",
+    )
+    .map_err(|error| error.to_string())
+}
 
 #[tauri::command]
 fn set_response_paused(app: tauri::AppHandle, paused: bool) -> Result<AppState, String> {
@@ -291,46 +426,90 @@ fn open_settings_window(app: tauri::AppHandle) -> Result<(), String> {
     show_settings_window(&app)
 }
 
-fn open_project_homepage() -> io::Result<()> {
-    open_url_in_default_browser(PROJECT_HOMEPAGE_URL)
-}
-
-#[cfg(target_os = "macos")]
-fn open_url_in_default_browser(url: &str) -> io::Result<()> {
-    Command::new("open").arg(url).spawn().map(|_| ())
-}
-
-#[cfg(target_os = "windows")]
-fn open_url_in_default_browser(url: &str) -> io::Result<()> {
-    Command::new("cmd")
-        .args(["/C", "start", "", url])
-        .spawn()
-        .map(|_| ())
-}
-
-#[cfg(all(not(target_os = "macos"), not(target_os = "windows")))]
-fn open_url_in_default_browser(url: &str) -> io::Result<()> {
-    Command::new("xdg-open").arg(url).spawn().map(|_| ())
-}
-
 fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
     let locale = current_locale();
+
+    let brand_text = format!(
+        "{} · v{}",
+        t(locale, MessageKey::TrayBrand),
+        env!("CARGO_PKG_VERSION")
+    );
+    // Brand header: disabled so it can't be clicked, just shows app name + version.
     let brand = MenuItem::with_id(
         app,
-        TRAY_MENU_BRAND_ID,
-        t(locale, MessageKey::TrayBrand),
+        TRAY_MENU_BRAND_HEADER_ID,
+        brand_text,
+        false,
+        None::<&str>,
+    )?;
+    let visibility = MenuItem::with_id(
+        app,
+        TRAY_MENU_VISIBILITY_ID,
+        t(locale, MessageKey::TrayHidePet),
         true,
         None::<&str>,
     )?;
-    let brand_separator = PredefinedMenuItem::separator(app)?;
-    let settings = MenuItem::with_id(
+    let pause = MenuItem::with_id(
         app,
-        TRAY_MENU_SETTINGS_ID,
+        TRAY_MENU_PAUSE_ID,
+        t(locale, MessageKey::TrayPauseResponse),
+        true,
+        None::<&str>,
+    )?;
+    let reset_position = MenuItem::with_id(
+        app,
+        TRAY_MENU_RESET_POSITION_ID,
+        t(locale, MessageKey::TrayResetPosition),
+        true,
+        None::<&str>,
+    )?;
+    let preferences = MenuItem::with_id(
+        app,
+        TRAY_MENU_PREFERENCES_ID,
         t(locale, MessageKey::TraySettings),
         true,
         None::<&str>,
     )?;
-    let separator = PredefinedMenuItem::separator(app)?;
+    let language_system = CheckMenuItem::with_id(
+        app,
+        TRAY_MENU_LANG_SYSTEM_ID,
+        t(locale, MessageKey::TrayLanguageSystem),
+        true,
+        false,
+        None::<&str>,
+    )?;
+    let language_en = CheckMenuItem::with_id(
+        app,
+        TRAY_MENU_LANG_EN_ID,
+        t(locale, MessageKey::TrayLanguageEnglish),
+        true,
+        false,
+        None::<&str>,
+    )?;
+    let language_zh = CheckMenuItem::with_id(
+        app,
+        TRAY_MENU_LANG_ZH_ID,
+        t(locale, MessageKey::TrayLanguageChinese),
+        true,
+        false,
+        None::<&str>,
+    )?;
+    let language_menu = Submenu::with_id(
+        app,
+        TRAY_MENU_LANGUAGE_SUBMENU_ID,
+        t(locale, MessageKey::TrayLanguageMenu),
+        true,
+    )?;
+    language_menu.append(&language_system)?;
+    language_menu.append(&language_en)?;
+    language_menu.append(&language_zh)?;
+    let about = MenuItem::with_id(
+        app,
+        TRAY_MENU_ABOUT_ID,
+        t(locale, MessageKey::TrayAbout),
+        true,
+        None::<&str>,
+    )?;
     let quit = MenuItem::with_id(
         app,
         TRAY_MENU_QUIT_ID,
@@ -338,13 +517,28 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
+    let separator_after_brand = PredefinedMenuItem::separator(app)?;
+    let separator_after_reset = PredefinedMenuItem::separator(app)?;
+    let separator_before_quit = PredefinedMenuItem::separator(app)?;
+
     let menu = Menu::with_items(
         app,
-        &[&brand, &brand_separator, &settings, &separator, &quit],
+        &[
+            &brand,
+            &separator_after_brand,
+            &visibility,
+            &pause,
+            &reset_position,
+            &separator_after_reset,
+            &preferences,
+            &language_menu,
+            &about,
+            &separator_before_quit,
+            &quit,
+        ],
     )?;
 
     let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
-
     let tray = TrayIconBuilder::with_id("pethover")
         .tooltip("PetHover")
         .icon(tray_icon)
@@ -352,17 +546,49 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         .menu(&menu)
         .show_menu_on_left_click(true)
         .on_menu_event(|app, event| match event.id().as_ref() {
-            TRAY_MENU_BRAND_ID => {
-                let _ = open_project_homepage();
+            TRAY_MENU_BRAND_HEADER_ID => { /* disabled, never fires */ }
+            TRAY_MENU_VISIBILITY_ID => {
+                let _ = handle_toggle_visibility(app);
             }
-            TRAY_MENU_SETTINGS_ID => {
+            TRAY_MENU_PAUSE_ID => {
+                let _ = handle_toggle_pause(app);
+            }
+            TRAY_MENU_RESET_POSITION_ID => {
+                let _ = handle_reset_position(app);
+            }
+            TRAY_MENU_PREFERENCES_ID => {
                 let _ = show_settings_window(app);
+            }
+            TRAY_MENU_LANG_SYSTEM_ID => {
+                let _ = handle_set_locale(app, LocalePreference::System);
+            }
+            TRAY_MENU_LANG_EN_ID => {
+                let _ = handle_set_locale(app, LocalePreference::EnUs);
+            }
+            TRAY_MENU_LANG_ZH_ID => {
+                let _ = handle_set_locale(app, LocalePreference::ZhCn);
+            }
+            TRAY_MENU_ABOUT_ID => {
+                let _ = handle_open_about(app);
             }
             TRAY_MENU_QUIT_ID => app.exit(0),
             _ => {}
         })
         .build(app)?;
     app.manage::<TrayIcon>(tray);
+    app.manage::<TrayMenuHandles>(TrayMenuHandles {
+        brand,
+        visibility,
+        pause,
+        reset_position,
+        preferences,
+        language_menu,
+        language_system,
+        language_en,
+        language_zh,
+        about,
+        quit,
+    });
     Ok(())
 }
 
@@ -433,6 +659,8 @@ pub fn run() {
             }
             install_pet_window_z_order_guard(app.handle());
             schedule_pet_window_z_order_reassertions(app.handle());
+            let app_state = store.app_state()?;
+            refresh_tray_menu(&app.handle(), &app_state);
             Ok(())
         })
         .on_window_event(|window, event| {
