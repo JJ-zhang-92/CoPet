@@ -140,7 +140,7 @@ fn set_response_paused(app: tauri::AppHandle, paused: bool) -> Result<AppState, 
 #[tauri::command]
 fn toggle_pet_window_visibility(app: tauri::AppHandle) -> Result<bool, String> {
     let Some(window) = app.get_webview_window("pet") else {
-        return Err(t(current_locale(), MessageKey::SettingsWindowNotFound).to_string());
+        return Err("pet window was not found".to_string());
     };
     let visible = window.is_visible().map_err(|error| error.to_string())?;
     if visible {
@@ -153,11 +153,7 @@ fn toggle_pet_window_visibility(app: tauri::AppHandle) -> Result<bool, String> {
         .and_then(|store| store.app_state())
         .map_err(localize_store_error)?;
     refresh_tray_menu(&app, &state);
-    let new_visibility = app
-        .get_webview_window("pet")
-        .and_then(|w| w.is_visible().ok())
-        .unwrap_or(true);
-    Ok(new_visibility)
+    Ok(!visible)
 }
 
 #[tauri::command]
