@@ -771,6 +771,46 @@ fn regex_lite_match_sha256(line: &str) -> bool {
     hex.len() == 64 && hex.chars().all(|c| matches!(c, '0'..='9' | 'a'..='f'))
 }
 
+#[test]
+fn codex_uninstall_removes_only_pethover_trusted_hashes() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".pethover");
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("codex").unwrap();
+
+    // Inject an unrelated [hooks.state] entry the user might own.
+    let config_path = home.join(".codex/config.toml");
+    let mut config = fs::read_to_string(&config_path).unwrap();
+    config.push_str("\n[hooks.state.\"/elsewhere/hooks.json:pre_tool_use:0:0\"]\ntrusted_hash = \"sha256:deadbeef\"\n");
+    fs::write(&config_path, &config).unwrap();
+
+    manager.uninstall("codex").unwrap();
+    let after = fs::read_to_string(&config_path).unwrap();
+    let hooks_abs = home.join(".codex/hooks.json").display().to_string();
+
+    // PetHover's entries gone.
+    for event_label in [
+        "user_prompt_submit",
+        "pre_tool_use",
+        "post_tool_use",
+        "permission_request",
+        "stop",
+    ] {
+        let key = format!("[hooks.state.\"{hooks_abs}:{event_label}:0:0\"]");
+        assert!(
+            !after.contains(&key),
+            "PetHover trust entry survived uninstall: {key}\n{after}"
+        );
+    }
+    // User's entry survives.
+    assert!(
+        after.contains("/elsewhere/hooks.json:pre_tool_use:0:0"),
+        "unrelated [hooks.state] entry was wiped: {after}",
+    );
+}
+
 fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
     let _guard = OPENCODE_ENV_LOCK.lock().unwrap();
     let temp = tempfile::tempdir().unwrap();
@@ -802,5 +842,8 @@ fn codex_install_idempotent_trusted_hashes_stable_across_runs() {
     manager.install("codex").unwrap();
     let second = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
 
-    assert_eq!(first, second, "config.toml diverged between two consecutive installs");
+    assert_eq!(
+        first, second,
+        "config.toml diverged between two consecutive installs"
+    );
 }

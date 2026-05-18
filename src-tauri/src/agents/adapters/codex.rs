@@ -75,7 +75,12 @@ impl CliAdapter for CodexCliAdapter {
     }
 
     fn uninstall(&self, manager: &AgentManager) -> Result<(), AdapterError> {
-        remove_json_hooks(manager, self.id(), &self.config_path(manager.home()))
+        let hooks_path = self.config_path(manager.home());
+        remove_json_hooks(manager, self.id(), &hooks_path)?;
+        update_codex_config_toml(manager.home(), |document| {
+            remove_pethover_trusted_hashes(document, &hooks_path);
+            Ok(())
+        })
     }
 
     fn executable_names(&self) -> &'static [&'static str] {
@@ -324,4 +329,36 @@ fn apply_trusted_hashes(
         }
     }
     Ok(())
+}
+
+/// Drop every [hooks.state."<key>"] entry whose key starts with our hooks.json
+/// absolute path followed by `:`. Leaves unrelated user-owned state alone.
+fn remove_pethover_trusted_hashes(document: &mut DocumentMut, hooks_file_abs_path: &Path) {
+    let prefix = format!("{}:", hooks_file_abs_path.display());
+    let Some(hooks_item) = document.get_mut("hooks") else {
+        return;
+    };
+    let Some(hooks_table) = hooks_item.as_table_mut() else {
+        return;
+    };
+    let Some(state_item) = hooks_table.get_mut("state") else {
+        return;
+    };
+    let Some(state_table) = state_item.as_table_mut() else {
+        return;
+    };
+    let owned_keys: Vec<String> = state_table
+        .iter()
+        .filter_map(|(key, _)| key.starts_with(&prefix).then(|| key.to_string()))
+        .collect();
+    for key in owned_keys {
+        state_table.remove(&key);
+    }
+    // If [hooks.state] becomes empty, drop it; if [hooks] becomes empty too, drop it.
+    if state_table.is_empty() {
+        hooks_table.remove("state");
+    }
+    if hooks_table.is_empty() {
+        document.remove("hooks");
+    }
 }
