@@ -2,6 +2,7 @@ import type { PointerEvent as ReactPointerEvent, MouseEvent as ReactMouseEvent }
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import type { InputState } from "../lib/petAnimation";
+import { bumpCounter } from "../lib/petInteractionCounters";
 
 const HAPPY_DURATION_MS = 600;
 const LOOK_RESET_MS = 400;
@@ -175,6 +176,7 @@ export function useInteractionState(): UseInteractionStateResult {
         clickHistoryRef.current = [];
         if (isCoolingDown("doubleClick")) return;
         startCooldown("doubleClick");
+        bumpCounter("doubleClick");
         triggerSurprised();
         return;
       }
@@ -192,6 +194,7 @@ export function useInteractionState(): UseInteractionStateResult {
         clickHistoryRef.current = [];
         if (isCoolingDown("petted")) return;
         startCooldown("petted");
+        bumpCounter("petted");
         clearTimer("happy");
         clearTimer("petted");
         setState({ kind: "petted" });
@@ -205,6 +208,7 @@ export function useInteractionState(): UseInteractionStateResult {
 
       if (isCoolingDown("singleClick")) return;
       startCooldown("singleClick");
+      bumpCounter("click");
       clearTimer("happy");
       clearTimer("tilt");
       setState({ kind: "happy" });
@@ -217,10 +221,14 @@ export function useInteractionState(): UseInteractionStateResult {
     [clearTimer, isCoolingDown, notifyActivity, startCooldown, triggerSurprised],
   );
 
+  // Defensive: real browsers fire onClick(detail>=2) before this and the
+  // cooldown gate dedupes; test harnesses that dispatch only `dblclick`
+  // (or future synthetic events) still need a working counter path here.
   const onDoubleClick = useCallback(
     (_event: ReactMouseEvent<HTMLElement>) => {
       if (isCoolingDown("doubleClick")) return;
       startCooldown("doubleClick");
+      bumpCounter("doubleClick");
       triggerSurprised();
     },
     [isCoolingDown, startCooldown, triggerSurprised],
@@ -236,6 +244,7 @@ export function useInteractionState(): UseInteractionStateResult {
         pointerDownPosRef.current = null;
         if (isCoolingDown("pettedSlow")) return;
         startCooldown("pettedSlow");
+        bumpCounter("pettedSlow");
         clearTimer("pettedSlow");
         setState({ kind: "pettedSlow" });
         notifyActivity();

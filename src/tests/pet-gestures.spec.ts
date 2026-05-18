@@ -343,3 +343,28 @@ test("a second double-click within cooldown is a no-op", async ({ browser }) => 
   await page.waitForTimeout(100);
   await expect(sprite).toHaveAttribute("data-pet-state", "idle");
 });
+
+test("interaction counters increment after successful gestures", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+
+  // Clean baseline
+  await page.evaluate(() => window.localStorage.removeItem("petInteractionCounters"));
+
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 2 });
+  await page.waitForTimeout(50);
+
+  const counters = await page.evaluate(() =>
+    JSON.parse(window.localStorage.getItem("petInteractionCounters") ?? "{}"),
+  );
+  expect(counters.click).toBe(1);
+  expect(counters.doubleClick).toBe(1);
+});
