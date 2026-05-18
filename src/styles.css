@@ -435,6 +435,22 @@ select {
   min-width: 0;
 }
 
+.pause-response-control {
+  gap: 8px;
+}
+
+.pause-response-state {
+  font-size: 12px;
+  font-weight: 600;
+  color: hsl(var(--muted-foreground));
+  min-width: 32px;
+  text-align: left;
+}
+
+.pause-response-state[data-active="true"] {
+  color: hsl(var(--primary));
+}
+
 .settings-about {
   align-items: center;
   text-align: center;

@@ -103,13 +103,13 @@ pub fn t(locale: Locale, key: MessageKey) -> &'static str {
         // New: Pet lifecycle
         (Locale::EnUs, MessageKey::TrayShowPet) => "Show Pet",
         (Locale::EnUs, MessageKey::TrayHidePet) => "Hide Pet",
-        (Locale::EnUs, MessageKey::TrayPauseResponse) => "Pause Reactions",
-        (Locale::EnUs, MessageKey::TrayResumeResponse) => "Resume Reactions",
+        (Locale::EnUs, MessageKey::TrayPauseResponse) => "Pause Messages",
+        (Locale::EnUs, MessageKey::TrayResumeResponse) => "Resume Messages",
         (Locale::EnUs, MessageKey::TrayResetPosition) => "Reset Pet Position",
         (Locale::ZhCn, MessageKey::TrayShowPet) => "显示宠物",
         (Locale::ZhCn, MessageKey::TrayHidePet) => "隐藏宠物",
-        (Locale::ZhCn, MessageKey::TrayPauseResponse) => "暂停响应",
-        (Locale::ZhCn, MessageKey::TrayResumeResponse) => "恢复响应",
+        (Locale::ZhCn, MessageKey::TrayPauseResponse) => "暂停消息",
+        (Locale::ZhCn, MessageKey::TrayResumeResponse) => "恢复消息",
         (Locale::ZhCn, MessageKey::TrayResetPosition) => "重置宠物位置",
         // New: Language submenu
         (Locale::EnUs, MessageKey::TrayLanguageMenu) => "Language",

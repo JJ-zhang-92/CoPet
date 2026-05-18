@@ -169,12 +169,19 @@ export function SettingsPreferencesSection({
               {t("pauseResponseDescription")}
             </p>
           </div>
-          <div className="settings-preferences-row-control">
+          <div className="settings-preferences-row-control pause-response-control">
             <Switch
               aria-label={t("pauseResponse")}
               checked={responsePaused}
               onCheckedChange={setResponsePaused}
             />
+            <span
+              aria-hidden="true"
+              className="pause-response-state"
+              data-active={responsePaused ? "true" : "false"}
+            >
+              {t(responsePaused ? "pauseStateOn" : "pauseStateOff")}
+            </span>
           </div>
         </div>
 

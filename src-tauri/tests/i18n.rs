@@ -43,14 +43,14 @@ fn localizes_tray_menu_labels() {
     assert_eq!(t(Locale::ZhCn, MessageKey::TrayHidePet), "隐藏宠物");
     assert_eq!(
         t(Locale::EnUs, MessageKey::TrayPauseResponse),
-        "Pause Reactions"
+        "Pause Messages"
     );
-    assert_eq!(t(Locale::ZhCn, MessageKey::TrayPauseResponse), "暂停响应");
+    assert_eq!(t(Locale::ZhCn, MessageKey::TrayPauseResponse), "暂停消息");
     assert_eq!(
         t(Locale::EnUs, MessageKey::TrayResumeResponse),
-        "Resume Reactions"
+        "Resume Messages"
     );
-    assert_eq!(t(Locale::ZhCn, MessageKey::TrayResumeResponse), "恢复响应");
+    assert_eq!(t(Locale::ZhCn, MessageKey::TrayResumeResponse), "恢复消息");
     assert_eq!(
         t(Locale::EnUs, MessageKey::TrayResetPosition),
         "Reset Pet Position"
