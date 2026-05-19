@@ -6,6 +6,10 @@
   "permissions": [
     "core:default",
     "dialog:allow-open",
+    {
+      "identifier": "shell:allow-open",
+      "allow": [{ "url": "https://github.com/ChanceYu/pethover/**" }]
+    },
     "core:window:allow-hide",
     "core:window:allow-set-position",
     "core:window:allow-set-size",

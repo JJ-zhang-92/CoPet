@@ -679,7 +679,9 @@ fn repair_agent_adapter(adapter_id: String) -> Result<AdapterOperationResult, St
 }
 
 pub fn run() {
-    let mut builder = tauri::Builder::default().plugin(tauri_plugin_dialog::init());
+    let mut builder = tauri::Builder::default()
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_shell::init());
 
     #[cfg(target_os = "macos")]
     {

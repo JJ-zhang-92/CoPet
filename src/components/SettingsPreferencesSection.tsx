@@ -169,36 +169,6 @@ export function SettingsPreferencesSection({
               </Button>
             </div>
           </div>
-
-          <div className="settings-preferences-row">
-            <div className="settings-preferences-row-text">
-              <span className="settings-preferences-row-title">
-                {t("pauseResponse")}
-              </span>
-              <p className="settings-preferences-row-description">
-                {t("pauseResponseDescription")}
-              </p>
-            </div>
-            <div className="settings-preferences-row-control">
-              <div
-                className="settings-switch-row"
-                onClick={() => setResponsePaused(!responsePaused)}
-              >
-                <Switch
-                  aria-label={t("pauseResponse")}
-                  checked={responsePaused}
-                  onCheckedChange={setResponsePaused}
-                />
-                <span
-                  aria-hidden="true"
-                  className="settings-switch-state"
-                  data-active={responsePaused ? "true" : "false"}
-                >
-                  {t(responsePaused ? "pauseStateOn" : "pauseStateOff")}
-                </span>
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
@@ -259,7 +229,40 @@ export function SettingsPreferencesSection({
       </section>
 
       <section className="settings-preferences-group">
+        <header className="settings-preferences-group-header">
+          {t("messagesHeading")}
+        </header>
         <div className="settings-preferences-rows">
+          <div className="settings-preferences-row">
+            <div className="settings-preferences-row-text">
+              <span className="settings-preferences-row-title">
+                {t("pauseResponse")}
+              </span>
+              <p className="settings-preferences-row-description">
+                {t("pauseResponseDescription")}
+              </p>
+            </div>
+            <div className="settings-preferences-row-control">
+              <div
+                className="settings-switch-row"
+                onClick={() => setResponsePaused(!responsePaused)}
+              >
+                <Switch
+                  aria-label={t("pauseResponse")}
+                  checked={responsePaused}
+                  onCheckedChange={setResponsePaused}
+                />
+                <span
+                  aria-hidden="true"
+                  className="settings-switch-state"
+                  data-active={responsePaused ? "true" : "false"}
+                >
+                  {t(responsePaused ? "pauseStateOn" : "pauseStateOff")}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="settings-preferences-row">
             <span
               className="settings-preferences-row-title"
@@ -282,7 +285,11 @@ export function SettingsPreferencesSection({
               />
             </div>
           </div>
+        </div>
+      </section>
 
+      <section className="settings-preferences-group">
+        <div className="settings-preferences-rows">
           <div className="settings-preferences-row">
             <span
               className="settings-preferences-row-title"

@@ -1,4 +1,6 @@
 import pethoverLogoUrl from "../assets/logo-transparent.png";
+import { PETHOVER_REPO_URL } from "../lib/appLinks";
+import { useOpenExternalUrl } from "../hooks/useOpenExternalUrl";
 
 import type { Translator } from "../lib/settingsTypes";
 
@@ -6,9 +8,8 @@ interface SettingsAboutSectionProps {
   t: Translator;
 }
 
-const PETHOVER_REPO_URL = "https://github.com/ChanceYu/pethover";
-
 export function SettingsAboutSection({ t }: SettingsAboutSectionProps) {
+  const openExternal = useOpenExternalUrl();
   return (
     <div className="settings-about">
       <div className="settings-about-hero">
@@ -33,8 +34,11 @@ export function SettingsAboutSection({ t }: SettingsAboutSectionProps) {
           <a
             className="settings-about-link"
             href={PETHOVER_REPO_URL}
+            onClick={(event) => {
+              event.preventDefault();
+              void openExternal(PETHOVER_REPO_URL);
+            }}
             rel="noreferrer"
-            target="_blank"
           >
             {t("aboutRepoLink")}
           </a>
