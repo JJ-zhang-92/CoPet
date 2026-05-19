@@ -296,6 +296,36 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
 }
 
 #[test]
+fn import_pet_folder_from_installed_package_preserves_package() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let source_dir = temp.path().join("reimport-sound-pet");
+    create_sound_pet(&source_dir, "reimport-sound-pet", "Reimport Sound Pet");
+    store.import_pet_folder(&source_dir).unwrap();
+    let installed_dir = store.root().join("pets/reimport-sound-pet");
+
+    let state = store.import_pet_folder(&installed_dir).unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "reimport-sound-pet")
+        .unwrap();
+
+    assert!(installed_dir.exists());
+    assert!(installed_dir.join("pethover/audio/click.mp3").exists());
+    assert!(pet
+        .sounds
+        .as_ref()
+        .unwrap()
+        .interaction_sounds
+        .click
+        .as_ref()
+        .unwrap()
+        .contains("reimport-sound-pet/pethover/audio/click.mp3"));
+}
+
+#[test]
 fn install_codex_pet_preserves_valid_audio_resources() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);

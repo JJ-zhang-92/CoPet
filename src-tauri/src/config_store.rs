@@ -642,31 +642,81 @@ fn copy_pet_package(
     package: &PetPackage,
 ) -> Result<(), StoreError> {
     let source_root = fs::canonicalize(source_dir)?;
-    if target_dir.exists() {
-        fs::remove_dir_all(target_dir)?;
-    }
-    fs::create_dir_all(target_dir)?;
-    fs::copy(source_root.join("pet.json"), target_dir.join("pet.json"))?;
-    if let Some(sprite_name) = package.sprite_path.file_name() {
-        fs::copy(&package.sprite_path, target_dir.join(sprite_name))?;
-    }
-    for sound_path in package.sound_file_paths() {
-        let canonical_sound_path = fs::canonicalize(&sound_path)?;
-        let relative_path = canonical_sound_path
-            .strip_prefix(&source_root)
-            .map_err(|_| {
-                StoreError::InvalidPetPackage(format!(
-                    "sound file must be inside package: {}",
-                    sound_path.display()
-                ))
-            })?;
-        let target_path = target_dir.join(relative_path);
-        if let Some(parent) = target_path.parent() {
-            fs::create_dir_all(parent)?;
+    let staging_dir = sibling_work_dir(target_dir, "staging")?;
+    let backup_dir = sibling_work_dir(target_dir, "backup")?;
+
+    let stage_result = (|| -> Result<(), StoreError> {
+        if staging_dir.exists() {
+            fs::remove_dir_all(&staging_dir)?;
         }
-        fs::copy(canonical_sound_path, target_path)?;
+        fs::create_dir_all(&staging_dir)?;
+        fs::copy(source_root.join("pet.json"), staging_dir.join("pet.json"))?;
+        if let Some(sprite_name) = package.sprite_path.file_name() {
+            fs::copy(&package.sprite_path, staging_dir.join(sprite_name))?;
+        }
+        for sound_path in package.sound_file_paths() {
+            let canonical_sound_path = fs::canonicalize(&sound_path)?;
+            let relative_path = canonical_sound_path
+                .strip_prefix(&source_root)
+                .map_err(|_| {
+                    StoreError::InvalidPetPackage(format!(
+                        "sound file must be inside package: {}",
+                        sound_path.display()
+                    ))
+                })?;
+            let staged_path = staging_dir.join(relative_path);
+            if let Some(parent) = staged_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            fs::copy(canonical_sound_path, staged_path)?;
+        }
+        Ok(())
+    })();
+
+    if let Err(error) = stage_result {
+        let _ = fs::remove_dir_all(&staging_dir);
+        return Err(error);
     }
+
+    let replace_result = (|| -> Result<(), StoreError> {
+        if backup_dir.exists() {
+            fs::remove_dir_all(&backup_dir)?;
+        }
+        if target_dir.exists() {
+            fs::rename(target_dir, &backup_dir)?;
+        }
+        if let Err(error) = fs::rename(&staging_dir, target_dir) {
+            if backup_dir.exists() {
+                let _ = fs::rename(&backup_dir, target_dir);
+            }
+            return Err(StoreError::Io(error));
+        }
+        if backup_dir.exists() {
+            let _ = fs::remove_dir_all(&backup_dir);
+        }
+        Ok(())
+    })();
+
+    if let Err(error) = replace_result {
+        let _ = fs::remove_dir_all(&staging_dir);
+        return Err(error);
+    }
+
     Ok(())
+}
+
+fn sibling_work_dir(target_dir: &Path, suffix: &str) -> Result<PathBuf, StoreError> {
+    let parent = target_dir.parent().ok_or_else(|| {
+        StoreError::InvalidPetPackage("pet target directory is invalid".to_string())
+    })?;
+    let target_name = target_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .ok_or_else(|| {
+            StoreError::InvalidPetPackage("pet target directory is invalid".to_string())
+        })?;
+
+    Ok(parent.join(format!(".{target_name}.{suffix}")))
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
