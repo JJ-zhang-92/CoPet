@@ -52,6 +52,8 @@ export function PetWindow() {
     sounds: selectedPet?.sounds,
   });
   const lastAgentSoundKeyRef = useRef<string | null>(null);
+  const previousPetStateRef = useRef<string | null>(null);
+  const selectedPetIdRef = useRef<string | null>(null);
   // macOS NSPanel does not always deliver contextmenu to the webview; long-press
   // is a fallback path that opens the same menu at the press origin.
   // We require __TAURI__ to be present so this path does not activate under
@@ -119,14 +121,26 @@ export function PetWindow() {
   }, [petScale, petWindowSize]);
 
   useEffect(() => {
-    lastAgentSoundKeyRef.current = null;
-    stopAllSounds();
-  }, [selectedPet?.id, stopAllSounds]);
+    const selectedPetId = selectedPet?.id ?? null;
+    const selectedPetChanged = selectedPetIdRef.current !== selectedPetId;
+    selectedPetIdRef.current = selectedPetId;
 
-  useEffect(() => {
+    const previousPetState = previousPetStateRef.current;
+    const petStateChanged = previousPetState !== null && previousPetState !== petState;
+    previousPetStateRef.current = petState;
+
+    if (selectedPetChanged) {
+      lastAgentSoundKeyRef.current = null;
+      stopAllSounds();
+      return;
+    }
+
     const soundKey = agentSoundKeyForPetState(petState);
     if (!soundEnabled || pauseEnabled || soundKey === null) {
       lastAgentSoundKeyRef.current = null;
+      return;
+    }
+    if (!petStateChanged) {
       return;
     }
     if (lastAgentSoundKeyRef.current === soundKey) {
@@ -134,7 +148,7 @@ export function PetWindow() {
     }
     lastAgentSoundKeyRef.current = soundKey;
     playAgentSound(soundKey);
-  }, [pauseEnabled, petState, playAgentSound, soundEnabled]);
+  }, [pauseEnabled, petState, playAgentSound, selectedPet?.id, soundEnabled, stopAllSounds]);
 
   useEffect(() => {
     const animationFrame = window.requestAnimationFrame(() => {
