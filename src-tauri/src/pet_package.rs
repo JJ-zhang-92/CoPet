@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 use std::{
+    collections::BTreeMap,
     env, fs,
     path::{Component, Path, PathBuf},
 };
@@ -31,6 +32,8 @@ pub struct PetManifest {
     pub built_in: bool,
     #[serde(default)]
     pub pethover: Option<PetHoverMetadata>,
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -38,6 +41,8 @@ pub struct PetManifest {
 pub struct PetHoverMetadata {
     #[serde(default)]
     pub audio: Option<PetSounds>,
+    #[serde(flatten)]
+    pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -238,17 +243,50 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
         return None;
     }
 
-    let mut sound_path = package_dir.join(relative_path);
-    if !sound_path.is_absolute() {
-        sound_path = env::current_dir().ok()?.join(sound_path);
+    let package_root = canonical_package_root(package_dir)?;
+    let sound_path = package_root.join(relative_path);
+    if has_symlink_component(&package_root, relative_path) {
+        return None;
     }
+
+    let canonical_sound_path = fs::canonicalize(&sound_path).ok()?;
+    if !canonical_sound_path.starts_with(package_root.join("pethover/audio")) {
+        return None;
+    }
+
     let metadata = fs::symlink_metadata(&sound_path).ok()?;
     let file_type = metadata.file_type();
     if !file_type.is_file() || file_type.is_symlink() || metadata.len() > MAX_PET_SOUND_BYTES {
         return None;
     }
 
-    Some(sound_path.to_string_lossy().into_owned())
+    Some(canonical_sound_path.to_string_lossy().into_owned())
+}
+
+fn canonical_package_root(package_dir: &Path) -> Option<PathBuf> {
+    if package_dir.is_absolute() {
+        fs::canonicalize(package_dir).ok()
+    } else {
+        fs::canonicalize(env::current_dir().ok()?.join(package_dir)).ok()
+    }
+}
+
+fn has_symlink_component(root: &Path, relative_path: &Path) -> bool {
+    let mut current = root.to_path_buf();
+    for component in relative_path.components() {
+        let Component::Normal(part) = component else {
+            return true;
+        };
+        current.push(part);
+        let Ok(metadata) = fs::symlink_metadata(&current) else {
+            return true;
+        };
+        if metadata.file_type().is_symlink() {
+            return true;
+        }
+    }
+
+    false
 }
 
 fn has_any_sound(sounds: &PetSounds) -> bool {

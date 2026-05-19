@@ -232,6 +232,50 @@ fn symlinked_sound_entries_are_filtered() {
     assert!(pet.sounds.is_none());
 }
 
+#[cfg(unix)]
+#[test]
+fn sound_entries_through_symlinked_audio_directory_are_filtered() {
+    use std::os::unix::fs::symlink;
+
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let pet_dir = store.root().join("pets/symlink-audio-dir-pet");
+    create_pet_with_manifest(
+        &pet_dir,
+        r#"{
+  "id": "symlink-audio-dir-pet",
+  "slug": "symlink-audio-dir-pet",
+  "displayName": "Symlink Audio Dir Pet",
+  "frameWidth": 160,
+  "frameHeight": 64,
+  "gridColumns": 8,
+  "gridRows": 9,
+  "pethover": {
+    "audio": {
+      "interactionSounds": {
+        "click": "pethover/audio/click.mp3"
+      }
+    }
+  }
+}"#,
+    );
+    let outside_audio_dir = temp.path().join("outside-audio");
+    fs::create_dir_all(&outside_audio_dir).unwrap();
+    fs::write(outside_audio_dir.join("click.mp3"), b"outside").unwrap();
+    fs::create_dir_all(pet_dir.join("pethover")).unwrap();
+    symlink(&outside_audio_dir, pet_dir.join("pethover/audio")).unwrap();
+
+    let state = store.app_state().unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "symlink-audio-dir-pet")
+        .unwrap();
+
+    assert!(pet.sounds.is_none());
+}
+
 #[test]
 fn import_pet_folder_preserves_valid_audio_resources() {
     let temp = tempfile::tempdir().unwrap();
@@ -358,6 +402,65 @@ fn install_codex_pet_preserves_valid_audio_resources() {
         .as_ref()
         .unwrap()
         .contains("codex-sound-pet/pethover/audio/click.mp3"));
+}
+
+#[test]
+fn import_pet_folder_preserves_manifest_metadata() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let source_dir = temp.path().join("metadata-sound-pet");
+    create_pet_with_manifest(
+        &source_dir,
+        r#"{
+  "id": "metadata-sound-pet",
+  "displayName": "Metadata Sound Pet",
+  "displayNameZh": "元数据音效宠物",
+  "descriptionZh": "保留导入元数据",
+  "spritesheetPath": "spritesheet.png",
+  "frameWidth": 160,
+  "frameHeight": 64,
+  "gridColumns": 8,
+  "gridRows": 9,
+  "pethover": {
+    "schemaVersion": 1,
+    "displayNameZh": "元数据音效宠物",
+    "descriptionZh": "保留 pethover 元数据",
+    "behaviors": {
+      "idle": {
+        "row": 0
+      }
+    },
+    "audio": {
+      "interactionSounds": {
+        "click": "pethover/audio/click.mp3"
+      }
+    }
+  }
+}"#,
+    );
+    fs::create_dir_all(source_dir.join("pethover/audio")).unwrap();
+    fs::write(source_dir.join("pethover/audio/click.mp3"), b"click").unwrap();
+
+    store.import_pet_folder(&source_dir).unwrap();
+
+    let manifest_path = store.root().join("pets/metadata-sound-pet/pet.json");
+    let installed_manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(manifest_path).unwrap()).unwrap();
+    assert_eq!(installed_manifest["slug"], "metadata-sound-pet");
+    assert_eq!(installed_manifest["builtIn"], false);
+    assert_eq!(installed_manifest["displayNameZh"], "元数据音效宠物");
+    assert_eq!(installed_manifest["descriptionZh"], "保留导入元数据");
+    assert_eq!(installed_manifest["spritesheetPath"], "spritesheet.png");
+    assert_eq!(installed_manifest["pethover"]["schemaVersion"], 1);
+    assert_eq!(
+        installed_manifest["pethover"]["descriptionZh"],
+        "保留 pethover 元数据"
+    );
+    assert_eq!(
+        installed_manifest["pethover"]["behaviors"]["idle"]["row"],
+        0
+    );
 }
 
 fn create_pet_with_manifest(dir: &Path, manifest: &str) {
