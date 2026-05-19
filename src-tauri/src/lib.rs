@@ -847,7 +847,15 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build PetHover")
         .run(|app, event| match event {
-            tauri::RunEvent::Reopen { .. } | tauri::RunEvent::Resumed => {
+            tauri::RunEvent::Reopen { .. } => {
+                // macOS Dock click on the running app. The settings window
+                // hides (not closes) on red-light, so the app icon stays in
+                // the Dock; restore the window here so the click "reopens"
+                // the app the way users expect.
+                let _ = show_settings_window(app);
+                schedule_pet_window_z_order_reassertions(app);
+            }
+            tauri::RunEvent::Resumed => {
                 schedule_pet_window_z_order_reassertions(app);
             }
             _ => {}
