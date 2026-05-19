@@ -1,4 +1,4 @@
-import pethoverLogoUrl from "../assets/logo.png";
+import pethoverLogoUrl from "../assets/logo-transparent.png";
 
 import type { Translator } from "../lib/settingsTypes";
 
@@ -23,7 +23,7 @@ export function SettingsAboutSection({ t }: SettingsAboutSectionProps) {
         </div>
         <h2 id="settings-section-panel-heading">{t("aboutTitle")}</h2>
         <span className="settings-about-version">
-          {t("aboutVersion")} {__APP_VERSION__}
+          {t("aboutVersion")} v{__APP_VERSION__}
         </span>
       </div>
 

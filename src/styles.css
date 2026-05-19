@@ -297,9 +297,6 @@ select {
   object-fit: contain;
   border-radius: 6px;
   background: #fff;
-  box-shadow:
-    0 0 0 1px hsl(var(--border) / 0.6),
-    0 2px 4px hsl(226 54% 12% / 0.06);
   user-select: none;
   -webkit-user-drag: none;
 }
@@ -411,7 +408,10 @@ select {
   background: hsl(var(--foreground) / 0.12);
 }
 
-.settings-section > h2 {
+.settings-section h2 {
+  display: flex;
+  align-items: center;
+  min-height: 26px;
   margin: 0;
   font-size: 18px;
   font-weight: 700;
@@ -428,7 +428,7 @@ select {
   line-height: 1.5;
 }
 
-.settings-section > h2 + .settings-section-description {
+.settings-section h2 + .settings-section-description {
   margin-top: 4px;
 }
 
@@ -599,8 +599,6 @@ select {
   width: 56px;
   height: 56px;
   object-fit: contain;
-  border-radius: 14px;
-  background: #fff;
 }
 
 .settings-about > h2,
@@ -1131,19 +1129,34 @@ select {
   font-weight: 650;
   box-shadow: 0 1px 0 hsl(0 0% 100% / 0.5) inset;
   transition:
-    background 140ms ease,
-    border-color 140ms ease,
-    box-shadow 140ms ease,
+    background 180ms ease,
+    border-color 180ms ease,
+    box-shadow 180ms ease,
     opacity 140ms ease;
 }
 
-.adapter-chip:has([data-state="checked"]) {
-  border-color: hsl(var(--primary) / 0.55);
+.adapter-chip:hover {
   background:
-    linear-gradient(180deg, hsl(189 93% 96% / 0.95), hsl(303 88% 98% / 0.7));
+    linear-gradient(180deg, hsl(var(--card) / 0.96), hsl(var(--card) / 0.74));
+}
+
+.adapter-chip:has([data-state="checked"]) {
+  border-color: transparent;
+  background:
+    linear-gradient(180deg, hsl(189 60% 97%), hsl(252 30% 98.5%));
   box-shadow:
-    0 1px 0 hsl(0 0% 100% / 0.7) inset,
-    0 6px 14px hsl(var(--primary) / 0.08);
+    0 1px 0 hsl(0 0% 100% / 0.85) inset,
+    0 6px 16px hsl(var(--primary) / 0.12),
+    0 1px 2px hsl(226 54% 12% / 0.04);
+}
+
+.adapter-chip:has([data-state="checked"]):hover {
+  background:
+    linear-gradient(180deg, hsl(189 75% 95%), hsl(252 55% 97%));
+  box-shadow:
+    0 1px 0 hsl(0 0% 100% / 0.9) inset,
+    0 8px 20px hsl(var(--primary) / 0.16),
+    0 1px 2px hsl(226 54% 12% / 0.05);
 }
 
 .adapter-chip[data-disabled="true"] {
@@ -1151,16 +1164,14 @@ select {
   opacity: 0.68;
 }
 
-.adapter-chip:hover {
-  border-color: hsl(var(--primary) / 0.42);
-  background:
-    linear-gradient(180deg, hsl(189 93% 94% / 0.95), hsl(var(--card) / 0.72));
-}
-
 .adapter-chip[data-disabled="true"]:hover {
-  border-color: hsl(var(--border) / 0.55);
   background:
     linear-gradient(180deg, hsl(var(--card) / 0.85), hsl(var(--card) / 0.62));
+}
+
+.adapter-chip[data-disabled="true"]:has([data-state="checked"]):hover {
+  background:
+    linear-gradient(180deg, hsl(189 60% 97%), hsl(252 30% 98.5%));
 }
 
 .adapter-chip span {

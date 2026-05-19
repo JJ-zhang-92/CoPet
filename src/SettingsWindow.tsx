@@ -4,7 +4,7 @@ import { Info, PawPrint, Plug, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
-import pethoverLogoUrl from "./assets/logo.png";
+import pethoverLogoUrl from "./assets/logo-transparent.png";
 import { ErrorView, LoadingView } from "./components/AppShell";
 import { SettingsAboutSection } from "./components/SettingsAboutSection";
 import { SettingsAgentsSection } from "./components/SettingsAgentsSection";
