@@ -504,8 +504,17 @@ impl ConfigStore {
     fn load_or_create_config(&self) -> Result<StoredConfig, StoreError> {
         let path = self.config_path();
         if path.exists() {
-            let bytes = fs::read(path)?;
-            return Ok(serde_json::from_slice(&bytes)?);
+            let bytes = fs::read(&path)?;
+            let mut value: serde_json::Value = serde_json::from_slice(&bytes)?;
+            let migrated = lift_legacy_pet_interactions(&mut value);
+            let config: StoredConfig = serde_json::from_value(value)?;
+            if migrated {
+                // Rewrite immediately so the on-disk file matches the new
+                // flat schema; otherwise the legacy nested key would only be
+                // dropped on the next setting change.
+                self.save_config(&config)?;
+            }
+            return Ok(config);
         }
 
         let config = StoredConfig::default();
@@ -552,6 +561,26 @@ impl StoreError {
             },
         }
     }
+}
+
+/// Move legacy nested `petInteractions` keys up to the top level so the rest
+/// of the loader can read a flat config. Returns `true` when the JSON was
+/// changed, signalling the caller to rewrite the file.
+fn lift_legacy_pet_interactions(value: &mut serde_json::Value) -> bool {
+    let Some(object) = value.as_object_mut() else {
+        return false;
+    };
+    let Some(legacy) = object.remove("petInteractions") else {
+        return false;
+    };
+    if let Some(legacy_obj) = legacy.as_object() {
+        for (key, val) in legacy_obj {
+            // Flat keys already at the top level win — they reflect the
+            // newer schema and we should not stomp on them.
+            object.entry(key.clone()).or_insert_with(|| val.clone());
+        }
+    }
+    true
 }
 
 fn scan_packages(dir: &Path) -> Result<Vec<PetPackage>, StoreError> {
@@ -627,7 +656,11 @@ struct StoredConfig {
     agent_message_display: AgentMessageDisplay,
     #[serde(default)]
     response_paused: bool,
-    #[serde(default)]
+    // Flatten so the on-disk schema stays flat: `enableClickSounds` and
+    // `cooldownStyle` sit alongside `currentPetId` rather than nested under
+    // `petInteractions`. Legacy nested configs are migrated in
+    // `load_or_create_config` on first read.
+    #[serde(flatten)]
     pet_interactions: PetInteractionPrefs,
 }
 

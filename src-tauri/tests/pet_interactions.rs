@@ -52,6 +52,71 @@ fn pet_interactions_defaults_to_defaults_when_missing_from_legacy_config() {
 }
 
 #[test]
+fn legacy_nested_pet_interactions_migrate_to_flat_keys_on_load() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".pethover");
+    fs::create_dir_all(&root).unwrap();
+    fs::write(
+        root.join("config.json"),
+        r#"{"currentPetId":"pethover","onboardingComplete":true,"petWindowSize":30,"petInteractions":{"enableClickSounds":true,"cooldownStyle":"lazy"}}"#,
+    )
+    .unwrap();
+
+    let store = ConfigStore::with_builtin_dir(root.clone(), builtin_pets_dir());
+    let state = store.app_state().unwrap();
+
+    assert_eq!(
+        state.pet_interactions,
+        PetInteractionPrefs {
+            enable_click_sounds: true,
+            cooldown_style: CooldownStyle::Lazy,
+        }
+    );
+
+    // The migration must rewrite the file so the legacy `petInteractions`
+    // key is gone and the two settings live at the top level.
+    let raw = fs::read_to_string(root.join("config.json")).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let object = json.as_object().unwrap();
+    assert!(!object.contains_key("petInteractions"));
+    assert_eq!(
+        object.get("enableClickSounds"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        object.get("cooldownStyle"),
+        Some(&serde_json::json!("lazy"))
+    );
+}
+
+#[test]
+fn set_pet_interactions_writes_flat_keys() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+
+    store
+        .set_pet_interactions(PetInteractionPrefs {
+            enable_click_sounds: true,
+            cooldown_style: CooldownStyle::Short,
+        })
+        .unwrap();
+
+    let raw = fs::read_to_string(temp.path().join(".pethover").join("config.json")).unwrap();
+    let json: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    let object = json.as_object().unwrap();
+    assert!(!object.contains_key("petInteractions"));
+    assert_eq!(
+        object.get("enableClickSounds"),
+        Some(&serde_json::json!(true))
+    );
+    assert_eq!(
+        object.get("cooldownStyle"),
+        Some(&serde_json::json!("short"))
+    );
+}
+
+#[test]
 fn set_pet_interactions_persists_and_round_trips() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);

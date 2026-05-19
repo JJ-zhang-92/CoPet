@@ -47,7 +47,11 @@ impl Default for CooldownStyle {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PetInteractionPrefs {
+    // Per-field defaults so this struct survives being flattened into a
+    // parent config when individual keys are missing from disk.
+    #[serde(default)]
     pub enable_click_sounds: bool,
+    #[serde(default)]
     pub cooldown_style: CooldownStyle,
 }
 
