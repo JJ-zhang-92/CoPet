@@ -141,7 +141,7 @@ test("language switch persists preference and updates settings copy", async ({ b
   });
 });
 
-test("message display preference toggles between latest and all", async ({ browser }) => {
+test("display count preference toggles between latest and all", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: pethover.id,
@@ -156,7 +156,7 @@ test("message display preference toggles between latest and all", async ({ brows
   const page = await harness.openPage("settings");
   await page.getByRole("tab", { name: "General" }).click();
 
-  const messageDisplay = page.getByRole("radiogroup", { name: "Message display" });
+  const messageDisplay = page.getByRole("radiogroup", { name: "Display count" });
   await expect(messageDisplay).toBeVisible();
   await expect(
     messageDisplay.getByRole("radio", { name: "Most recent only" }),
