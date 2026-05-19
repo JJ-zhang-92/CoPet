@@ -2,9 +2,12 @@ use std::{
     collections::HashMap,
     fs, io,
     io::{Read, Write},
-    net::{TcpListener, TcpStream},
+    net::{SocketAddr, TcpListener, TcpStream},
     path::Path,
-    sync::{Arc, Mutex},
+    sync::{
+        atomic::{AtomicBool, Ordering},
+        Arc, Mutex,
+    },
     thread,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
@@ -100,6 +103,7 @@ pub struct RuntimeManager {
     core: Arc<Mutex<RuntimeCore>>,
     port: u16,
     runtime_dir: std::path::PathBuf,
+    shutdown: Arc<AtomicBool>,
 }
 
 impl RuntimeManager {
@@ -126,11 +130,18 @@ impl RuntimeManager {
         let on_state = Arc::new(on_state);
         let tick_core = Arc::clone(&core);
         let tick_on_state = Arc::clone(&on_state);
+        let shutdown = Arc::new(AtomicBool::new(false));
+        let server_shutdown = Arc::clone(&shutdown);
+        let tick_shutdown = Arc::clone(&shutdown);
 
         thread::Builder::new()
             .name("pethover-runtime-event-server".to_string())
             .spawn(move || {
                 for stream in listener.incoming().flatten() {
+                    if server_shutdown.load(Ordering::Relaxed) {
+                        // Drop closes the listener and releases the TCP port.
+                        break;
+                    }
                     let core = Arc::clone(&server_core);
                     let on_state = Arc::clone(&on_state);
                     handle_connection(stream, core, on_state.as_ref());
@@ -140,6 +151,9 @@ impl RuntimeManager {
         thread::Builder::new()
             .name("pethover-runtime-state-tick".to_string())
             .spawn(move || loop {
+                if tick_shutdown.load(Ordering::Relaxed) {
+                    break;
+                }
                 thread::sleep(Duration::from_millis(100));
                 let mut core = tick_core.lock().expect("runtime core poisoned");
                 let previous = core.status().current_state;
@@ -157,6 +171,7 @@ impl RuntimeManager {
             core,
             port,
             runtime_dir: runtime_dir.to_path_buf(),
+            shutdown,
         })
     }
 
@@ -179,6 +194,14 @@ impl RuntimeManager {
 
 impl Drop for RuntimeManager {
     fn drop(&mut self) {
+        // Signal both worker threads to stop. Set the flag BEFORE the wake-up
+        // self-connect so the listener thread sees `true` the instant accept()
+        // returns. The connect timeout caps Drop latency at 50ms even if the
+        // OS is slow; a failed connect just means the socket is already gone,
+        // which is also a successful shutdown.
+        self.shutdown.store(true, Ordering::Relaxed);
+        let addr = SocketAddr::from(([127, 0, 0, 1], self.port));
+        let _ = TcpStream::connect_timeout(&addr, Duration::from_millis(50));
         let _ = RuntimeToken::invalidate(&self.runtime_dir);
         let _ = fs::remove_file(self.runtime_dir.join("event-endpoint"));
     }

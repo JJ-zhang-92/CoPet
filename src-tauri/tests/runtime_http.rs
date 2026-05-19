@@ -2,9 +2,9 @@ use pethover_lib::{runtime_server::RuntimeManager, runtime_state::PetStateId};
 use std::{
     fs,
     io::{Read, Write},
-    net::TcpStream,
+    net::{TcpListener, TcpStream},
     sync::{Arc, Mutex},
-    time::Duration,
+    time::{Duration, Instant},
 };
 
 #[test]
@@ -54,6 +54,34 @@ fn runtime_manager_accepts_authorized_http_events_and_rejects_bad_tokens() {
         .any(|state| *state == PetStateId::Review));
 
     drop(manager);
+    assert!(!runtime_dir.join("event-token").exists());
+    assert!(!runtime_dir.join("event-endpoint").exists());
+}
+
+#[test]
+fn drop_releases_tcp_port_for_immediate_rebind() {
+    let temp = tempfile::tempdir().unwrap();
+    let runtime_dir = temp.path().join("runtime");
+    let manager = RuntimeManager::start(&runtime_dir, |_| {}).unwrap();
+    let port = manager.port();
+    drop(manager);
+
+    // After Drop, the worker thread observes the shutdown flag and the listener
+    // is released. The wake-up self-connect in Drop is bounded at 50ms; we
+    // allow generous CI slack here while polling for the port to free up.
+    let deadline = Instant::now() + Duration::from_secs(1);
+    let mut bound = false;
+    while Instant::now() < deadline {
+        if TcpListener::bind(("127.0.0.1", port)).is_ok() {
+            bound = true;
+            break;
+        }
+        std::thread::sleep(Duration::from_millis(10));
+    }
+    assert!(
+        bound,
+        "TCP port {port} should be re-bindable after RuntimeManager drop"
+    );
     assert!(!runtime_dir.join("event-token").exists());
     assert!(!runtime_dir.join("event-endpoint").exists());
 }
