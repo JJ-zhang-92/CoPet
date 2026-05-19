@@ -77,3 +77,27 @@ fn localizes_tray_menu_labels() {
     assert_eq!(t(Locale::EnUs, MessageKey::TrayAbout), "About…");
     assert_eq!(t(Locale::ZhCn, MessageKey::TrayAbout), "关于…");
 }
+
+#[test]
+fn localizes_app_menu_labels() {
+    // The macOS app menu (top-left of the screen) needs every label that
+    // embeds the app name to use the capitalized "PetHover" — the binary
+    // name fallback is lowercase and unacceptable in either locale.
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuAbout), "About PetHover");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuHide), "Hide PetHover");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuQuit), "Quit PetHover");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuAbout), "关于 PetHover");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuHide), "隐藏 PetHover");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuQuit), "退出 PetHover");
+
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuServices), "Services");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuHideOthers), "Hide Others");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuShowAll), "Show All");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuEdit), "Edit");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuWindow), "Window");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuServices), "服务");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuHideOthers), "隐藏其他");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuShowAll), "全部显示");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuEdit), "编辑");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuWindow), "窗口");
+}

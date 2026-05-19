@@ -59,6 +59,14 @@ pub enum MessageKey {
     TrayLanguageEnglish,
     TrayLanguageChinese,
     TrayAbout,
+    AppMenuAbout,
+    AppMenuServices,
+    AppMenuHide,
+    AppMenuHideOthers,
+    AppMenuShowAll,
+    AppMenuQuit,
+    AppMenuEdit,
+    AppMenuWindow,
 }
 
 pub fn default_locale() -> Locale {
@@ -129,5 +137,23 @@ pub fn t(locale: Locale, key: MessageKey) -> &'static str {
         // New: About
         (Locale::EnUs, MessageKey::TrayAbout) => "About…",
         (Locale::ZhCn, MessageKey::TrayAbout) => "关于…",
+        // macOS application menu (top-left). These override the default
+        // "<binary_name>" placeholders so labels always read "PetHover".
+        (Locale::EnUs, MessageKey::AppMenuAbout) => "About PetHover",
+        (Locale::EnUs, MessageKey::AppMenuServices) => "Services",
+        (Locale::EnUs, MessageKey::AppMenuHide) => "Hide PetHover",
+        (Locale::EnUs, MessageKey::AppMenuHideOthers) => "Hide Others",
+        (Locale::EnUs, MessageKey::AppMenuShowAll) => "Show All",
+        (Locale::EnUs, MessageKey::AppMenuQuit) => "Quit PetHover",
+        (Locale::EnUs, MessageKey::AppMenuEdit) => "Edit",
+        (Locale::EnUs, MessageKey::AppMenuWindow) => "Window",
+        (Locale::ZhCn, MessageKey::AppMenuAbout) => "关于 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuServices) => "服务",
+        (Locale::ZhCn, MessageKey::AppMenuHide) => "隐藏 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuHideOthers) => "隐藏其他",
+        (Locale::ZhCn, MessageKey::AppMenuShowAll) => "全部显示",
+        (Locale::ZhCn, MessageKey::AppMenuQuit) => "退出 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuEdit) => "编辑",
+        (Locale::ZhCn, MessageKey::AppMenuWindow) => "窗口",
     }
 }

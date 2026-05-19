@@ -150,7 +150,83 @@ fn set_locale_preference(
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
     refresh_tray_menu(&app, &state);
+    let _ = install_app_menu(
+        &app,
+        state.locale_preference.effective_locale(default_locale()),
+    );
     Ok(state)
+}
+
+#[cfg(target_os = "macos")]
+fn install_app_menu<M: Manager<Wry>>(manager: &M, locale: Locale) -> tauri::Result<()> {
+    use tauri::menu::AboutMetadata;
+
+    let app_name = "PetHover";
+    let about_metadata = AboutMetadata {
+        name: Some(app_name.to_string()),
+        version: Some(env!("CARGO_PKG_VERSION").to_string()),
+        ..Default::default()
+    };
+
+    let app_submenu = Submenu::with_items(
+        manager,
+        app_name,
+        true,
+        &[
+            &PredefinedMenuItem::about(
+                manager,
+                Some(t(locale, MessageKey::AppMenuAbout)),
+                Some(about_metadata),
+            )?,
+            &PredefinedMenuItem::separator(manager)?,
+            &PredefinedMenuItem::services(manager, Some(t(locale, MessageKey::AppMenuServices)))?,
+            &PredefinedMenuItem::separator(manager)?,
+            &PredefinedMenuItem::hide(manager, Some(t(locale, MessageKey::AppMenuHide)))?,
+            &PredefinedMenuItem::hide_others(
+                manager,
+                Some(t(locale, MessageKey::AppMenuHideOthers)),
+            )?,
+            &PredefinedMenuItem::show_all(manager, Some(t(locale, MessageKey::AppMenuShowAll)))?,
+            &PredefinedMenuItem::separator(manager)?,
+            &PredefinedMenuItem::quit(manager, Some(t(locale, MessageKey::AppMenuQuit)))?,
+        ],
+    )?;
+
+    // Edit / Window submenus preserve the system text-input and window
+    // shortcuts that ship in Tauri's default menu (cmd+C/V/X/Z/A, cmd+M, cmd+W).
+    let edit_submenu = Submenu::with_items(
+        manager,
+        t(locale, MessageKey::AppMenuEdit),
+        true,
+        &[
+            &PredefinedMenuItem::undo(manager, None)?,
+            &PredefinedMenuItem::redo(manager, None)?,
+            &PredefinedMenuItem::separator(manager)?,
+            &PredefinedMenuItem::cut(manager, None)?,
+            &PredefinedMenuItem::copy(manager, None)?,
+            &PredefinedMenuItem::paste(manager, None)?,
+            &PredefinedMenuItem::select_all(manager, None)?,
+        ],
+    )?;
+
+    let window_submenu = Submenu::with_items(
+        manager,
+        t(locale, MessageKey::AppMenuWindow),
+        true,
+        &[
+            &PredefinedMenuItem::minimize(manager, None)?,
+            &PredefinedMenuItem::close_window(manager, None)?,
+        ],
+    )?;
+
+    let menu = Menu::with_items(manager, &[&app_submenu, &edit_submenu, &window_submenu])?;
+    manager.app_handle().set_menu(menu)?;
+    Ok(())
+}
+
+#[cfg(not(target_os = "macos"))]
+fn install_app_menu<M: Manager<Wry>>(_manager: &M, _locale: Locale) -> tauri::Result<()> {
+    Ok(())
 }
 
 pub fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
@@ -696,6 +772,7 @@ pub fn run() {
             let store = ConfigStore::from_home()?;
             store.ensure_ready()?;
             install_tray_menu(app)?;
+            install_app_menu(app, current_locale())?;
             let handle = app.handle().clone();
             let runtime = RuntimeManager::start(&store.runtime_dir(), move |state| {
                 emit_runtime_update(&handle, state);
