@@ -14,6 +14,7 @@ import { PetContextMenu } from "./components/PetContextMenu";
 import { PetSprite } from "./components/PetSprite";
 import { useLayeredPetState } from "./hooks/useLayeredPetState";
 import { useAppData } from "./hooks/useAppData";
+import { agentSoundKeyForPetState, usePetSounds } from "./hooks/usePetSounds";
 import { createTranslator } from "./lib/i18n";
 import type { AgentMessage, PetWindowSize } from "./lib/appTypes";
 import {
@@ -36,9 +37,21 @@ export function PetWindow() {
     dismissAgentMessage,
     load,
     loadState,
+    petState,
     selectedPet,
     setResponsePaused,
   } = useAppData();
+  const soundEnabled =
+    loadState.status === "ready"
+      ? loadState.data.petInteractions?.enableClickSounds ?? false
+      : false;
+  const pauseEnabled =
+    loadState.status === "ready" ? loadState.data.responsePaused ?? false : false;
+  const { playInteractionSound, playAgentSound, stopAllSounds } = usePetSounds({
+    enabled: soundEnabled,
+    sounds: selectedPet?.sounds,
+  });
+  const lastAgentSoundKeyRef = useRef<string | null>(null);
   // macOS NSPanel does not always deliver contextmenu to the webview; long-press
   // is a fallback path that opens the same menu at the press origin.
   // We require __TAURI__ to be present so this path does not activate under
@@ -50,6 +63,7 @@ export function PetWindow() {
   const initialContentResizeAnchorReleaseMs = 250;
   const { composed, bindInput, bindMotion } = useLayeredPetState({
     onLongPress: isMac ? () => setMenuOpen(true) : undefined,
+    onInteractionSound: playInteractionSound,
   });
 
   const stackRef = useRef<HTMLDivElement | null>(null);
@@ -103,6 +117,24 @@ export function PetWindow() {
     petWindowSizeRef.current = petWindowSize;
     displayedPetScaleRef.current = petScale;
   }, [petScale, petWindowSize]);
+
+  useEffect(() => {
+    lastAgentSoundKeyRef.current = null;
+    stopAllSounds();
+  }, [selectedPet?.id, stopAllSounds]);
+
+  useEffect(() => {
+    const soundKey = agentSoundKeyForPetState(petState);
+    if (!soundEnabled || pauseEnabled || soundKey === null) {
+      lastAgentSoundKeyRef.current = null;
+      return;
+    }
+    if (lastAgentSoundKeyRef.current === soundKey) {
+      return;
+    }
+    lastAgentSoundKeyRef.current = soundKey;
+    playAgentSound(soundKey);
+  }, [pauseEnabled, petState, playAgentSound, soundEnabled]);
 
   useEffect(() => {
     const animationFrame = window.requestAnimationFrame(() => {
@@ -213,7 +245,6 @@ export function PetWindow() {
   const motionHandlers = bindMotion();
   const locale = loadState.data.locale ?? "en-US";
   const t = createTranslator(locale);
-  const pauseEnabled = loadState.data.responsePaused ?? false;
 
   return (
     <main

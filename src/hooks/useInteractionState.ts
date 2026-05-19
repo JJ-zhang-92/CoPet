@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { CooldownStyle } from "../lib/appTypes";
 import type { InputState } from "../lib/petAnimation";
 import { bumpCounter } from "../lib/petInteractionCounters";
+import type { InteractionSoundKey } from "./usePetSounds";
 
 const HAPPY_DURATION_MS = 600;
 const LOOK_RESET_MS = 400;
@@ -53,12 +54,17 @@ export type UseInteractionStateResult = {
 
 export function useInteractionState(opts?: {
   onLongPress?: (origin: { x: number; y: number }) => void;
+  onInteractionSound?: (kind: InteractionSoundKey) => void;
   cooldownStyle?: CooldownStyle;
 }): UseInteractionStateResult {
   const onLongPressRef = useRef(opts?.onLongPress);
+  const onInteractionSoundRef = useRef(opts?.onInteractionSound);
   useEffect(() => {
     onLongPressRef.current = opts?.onLongPress;
   }, [opts?.onLongPress]);
+  useEffect(() => {
+    onInteractionSoundRef.current = opts?.onInteractionSound;
+  }, [opts?.onInteractionSound]);
 
   const [state, setState] = useState<InputState>({ kind: "idle" });
   const [lastActivityAtMs, setLastActivityAtMs] = useState(() => Date.now());
@@ -97,6 +103,10 @@ export function useInteractionState(opts?: {
     const scale = COOLDOWN_SCALE[opts?.cooldownStyle ?? "normal"];
     cooldownRef.current[key] = Date.now() + COOLDOWNS_MS[key] * scale;
   }, [opts?.cooldownStyle]);
+
+  const emitInteractionSound = useCallback((kind: InteractionSoundKey) => {
+    onInteractionSoundRef.current?.(kind);
+  }, []);
 
   const clearTimer = useCallback((key: "look" | "happy" | "tilt" | "surprised" | "longPress" | "pettedSlow" | "petted") => {
     const id = timersRef.current[key];
@@ -180,8 +190,9 @@ export function useInteractionState(opts?: {
   const notifyDragLand = useCallback(() => {
     if (isCoolingDown("dragLand")) return;
     startCooldown("dragLand");
+    emitInteractionSound("dragLand");
     triggerSurprised("drag");
-  }, [isCoolingDown, startCooldown, triggerSurprised]);
+  }, [emitInteractionSound, isCoolingDown, startCooldown, triggerSurprised]);
 
   const onClick = useCallback(
     (event: ReactMouseEvent<HTMLElement>) => {
@@ -193,6 +204,7 @@ export function useInteractionState(opts?: {
         if (isCoolingDown("doubleClick")) return;
         startCooldown("doubleClick");
         bumpCounter("doubleClick");
+        emitInteractionSound("doubleClick");
         triggerSurprised();
         return;
       }
@@ -211,6 +223,7 @@ export function useInteractionState(opts?: {
         if (isCoolingDown("petted")) return;
         startCooldown("petted");
         bumpCounter("petted");
+        emitInteractionSound("petted");
         clearTimer("happy");
         clearTimer("petted");
         setState({ kind: "petted" });
@@ -225,6 +238,7 @@ export function useInteractionState(opts?: {
       if (isCoolingDown("singleClick")) return;
       startCooldown("singleClick");
       bumpCounter("click");
+      emitInteractionSound("click");
       clearTimer("happy");
       clearTimer("tilt");
       setState({ kind: "happy" });
@@ -234,7 +248,7 @@ export function useInteractionState(opts?: {
         setState({ kind: "idle" });
       }, HAPPY_DURATION_MS);
     },
-    [clearTimer, isCoolingDown, notifyActivity, startCooldown, triggerSurprised],
+    [clearTimer, emitInteractionSound, isCoolingDown, notifyActivity, startCooldown, triggerSurprised],
   );
 
   // Defensive: real browsers fire onClick(detail>=2) before this and the
@@ -245,9 +259,10 @@ export function useInteractionState(opts?: {
       if (isCoolingDown("doubleClick")) return;
       startCooldown("doubleClick");
       bumpCounter("doubleClick");
+      emitInteractionSound("doubleClick");
       triggerSurprised();
     },
-    [isCoolingDown, startCooldown, triggerSurprised],
+    [emitInteractionSound, isCoolingDown, startCooldown, triggerSurprised],
   );
 
   const onPointerDownHold = useCallback(
@@ -270,6 +285,7 @@ export function useInteractionState(opts?: {
         if (isCoolingDown("pettedSlow")) return;
         startCooldown("pettedSlow");
         bumpCounter("pettedSlow");
+        emitInteractionSound("pettedSlow");
         clearTimer("pettedSlow");
         setState({ kind: "pettedSlow" });
         notifyActivity();
@@ -279,7 +295,7 @@ export function useInteractionState(opts?: {
         }, PETTED_SLOW_DURATION_MS);
       }, LONG_PRESS_THRESHOLD_MS);
     },
-    [clearTimer, isCoolingDown, notifyActivity, startCooldown],
+    [clearTimer, emitInteractionSound, isCoolingDown, notifyActivity, startCooldown],
   );
 
   useEffect(() => {
