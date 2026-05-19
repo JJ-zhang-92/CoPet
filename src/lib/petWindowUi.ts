@@ -44,9 +44,15 @@ export function wait(ms: number) {
 
 export function petWindowStackContentSize(stack: HTMLElement) {
   const rect = stack.getBoundingClientRect();
+  // Use scrollWidth/Height so children that overflow the stack (e.g. a quip
+  // bubble or context-menu row wider than the pet sprite) grow the window
+  // instead of getting clipped. The stack itself has max-width: 100%, which
+  // caps its bounding rect at the current window width.
+  const contentWidth = Math.max(rect.width, stack.scrollWidth);
+  const contentHeight = Math.max(rect.height, stack.scrollHeight);
   return {
-    width: Math.max(minPetWindowWidth, Math.ceil(rect.width + petWindowPadding)),
-    height: Math.ceil(rect.height + petWindowPadding),
+    width: Math.max(minPetWindowWidth, Math.ceil(contentWidth + petWindowPadding)),
+    height: Math.ceil(contentHeight + petWindowPadding),
   };
 }
 
