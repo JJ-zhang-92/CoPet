@@ -39,3 +39,38 @@ test("pause toggle calls set_response_paused and syncs across windows", async ({
   ]);
   await expect(pauseToggle).toHaveAttribute("aria-checked", "false");
 });
+
+test("pet visibility switch toggles the pet window", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      locale: "en-US",
+      localePreference: "en-US",
+      pets: [pethover],
+      onboardingComplete: false,
+      petWindowSize: 30,
+      responsePaused: false,
+    },
+  });
+
+  const settingsPage = await harness.openPage("settings");
+  await settingsPage.getByRole("tab", { name: "General" }).click();
+
+  const visibilityToggle = settingsPage.getByRole("switch", { name: "Show pet" });
+  await expect(visibilityToggle).toHaveAttribute("aria-checked", "true");
+
+  await visibilityToggle.click();
+
+  expect(harness.calls).toContainEqual({
+    command: "toggle_pet_window_visibility",
+    args: {},
+  });
+  await expect(visibilityToggle).toHaveAttribute("aria-checked", "false");
+
+  await visibilityToggle.click();
+
+  expect(
+    harness.calls.filter((call) => call.command === "toggle_pet_window_visibility"),
+  ).toHaveLength(2);
+  await expect(visibilityToggle).toHaveAttribute("aria-checked", "true");
+});

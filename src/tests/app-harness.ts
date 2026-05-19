@@ -69,6 +69,7 @@ type HarnessOptions = {
   monitor?: HarnessMonitor;
   monitorFromPointReturnsNull?: boolean;
   nativePetContextMenuError?: string;
+  petVisible?: boolean;
   runtimeStatus?: RuntimeStatus;
   scaleFactor?: number;
   state?: AppState;
@@ -165,6 +166,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
   }
   let adapters = options.adapters ?? [];
   let codexPets = options.codexPets ?? [];
+  let petVisible = options.petVisible ?? true;
   const scaleFactor = options.scaleFactor ?? 1;
   const monitor =
     options.monitor ??
@@ -241,6 +243,9 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
         }
         if (command === "list_codex_pets") {
           return codexPets;
+        }
+        if (command === "get_pet_window_visible") {
+          return petVisible;
         }
         if (command === "plugin:dialog|open") {
           return options.dialogOpenPath ?? null;
@@ -342,6 +347,10 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
           state = { ...state, responsePaused: Boolean(args.paused) };
           await emitAppState();
           return state;
+        }
+        if (command === "toggle_pet_window_visibility") {
+          petVisible = !petVisible;
+          return petVisible;
         }
         if (command === "set_pet_interactions") {
           state = { ...state, petInteractions: args.prefs as PetInteractionPrefs };

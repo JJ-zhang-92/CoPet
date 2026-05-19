@@ -383,6 +383,14 @@ fn toggle_pet_window_visibility(app: tauri::AppHandle) -> Result<bool, String> {
 }
 
 #[tauri::command]
+fn get_pet_window_visible(app: tauri::AppHandle) -> Result<bool, String> {
+    let Some(window) = app.get_webview_window("pet") else {
+        return Err("pet window was not found".to_string());
+    };
+    window.is_visible().map_err(|error| error.to_string())
+}
+
+#[tauri::command]
 fn set_agent_message_display(
     app: tauri::AppHandle,
     agent_message_display: AgentMessageDisplay,
@@ -835,6 +843,7 @@ pub fn run() {
             set_response_paused,
             set_pet_interactions,
             toggle_pet_window_visibility,
+            get_pet_window_visible,
             list_pets,
             list_codex_pets,
             install_codex_pet,

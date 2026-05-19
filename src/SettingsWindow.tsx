@@ -53,6 +53,7 @@ export function SettingsWindow() {
     setAgentMessageDisplay,
     setLocalePreference,
     setPetInteractions,
+    setPetVisible,
     setPetWindowSize,
     setResponsePaused,
   } = data;
@@ -177,12 +178,14 @@ export function SettingsWindow() {
               agentMessageDisplay={appState.agentMessageDisplay}
               locale={appState.localePreference === "zh-CN" ? "zh-CN" : "en-US"}
               petInteractions={appState.petInteractions ?? defaultPetInteractionPrefs}
+              petVisible={data.petVisible}
               petWindowSize={petWindowSize}
               resetPetWindowPosition={resetPetWindowPosition}
               responsePaused={appState.responsePaused}
               setAgentMessageDisplay={setAgentMessageDisplay}
               setLocalePreference={setLocalePreference}
               setPetInteractions={setPetInteractions}
+              setPetVisible={setPetVisible}
               setPetWindowSize={setPetWindowSize}
               setResponsePaused={setResponsePaused}
               t={t}

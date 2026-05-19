@@ -30,6 +30,8 @@ interface SettingsPreferencesSectionProps {
   setAgentMessageDisplay: (next: AgentMessageDisplay) => void;
   locale: "en-US" | "zh-CN";
   setLocalePreference: (next: LocalePreference) => void;
+  petVisible: boolean;
+  setPetVisible: (visible: boolean) => void;
   petWindowSize: PetWindowSize;
   setPetWindowSize: (size: PetWindowSize) => void;
   resetPetWindowPosition: () => Promise<{ errorMessage?: string }>;
@@ -45,6 +47,8 @@ export function SettingsPreferencesSection({
   setAgentMessageDisplay,
   locale,
   setLocalePreference,
+  petVisible,
+  setPetVisible,
   petWindowSize,
   setPetWindowSize,
   resetPetWindowPosition,
@@ -131,6 +135,33 @@ export function SettingsPreferencesSection({
           {t("petWindowHeading")}
         </header>
         <div className="settings-preferences-rows">
+          <div className="settings-preferences-row">
+            <div className="settings-preferences-row-text">
+              <span className="settings-preferences-row-title">
+                {t("showPet")}
+              </span>
+            </div>
+            <div className="settings-preferences-row-control">
+              <div
+                className="settings-switch-row"
+                onClick={() => setPetVisible(!petVisible)}
+              >
+                <Switch
+                  aria-label={t("showPet")}
+                  checked={petVisible}
+                  onCheckedChange={setPetVisible}
+                />
+                <span
+                  aria-hidden="true"
+                  className="settings-switch-state"
+                  data-active={petVisible ? "true" : "false"}
+                >
+                  {t(petVisible ? "pauseStateOn" : "pauseStateOff")}
+                </span>
+              </div>
+            </div>
+          </div>
+
           <div className="settings-preferences-row">
             <span className="settings-preferences-row-title">{t("size")}</span>
             <div

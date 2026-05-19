@@ -35,6 +35,7 @@ export function useAppData() {
   const [adapters, setAdapters] = useState<AdapterSummary[]>([]);
   const [codexPets, setCodexPets] = useState<PetSummary[]>([]);
   const [petBusyId, setPetBusyId] = useState<string | null>(null);
+  const [petVisible, setPetVisibleState] = useState(true);
   const [petState, setPetState] = useState<PetStateId>("idle");
   const [agentMessages, setAgentMessages] = useState<AgentMessage[]>([]);
   const [dismissedAgentMessageKeys, setDismissedAgentMessageKeys] = useState(
@@ -53,16 +54,18 @@ export function useAppData() {
   const load = async () => {
     setLoadState({ status: "loading" });
     try {
-      const [data, runtime, agentAdapters, codexPetPackages] = await Promise.all([
+      const [data, runtime, agentAdapters, codexPetPackages, visible] = await Promise.all([
         invoke<AppState>("get_app_state"),
         invoke<RuntimeStatus>("get_runtime_status"),
         invoke<AdapterSummary[]>("list_agent_adapters"),
         invoke<PetSummary[]>("list_codex_pets"),
+        invoke<boolean>("get_pet_window_visible"),
       ]);
       setLoadState({ status: "ready", data });
       setRuntimeStatus(runtime);
       setAdapters(agentAdapters);
       setCodexPets(codexPetPackages);
+      setPetVisibleState(visible);
       setPetState(runtime.currentState.state);
       setAgentMessages(runtime.messages);
       pethoverDevLog("frontend.snapshot.loaded", {
@@ -205,6 +208,21 @@ export function useAppData() {
     try {
       const data = await invoke<AppState>("set_response_paused", { paused });
       setReadyData(data);
+    } catch (error) {
+      setLoadState({
+        status: "error",
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  };
+
+  const setPetVisible = async (visible: boolean) => {
+    if (visible === petVisible) {
+      return;
+    }
+    try {
+      const nextVisible = await invoke<boolean>("toggle_pet_window_visibility");
+      setPetVisibleState(nextVisible);
     } catch (error) {
       setLoadState({
         status: "error",
@@ -375,6 +393,7 @@ export function useAppData() {
     loadState,
     installCodexPet,
     petBusyId,
+    petVisible,
     petState,
     refreshPetLists,
     removePet,
@@ -386,6 +405,7 @@ export function useAppData() {
     setAgentMessageDisplay,
     setLocalePreference,
     setPetInteractions,
+    setPetVisible,
     setPetWindowSize,
     setResponsePaused,
   };
