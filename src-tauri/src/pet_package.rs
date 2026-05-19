@@ -242,8 +242,9 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
     if !sound_path.is_absolute() {
         sound_path = env::current_dir().ok()?.join(sound_path);
     }
-    let metadata = fs::metadata(&sound_path).ok()?;
-    if !metadata.is_file() || metadata.len() > MAX_PET_SOUND_BYTES {
+    let metadata = fs::symlink_metadata(&sound_path).ok()?;
+    let file_type = metadata.file_type();
+    if !file_type.is_file() || file_type.is_symlink() || metadata.len() > MAX_PET_SOUND_BYTES {
         return None;
     }
 

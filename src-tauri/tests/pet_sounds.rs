@@ -188,6 +188,50 @@ fn oversized_sound_entries_are_filtered() {
     assert!(pet.sounds.is_none());
 }
 
+#[cfg(unix)]
+#[test]
+fn symlinked_sound_entries_are_filtered() {
+    use std::os::unix::fs::symlink;
+
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let pet_dir = store.root().join("pets/symlink-sound-pet");
+    create_pet_with_manifest(
+        &pet_dir,
+        r#"{
+  "id": "symlink-sound-pet",
+  "slug": "symlink-sound-pet",
+  "displayName": "Symlink Sound Pet",
+  "frameWidth": 160,
+  "frameHeight": 64,
+  "gridColumns": 8,
+  "gridRows": 9,
+  "pethover": {
+    "audio": {
+      "interactionSounds": {
+        "click": "pethover/audio/click.mp3"
+      }
+    }
+  }
+}"#,
+    );
+    let outside_sound = temp.path().join("outside.mp3");
+    fs::write(&outside_sound, b"outside").unwrap();
+    let audio_dir = pet_dir.join("pethover/audio");
+    fs::create_dir_all(&audio_dir).unwrap();
+    symlink(&outside_sound, audio_dir.join("click.mp3")).unwrap();
+
+    let state = store.app_state().unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "symlink-sound-pet")
+        .unwrap();
+
+    assert!(pet.sounds.is_none());
+}
+
 fn create_pet_with_manifest(dir: &Path, manifest: &str) {
     fs::create_dir_all(dir).unwrap();
     fs::write(dir.join("pet.json"), manifest).unwrap();
