@@ -1588,6 +1588,49 @@ select {
   }
 }
 
+.pet-context-menu {
+  background: rgba(20, 20, 24, 0.95);
+  color: #fff;
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 160px;
+  z-index: 1000;
+  user-select: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+}
+
+.pet-context-menu button {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  padding: 6px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font: inherit;
+}
+
+.pet-context-menu button:hover,
+.pet-context-menu button:focus-visible {
+  background: rgba(255, 255, 255, 0.12);
+  outline: none;
+}
+
+.pet-context-menu-group {
+  display: flex;
+  flex-direction: column;
+  padding-top: 2px;
+}
+
+.pet-context-menu-section-label {
+  font-size: 11px;
+  opacity: 0.55;
+  padding: 6px 10px 2px;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .pet-sprite,
   .spin,

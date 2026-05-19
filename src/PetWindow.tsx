@@ -1,16 +1,20 @@
+import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { X } from "lucide-react";
 import type {
   CSSProperties,
+  MouseEvent as ReactMouseEvent,
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { ErrorView, LoadingView } from "./components/AppShell";
+import { PetContextMenu } from "./components/PetContextMenu";
 import { PetSprite } from "./components/PetSprite";
 import { useLayeredPetState } from "./hooks/useLayeredPetState";
 import { useAppData } from "./hooks/useAppData";
+import { createTranslator } from "./lib/i18n";
 import type { AgentMessage, PetWindowSize } from "./lib/appTypes";
 import {
   defaultPetWindowSize,
@@ -31,11 +35,14 @@ export function PetWindow() {
     dismissAgentMessage,
     load,
     loadState,
+    selectPet,
     selectedPet,
+    setResponsePaused,
   } = useAppData();
-  const { composed, bindInput, bindMotion, quipText } = useLayeredPetState();
+  const { composed, bindInput, bindMotion, quipText, emitQuip } = useLayeredPetState();
 
   const stackRef = useRef<HTMLDivElement | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
   const sliderDraggingRef = useRef(false);
   const resizeTimerRef = useRef<number | null>(null);
   const sliderScaleReleaseTimerRef = useRef<number | null>(null);
@@ -157,6 +164,11 @@ export function PetWindow() {
     motionHandlers.onPointerDown(event);
   };
 
+  const handleContextMenu = (event: ReactMouseEvent<HTMLElement>) => {
+    event.preventDefault();
+    setMenuAnchor({ x: event.clientX, y: event.clientY });
+  };
+
   if (loadState.status === "loading") {
     return <LoadingView />;
   }
@@ -166,12 +178,18 @@ export function PetWindow() {
   }
 
   const motionHandlers = bindMotion();
+  const locale = loadState.data.locale ?? "en-US";
+  const t = createTranslator(locale);
+  const installedPets = loadState.data.pets;
+  const activePetId = loadState.data.currentPetId;
+  const pauseEnabled = loadState.data.responsePaused ?? false;
 
   return (
     <main
       className="pet-window"
       data-tauri-drag-region
       onPointerDown={handlePointerDown}
+      onContextMenu={handleContextMenu}
     >
       <div
         className="pet-window-stack"
@@ -204,6 +222,31 @@ export function PetWindow() {
           />
         ) : null}
       </div>
+      {menuAnchor ? (
+        <PetContextMenu
+          anchor={menuAnchor}
+          pauseEnabled={pauseEnabled}
+          pets={installedPets.map((pet) => ({ id: pet.id, displayName: pet.displayName }))}
+          activePetId={activePetId}
+          onClose={() => setMenuAnchor(null)}
+          onPet={() => emitQuip("hi")}
+          onTogglePause={(next) => { void setResponsePaused(next); }}
+          onSwitchPet={(petId) => {
+            const pet = installedPets.find((p) => p.id === petId);
+            if (pet) void selectPet(pet);
+          }}
+          onOpenSettings={() => void invoke("open_settings_window")}
+          onHidePet={() => void invoke("toggle_pet_window_visibility")}
+          labels={{
+            pet: t("contextMenuPet"),
+            pauseOn: t("contextMenuPauseOn"),
+            pauseOff: t("contextMenuPauseOff"),
+            switchPet: t("contextMenuSwitchPet"),
+            openSettings: t("contextMenuOpenSettings"),
+            hidePet: t("contextMenuHidePet"),
+          }}
+        />
+      ) : null}
     </main>
   );
 }

@@ -16,7 +16,7 @@ import type {
 } from "../lib/petAnimation";
 import type { InteractionHandlers } from "./useInteractionState";
 import type { MotionHandlers } from "./useMotionState";
-import type { Locale } from "../lib/i18n";
+import type { InteractionQuipPool, Locale } from "../lib/i18n";
 
 export type UseLayeredPetStateResult = {
   layers: PetLayers;
@@ -24,6 +24,7 @@ export type UseLayeredPetStateResult = {
   bindInput: () => InteractionHandlers;
   bindMotion: () => MotionHandlers;
   quipText: string | null;
+  emitQuip: (pool: InteractionQuipPool) => void;
 };
 
 export function useLayeredPetState(): UseLayeredPetStateResult {
@@ -74,5 +75,6 @@ export function useLayeredPetState(): UseLayeredPetStateResult {
     bindInput: () => interaction.handlers,
     bindMotion: () => motion.handlers,
     quipText,
+    emitQuip,
   };
 }

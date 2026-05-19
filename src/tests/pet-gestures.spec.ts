@@ -404,3 +404,24 @@ test("pause messages does not suppress interaction quips", async ({ browser }) =
   await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
   await expect(quip).toBeVisible();
 });
+
+test("right-click opens the pet context menu; Esc dismisses it", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+      locale: "en-US",
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const menu = page.locator("[data-testid=pet-context-menu]");
+
+  await expect(menu).toBeHidden();
+  await spriteFrame.dispatchEvent("contextmenu", { clientX: 50, clientY: 50, button: 2 });
+  await expect(menu).toBeVisible();
+
+  await page.keyboard.press("Escape");
+  await expect(menu).toBeHidden();
+});
