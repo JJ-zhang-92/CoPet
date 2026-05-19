@@ -419,24 +419,36 @@ impl ConfigStore {
             ));
         }
 
-        let manifest_json = fs::read_to_string(source_dir.join("pet.json")).map_err(|_| {
+        let mut package = read_pet_package(source_dir).ok_or_else(|| {
             StoreError::InvalidPetPackage(
                 "folder must contain pet.json and spritesheet.webp or spritesheet.png".to_string(),
             )
         })?;
-        let sprite_path = find_sprite_path(source_dir).ok_or_else(|| {
-            StoreError::InvalidPetPackage(
-                "folder must contain pet.json and spritesheet.webp or spritesheet.png".to_string(),
-            )
-        })?;
-        let sprite_file_name = sprite_path
-            .file_name()
-            .and_then(|name| name.to_str())
-            .ok_or_else(|| StoreError::InvalidPetPackage("sprite filename is invalid".to_string()))?
-            .to_string();
-        let sprite_bytes = fs::read(sprite_path)?;
+        if package.manifest.id.trim().is_empty() {
+            return Err(StoreError::InvalidPetPackage(
+                "pet id cannot be empty".to_string(),
+            ));
+        }
+        self.reject_if_builtin_id(&package.manifest.id)?;
+        if fs::metadata(&package.sprite_path)?.len() == 0 {
+            return Err(StoreError::InvalidPetPackage(
+                "sprite file cannot be empty".to_string(),
+            ));
+        }
 
-        self.import_pet_files(&manifest_json, &sprite_file_name, sprite_bytes)
+        package.manifest.built_in = false;
+        if package.manifest.slug.is_empty() {
+            package.manifest.slug = package.manifest.id.clone();
+        }
+
+        let target_dir = self.pets_dir().join(&package.manifest.id);
+        copy_pet_package(source_dir, &target_dir, &package)?;
+        fs::write(
+            target_dir.join("pet.json"),
+            serde_json::to_vec_pretty(&package.manifest)?,
+        )?;
+
+        self.select_pet(&package.manifest.id)
     }
 
     pub fn remove_pet(&self, pet_id: &str) -> Result<AppState, StoreError> {
@@ -636,6 +648,16 @@ fn copy_pet_package(
     fs::copy(source_dir.join("pet.json"), target_dir.join("pet.json"))?;
     if let Some(sprite_name) = package.sprite_path.file_name() {
         fs::copy(&package.sprite_path, target_dir.join(sprite_name))?;
+    }
+    for sound_path in package.sound_file_paths() {
+        let Ok(relative_path) = sound_path.strip_prefix(source_dir) else {
+            continue;
+        };
+        let target_path = target_dir.join(relative_path);
+        if let Some(parent) = target_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::copy(sound_path, target_path)?;
     }
     Ok(())
 }

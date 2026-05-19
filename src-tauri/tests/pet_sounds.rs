@@ -232,8 +232,102 @@ fn symlinked_sound_entries_are_filtered() {
     assert!(pet.sounds.is_none());
 }
 
+#[test]
+fn import_pet_folder_preserves_valid_audio_resources() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let source_dir = temp.path().join("folder-sound-pet");
+    create_sound_pet(&source_dir, "folder-sound-pet", "Folder Sound Pet");
+
+    let state = store.import_pet_folder(&source_dir).unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "folder-sound-pet")
+        .unwrap();
+
+    assert!(store
+        .root()
+        .join("pets/folder-sound-pet/pethover/audio/click.mp3")
+        .exists());
+    assert!(pet
+        .sounds
+        .as_ref()
+        .unwrap()
+        .interaction_sounds
+        .click
+        .as_ref()
+        .unwrap()
+        .contains("folder-sound-pet/pethover/audio/click.mp3"));
+}
+
+#[test]
+fn install_codex_pet_preserves_valid_audio_resources() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let codex_pets = temp.path().join(".codex/pets");
+    create_sound_pet(
+        &codex_pets.join("codex-sound-pet"),
+        "codex-sound-pet",
+        "Codex Sound Pet",
+    );
+
+    let state = store
+        .install_codex_pet(&codex_pets, "codex-sound-pet")
+        .unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "codex-sound-pet")
+        .unwrap();
+
+    assert!(store
+        .root()
+        .join("pets/codex-sound-pet/pethover/audio/click.mp3")
+        .exists());
+    assert!(pet
+        .sounds
+        .as_ref()
+        .unwrap()
+        .interaction_sounds
+        .click
+        .as_ref()
+        .unwrap()
+        .contains("codex-sound-pet/pethover/audio/click.mp3"));
+}
+
 fn create_pet_with_manifest(dir: &Path, manifest: &str) {
     fs::create_dir_all(dir).unwrap();
     fs::write(dir.join("pet.json"), manifest).unwrap();
     fs::write(dir.join("spritesheet.png"), b"sprite").unwrap();
+}
+
+fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
+    fs::create_dir_all(dir.join("pethover/audio")).unwrap();
+    fs::write(
+        dir.join("pet.json"),
+        format!(
+            r#"{{
+  "id": "{id}",
+  "slug": "{id}",
+  "displayName": "{display_name}",
+  "frameWidth": 160,
+  "frameHeight": 64,
+  "gridColumns": 8,
+  "gridRows": 9,
+  "pethover": {{
+    "audio": {{
+      "interactionSounds": {{
+        "click": "pethover/audio/click.mp3"
+      }}
+    }}
+  }}
+}}"#
+        ),
+    )
+    .unwrap();
+    fs::write(dir.join("spritesheet.png"), b"sprite").unwrap();
+    fs::write(dir.join("pethover/audio/click.mp3"), b"click").unwrap();
 }
