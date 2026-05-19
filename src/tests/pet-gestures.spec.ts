@@ -380,8 +380,7 @@ test("right-click opens the native pet context menu command", async ({ browser }
   });
   const page = await harness.openPage("pet");
   const spriteFrame = page.locator(".pet-sprite-frame");
-  const box = await spriteFrame.boundingBox();
-  if (!box) throw new Error("pet sprite frame not laid out");
+  await page.waitForTimeout(350);
 
   await spriteFrame.dispatchEvent("contextmenu", {
     bubbles: true,
@@ -391,6 +390,15 @@ test("right-click opens the native pet context menu command", async ({ browser }
   });
 
   expect(harness.invocations("open_pet_context_menu")).toHaveLength(1);
+  const box = await spriteFrame.evaluate((node) => {
+    const rect = node.getBoundingClientRect();
+    return {
+      height: rect.height,
+      width: rect.width,
+      x: rect.left,
+      y: rect.top,
+    };
+  });
   const args = harness.invocations("open_pet_context_menu")[0].args;
   expect(args?.labels).toEqual({
     pause: "Pause messages",
