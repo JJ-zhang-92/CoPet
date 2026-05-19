@@ -454,18 +454,37 @@ test("pet sounds switch calls set_pet_interactions", async ({ browser }) => {
   const page = await harness.openPage("settings");
   await page.getByRole("tab", { name: "General" }).click();
 
-  await page.getByRole("switch", { name: "Enable pet sounds" }).click();
+  const soundSwitch = page.getByRole("switch", { name: "Enable pet sounds" });
+  const soundRow = page.locator(".settings-switch-row").filter({ has: soundSwitch });
+  await soundSwitch.click();
 
-  await expect(page.getByRole("switch", { name: "Enable pet sounds" })).toHaveAttribute(
-    "aria-checked",
-    "true",
-  );
-  expect(harness.calls).toContainEqual({
-    command: "set_pet_interactions",
-    args: {
-      prefs: { enableClickSounds: true, cooldownStyle: "lazy" },
+  await expect(soundSwitch).toHaveAttribute("aria-checked", "true");
+  expect(harness.calls.filter((call) => call.command === "set_pet_interactions")).toEqual([
+    {
+      command: "set_pet_interactions",
+      args: {
+        prefs: { enableClickSounds: true, cooldownStyle: "lazy" },
+      },
     },
-  });
+  ]);
+
+  await soundRow.getByText("On", { exact: true }).click();
+
+  await expect(soundSwitch).toHaveAttribute("aria-checked", "false");
+  expect(harness.calls.filter((call) => call.command === "set_pet_interactions")).toEqual([
+    {
+      command: "set_pet_interactions",
+      args: {
+        prefs: { enableClickSounds: true, cooldownStyle: "lazy" },
+      },
+    },
+    {
+      command: "set_pet_interactions",
+      args: {
+        prefs: { enableClickSounds: false, cooldownStyle: "lazy" },
+      },
+    },
+  ]);
 });
 
 test("importing a local pet folder accepts png spritesheet fallback", async ({

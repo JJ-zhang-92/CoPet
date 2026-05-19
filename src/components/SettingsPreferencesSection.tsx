@@ -122,6 +122,9 @@ export function SettingsPreferencesSection({
     }
   };
 
+  const setEnableClickSounds = (enableClickSounds: boolean) =>
+    setPetInteractions({ ...petInteractions, enableClickSounds });
+
   return (
     <div className="settings-preferences">
       <h2 id="settings-section-panel-heading">{t("preferencesTitle")}</h2>
@@ -184,13 +187,14 @@ export function SettingsPreferencesSection({
               </span>
             </div>
             <div className="settings-preferences-row-control">
-              <div className="settings-switch-row">
+              <div
+                className="settings-switch-row"
+                onClick={() => setEnableClickSounds(!petInteractions.enableClickSounds)}
+              >
                 <Switch
                   aria-label={t("enableClickSounds")}
                   checked={petInteractions.enableClickSounds}
-                  onCheckedChange={(enableClickSounds) =>
-                    setPetInteractions({ ...petInteractions, enableClickSounds })
-                  }
+                  onCheckedChange={setEnableClickSounds}
                 />
                 <span
                   aria-hidden="true"
