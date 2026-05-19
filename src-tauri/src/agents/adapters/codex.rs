@@ -119,8 +119,8 @@ where
     Ok(())
 }
 
-/// Set [features].hooks = true, creating the table if needed. Also normalize
-/// any legacy `codex_hooks` key by leaving it true (parity with previous impl).
+/// Set [features].hooks = true, creating the table if needed, and drop the
+/// deprecated `codex_hooks` feature flag if a previous install wrote it.
 fn set_features_hooks_true(document: &mut DocumentMut) {
     let features = document
         .entry("features")
@@ -128,9 +128,7 @@ fn set_features_hooks_true(document: &mut DocumentMut) {
         .as_table_mut()
         .expect("[features] must be a TOML table");
     features.insert("hooks", value(true));
-    if features.contains_key("codex_hooks") {
-        features.insert("codex_hooks", value(true));
-    }
+    features.remove("codex_hooks");
 }
 
 /// Compact description of a single PetHover-owned Codex hook handler.

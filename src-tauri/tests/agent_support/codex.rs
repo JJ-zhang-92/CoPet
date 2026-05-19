@@ -196,8 +196,7 @@ approval_policy = "on-request"
     let config = fs::read_to_string(config).unwrap();
     assert!(config.contains(r#"model = "gpt-5.1-codex""#));
     assert!(config.contains("hooks = true"));
-    assert!(config.contains("codex_hooks = true"));
-    assert!(!config.contains("codex_hooks = false"));
+    assert!(!config.contains("codex_hooks"));
     assert!(config.contains("experimental = true"));
     assert!(config.contains("[profiles.default]"));
 }
