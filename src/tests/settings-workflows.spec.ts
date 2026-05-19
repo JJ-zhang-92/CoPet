@@ -407,8 +407,8 @@ test("pet interactions settings sub-section renders all controls", async ({ brow
   await page.getByRole("tab", { name: "General" }).click();
 
   await expect(page.getByText("Pet interactions")).toBeVisible();
-  await expect(page.getByRole("switch", { name: "Enable click sounds" })).toBeDisabled();
-  await expect(page.getByText("Coming soon")).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Enable pet sounds" })).toBeEnabled();
+  await expect(page.getByText("Coming soon")).toHaveCount(0);
   const cooldownGroup = page.getByRole("radiogroup", { name: "Interaction cooldown" });
   await expect(cooldownGroup).toBeVisible();
   await expect(cooldownGroup.getByRole("radio", { name: "Normal" })).toHaveAttribute(
@@ -437,6 +437,33 @@ test("pet interactions cooldown radio calls set_pet_interactions", async ({ brow
     command: "set_pet_interactions",
     args: {
       prefs: { enableClickSounds: false, cooldownStyle: "lazy" },
+    },
+  });
+});
+
+test("pet sounds switch calls set_pet_interactions", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+      locale: "en-US",
+      petInteractions: { enableClickSounds: false, cooldownStyle: "lazy" },
+    },
+  });
+  const page = await harness.openPage("settings");
+  await page.getByRole("tab", { name: "General" }).click();
+
+  await page.getByRole("switch", { name: "Enable pet sounds" }).click();
+
+  await expect(page.getByRole("switch", { name: "Enable pet sounds" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+  expect(harness.calls).toContainEqual({
+    command: "set_pet_interactions",
+    args: {
+      prefs: { enableClickSounds: true, cooldownStyle: "lazy" },
     },
   });
 });

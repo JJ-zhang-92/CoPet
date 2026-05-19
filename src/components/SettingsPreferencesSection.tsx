@@ -181,21 +181,21 @@ export function SettingsPreferencesSection({
             <div className="settings-preferences-row-text">
               <span className="settings-preferences-row-title">
                 {t("enableClickSounds")}
-                <span className="settings-preferences-coming-soon">{t("enableClickSoundsBadge")}</span>
               </span>
             </div>
             <div className="settings-preferences-row-control">
-              <div className="settings-switch-row" data-disabled="true">
+              <div className="settings-switch-row">
                 <Switch
                   aria-label={t("enableClickSounds")}
                   checked={petInteractions.enableClickSounds}
-                  disabled
+                  onCheckedChange={(enableClickSounds) =>
+                    setPetInteractions({ ...petInteractions, enableClickSounds })
+                  }
                 />
                 <span
                   aria-hidden="true"
                   className="settings-switch-state"
                   data-active={petInteractions.enableClickSounds ? "true" : "false"}
-                  data-disabled="true"
                 >
                   {t(petInteractions.enableClickSounds ? "pauseStateOn" : "pauseStateOff")}
                 </span>
