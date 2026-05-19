@@ -386,3 +386,21 @@ test("interaction counters increment after successful gestures", async ({ browse
   expect(counters.click).toBe(1);
   expect(counters.doubleClick).toBe(1);
 });
+
+test("pause messages does not suppress interaction quips", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pethover.id,
+      pets: [pethover],
+      onboardingComplete: false,
+      locale: "en-US",
+      responsePaused: true,
+    },
+  });
+  const page = await harness.openPage("pet");
+  const spriteFrame = page.locator(".pet-sprite-frame");
+  const quip = page.locator("[data-testid=pet-interaction-quip]");
+
+  await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
+  await expect(quip).toBeVisible();
+});
