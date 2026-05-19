@@ -47,11 +47,17 @@ export type UseInteractionStateResult = {
 
 export function useInteractionState(opts?: {
   onQuip?: (pool: InteractionQuipPool) => void;
+  onLongPress?: (origin: { x: number; y: number }) => void;
 }): UseInteractionStateResult {
   const onQuipRef = useRef(opts?.onQuip);
   useEffect(() => {
     onQuipRef.current = opts?.onQuip;
   }, [opts?.onQuip]);
+
+  const onLongPressRef = useRef(opts?.onLongPress);
+  useEffect(() => {
+    onLongPressRef.current = opts?.onLongPress;
+  }, [opts?.onLongPress]);
 
   const [state, setState] = useState<InputState>({ kind: "idle" });
   const [lastActivityAtMs, setLastActivityAtMs] = useState(() => Date.now());
@@ -254,7 +260,16 @@ export function useInteractionState(opts?: {
       pointerDownPosRef.current = { x: event.clientX, y: event.clientY };
       timersRef.current.longPress = window.setTimeout(() => {
         timersRef.current.longPress = null;
+        const origin = pointerDownPosRef.current;
         pointerDownPosRef.current = null;
+
+        if (onLongPressRef.current) {
+          // Menu-fallback path (e.g. macOS): open the menu, suppress pettedSlow.
+          if (origin) onLongPressRef.current(origin);
+          return;
+        }
+
+        // Normal long-press petting path.
         if (isCoolingDown("pettedSlow")) return;
         startCooldown("pettedSlow");
         bumpCounter("pettedSlow");

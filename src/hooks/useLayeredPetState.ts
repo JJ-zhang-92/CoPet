@@ -27,7 +27,9 @@ export type UseLayeredPetStateResult = {
   emitQuip: (pool: InteractionQuipPool) => void;
 };
 
-export function useLayeredPetState(): UseLayeredPetStateResult {
+export function useLayeredPetState(opts?: {
+  onLongPress?: (origin: { x: number; y: number }) => void;
+}): UseLayeredPetStateResult {
   const { petState, agentMessages, loadState } = useAppData();
   // The harness AppState type makes `locale` optional; the runtime can therefore
   // produce `undefined`. The fallback keeps `useInteractionQuip` from crashing.
@@ -37,7 +39,7 @@ export function useLayeredPetState(): UseLayeredPetStateResult {
   const { text: quipText, emit: emitQuip } = useInteractionQuip(locale, quipsEnabled);
 
   const agent = useAgentState({ petState, agentMessages });
-  const interaction = useInteractionState({ onQuip: emitQuip });
+  const interaction = useInteractionState({ onQuip: emitQuip, onLongPress: opts?.onLongPress });
   const motion = useMotionState({
     onDragLand: () => interaction.notifyDragLand(),
   });

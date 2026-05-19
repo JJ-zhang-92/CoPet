@@ -39,7 +39,17 @@ export function PetWindow() {
     selectedPet,
     setResponsePaused,
   } = useAppData();
-  const { composed, bindInput, bindMotion, quipText, emitQuip } = useLayeredPetState();
+  // macOS NSPanel does not always deliver contextmenu to the webview; long-press
+  // is a fallback path that opens the same menu at the press origin.
+  // We require __TAURI__ to be present so this path does not activate under
+  // bare Playwright (which may report a Mac UA on Apple-silicon CI hosts).
+  const isMac =
+    typeof navigator !== "undefined" &&
+    /Mac/i.test(navigator.userAgent) &&
+    typeof (window as { __TAURI__?: unknown }).__TAURI__ !== "undefined";
+  const { composed, bindInput, bindMotion, quipText, emitQuip } = useLayeredPetState({
+    onLongPress: isMac ? (origin) => setMenuAnchor(origin) : undefined,
+  });
 
   const stackRef = useRef<HTMLDivElement | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ x: number; y: number } | null>(null);
