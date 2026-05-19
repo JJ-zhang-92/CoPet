@@ -125,8 +125,13 @@ export function useAppData() {
 
   const agentMessageDisplay =
     loadState.status === "ready" ? loadState.data.agentMessageDisplay : "latest";
+  const responsePaused =
+    loadState.status === "ready" ? loadState.data.responsePaused : false;
 
   const visibleAgentMessages = useMemo(() => {
+    if (responsePaused) {
+      return [];
+    }
     const visible = agentMessages.filter(
       (message) => !dismissedAgentMessageKeys.has(agentMessageKey(message)),
     );
@@ -141,7 +146,7 @@ export function useAppData() {
         message.updatedAtMs > latest.updatedAtMs ? message : latest,
       ),
     ];
-  }, [agentMessages, agentMessageDisplay, dismissedAgentMessageKeys]);
+  }, [agentMessages, agentMessageDisplay, dismissedAgentMessageKeys, responsePaused]);
 
   const selectPet = async (pet: PetSummary) => {
     setIsSelecting(true);
