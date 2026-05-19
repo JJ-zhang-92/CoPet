@@ -559,15 +559,19 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
                 let _ = handle_open_about(app);
             }
             TRAY_MENU_QUIT_ID => {
-                // Tauri 2 on macOS can leave the process alive after app.exit
-                // (NSApplication intercepts terminate). Proactively release the
-                // runtime listener and on-disk endpoint files so the next launch
-                // is not blocked by a stale port binding even if the process
-                // lingers.
+                // Tauri 2's `app.exit` on macOS does not reliably reach
+                // `process::exit` — NSApplication can intercept the terminate
+                // event and leave the run loop alive. That keeps the Rust
+                // process resident, which in turn keeps `tauri dev` from
+                // killing its Vite child, so port 1420 stays bound and the
+                // next `pnpm tauri dev` fails with "Port already in use".
+                // We run the registered cleanup hooks first (Drop on managed
+                // state, our own shutdown), then exit the process directly.
                 if let Some(runtime) = app.try_state::<RuntimeManager>() {
                     runtime.shutdown();
                 }
-                app.exit(0);
+                app.cleanup_before_exit();
+                std::process::exit(0);
             }
             _ => {}
         })
@@ -676,11 +680,15 @@ pub fn run() {
                         schedule_pet_window_z_order_reassertions(window.app_handle());
                     }
                     "pet" => {
+                        // Same rationale as the tray quit handler: bypass
+                        // Tauri's macOS exit path so the process actually dies
+                        // and the `tauri dev` parent can reap the Vite child.
                         let handle = window.app_handle();
                         if let Some(runtime) = handle.try_state::<RuntimeManager>() {
                             runtime.shutdown();
                         }
-                        handle.exit(0);
+                        handle.cleanup_before_exit();
+                        std::process::exit(0);
                     }
                     _ => {}
                 }
