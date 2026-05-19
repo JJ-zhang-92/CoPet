@@ -1,45 +1,78 @@
 # PetHover Skills
 
-PetHover-specific skill packages. Each skill documents one slice of the PetHover **pet package format** — a directory under `$HOME/.pethover/pets/<pet-id>/` that holds a `pet.json` manifest plus per-skill resource folders.
+PetHover-specific skill packages. Each skill documents one slice of the PetHover **pet package format**: a Codex-compatible pet directory with a `pet.json` manifest, a sprite atlas, and optional PetHover-owned resources.
 
-Today there is **one PetHover skill**, [`pethover`](./pethover/SKILL.md). It is the single orchestration entry point for generating a pet from an image or text input — it calls the upstream `$hatch-pet` skill for sprites/behavior, then generates matching audio.
+Today there is **one PetHover skill**, [`pethover`](./pethover/SKILL.md). It is the single orchestration entry point for generating a pet from an image or text input: it calls the upstream `$hatch-pet` skill for Codex sprites, then adds PetHover display translations, audio, and behavior metadata.
 
 ## Pet package layout
 
 ```
 $HOME/.pethover/pets/<pet-id>/
 ├── pet.json
-├── spritesheet.png             # $hatch-pet output, PNG or WebP (8×9 atlas, 192×208 per cell)
+├── spritesheet.webp            # or spritesheet.png; Codex 8×9 atlas, 192×208 per cell
 └── pethover/
-    └── audio/                  # generated MP3 clips
+    └── audio/                  # optional generated MP3 clips
         ├── click.mp3
         └── ...
 ```
 
 `<pet-id>` is a kebab-case identifier unique within `$HOME/.pethover/pets/`. Built-in pets ship inside the app bundle using the same layout.
 
-A minimal `pet.json`:
+A minimal Codex-compatible `pet.json`:
 
 ```json
 {
   "id": "example-pet",
-  "name": "Example Pet",
-  "version": "1.0.0",
-  "pethover": {}
+  "displayName": "Example Pet",
+  "description": "A compact Codex-compatible PetHover pet.",
+  "spritesheetPath": "spritesheet.webp"
 }
 ```
 
-The `pethover` section is optional — a pet without generated assets simply omits it.
+The `pethover` section is optional. A pet without PetHover-specific generated assets simply omits it.
 
-PetHover-side configuration lives under a single `pethover` top-level section in `pet.json`, written by the `pethover` skill. If more PetHover skills are added later, they coordinate within the same section.
+A PetHover-extended `pet.json` keeps the Codex fields at the top level and puts all PetHover-only data under `pethover`:
 
-When a skill writes to `pet.json`, it must only mutate its own top-level key and preserve every other field verbatim — sibling keys are off-limits.
+```json
+{
+  "id": "example-pet",
+  "displayName": "Example Pet",
+  "description": "A compact Codex-compatible PetHover pet.",
+  "spritesheetPath": "spritesheet.webp",
+  "frameWidth": 192,
+  "frameHeight": 208,
+  "gridColumns": 8,
+  "gridRows": 9,
+  "pethover": {
+    "schemaVersion": 1,
+    "displayNameZh": "示例宠物",
+    "descriptionZh": "一个兼容 Codex 的 PetHover 小宠物。",
+    "audio": {
+      "interactionSounds": {
+        "click": "pethover/audio/click.mp3"
+      },
+      "agentSounds": {
+        "thinking": "pethover/audio/hmm.mp3"
+      }
+    },
+    "behaviors": {
+      "stateRows": {
+        "idle": { "row": 0, "frames": 6, "durationMs": 1100 }
+      }
+    }
+  }
+}
+```
+
+PetHover-side configuration lives under a single `pethover` top-level section in `pet.json`, written by the `pethover` skill.
+
+When a skill creates a package, it must write the Codex-required top-level fields. When it updates an existing package, it must preserve every unowned top-level field verbatim and only replace the `pethover` section unless it is filling missing Codex-required fields for a package it is creating.
 
 ## The skill
 
 | Folder | `name` | `displayName` | Owns |
 |---|---|---|---|
-| [`pethover/`](./pethover/SKILL.md) | `pethover` | PetHover | The full pet-generation pipeline (image/text input → `$hatch-pet` → audio), the `pethover` section of `pet.json`, and the `pethover/` resource folder in the pet package. |
+| [`pethover/`](./pethover/SKILL.md) | `pethover` | PetHover | The full pet-generation pipeline, the `pethover` section of `pet.json`, and the `pethover/` resource folder in the pet package. |
 
 ## Single-responsibility policy
 

@@ -9,21 +9,39 @@
   "gridColumns": 8,
   "gridRows": 9,
   "builtIn": true,
-  "pethoverConfig": {
-    "interactionSounds": {
-      "click": "pethover/click.mp3",
-      "doubleClick": "pethover/surprised.mp3",
-      "petted": "pethover/purr.mp3",
-      "pettedSlow": "pethover/sigh.mp3",
-      "dragLand": "pethover/wheee.mp3"
+  "pethover": {
+    "schemaVersion": 1,
+    "displayNameZh": "PetHover",
+    "descriptionZh": "一只受圆润 3D 玩具参考启发的蓝紫渐变快乐狐狸宠物。",
+    "audio": {
+      "interactionSounds": {
+        "click": "pethover/audio/click.mp3",
+        "doubleClick": "pethover/audio/surprised.mp3",
+        "petted": "pethover/audio/purr.mp3",
+        "pettedSlow": "pethover/audio/sigh.mp3",
+        "dragLand": "pethover/audio/wheee.mp3"
+      },
+      "agentSounds": {
+        "thinking": "pethover/audio/hmm.mp3",
+        "editing": "pethover/audio/tap.mp3",
+        "inspecting": "pethover/audio/peek.mp3",
+        "awaitingApproval": "pethover/audio/wait.mp3",
+        "celebrating": "pethover/audio/yay.mp3",
+        "failed": "pethover/audio/oof.mp3"
+      }
     },
-    "agentSounds": {
-      "thinking": "pethover/hmm.mp3",
-      "editing": "pethover/tap.mp3",
-      "inspecting": "pethover/peek.mp3",
-      "awaitingApproval": "pethover/wait.mp3",
-      "celebrating": "pethover/yay.mp3",
-      "failed": "pethover/oof.mp3"
+    "behaviors": {
+      "stateRows": {
+        "idle": { "row": 0, "frames": 6, "durationMs": 1100 },
+        "running-right": { "row": 1, "frames": 8, "durationMs": 1060 },
+        "running-left": { "row": 2, "frames": 8, "durationMs": 1060 },
+        "waving": { "row": 3, "frames": 4, "durationMs": 700 },
+        "jumping": { "row": 4, "frames": 5, "durationMs": 840 },
+        "failed": { "row": 5, "frames": 8, "durationMs": 1220 },
+        "waiting": { "row": 6, "frames": 6, "durationMs": 1010 },
+        "running": { "row": 7, "frames": 6, "durationMs": 820 },
+        "review": { "row": 8, "frames": 6, "durationMs": 1030 }
+      }
     }
   }
 }

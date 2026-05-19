@@ -4,7 +4,7 @@ Rules **established by `pethover`** (no upstream source). Source of truth for au
 
 ## Formats
 
-**MP3 only.** Every file under `pethover/audio/` must be `.mp3` (MPEG-1 Layer 3). No other container or codec is accepted; the runtime rejects pet packages that reference non-`.mp3` paths in `pethover.audio`.
+**MP3 only.** Every file under `pethover/audio/` must be `.mp3` (MPEG-1 Layer 3). No other container or codec is accepted; the runtime should reject pet packages that reference non-`.mp3` paths under `pethover.audio`.
 
 The webview decodes via the HTML5 `<audio>` element.
 

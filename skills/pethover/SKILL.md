@@ -1,7 +1,6 @@
 ---
 name: pethover
-displayName: PetHover
-description: Use when generating a new PetHover pet from a user-uploaded image or a text description. Orchestrates the full pipeline — first invoke the upstream `$hatch-pet` skill to produce the sprite atlas and behavior vocabulary, then generate English `displayName` / `description` strings with parallel Chinese siblings `displayNameZh` / `descriptionZh`, then generate matching MP3 audio clips informed by the pet's identity, then write the result into a `pet.json` manifest at `$HOME/.pethover/pets/<pet-id>/`.
+description: Use when generating or updating a PetHover-compatible Codex pet package from a user image or text description, especially when the package needs PetHover display translations, audio, or behavior metadata.
 ---
 
 # PetHover
@@ -10,12 +9,12 @@ description: Use when generating a new PetHover pet from a user-uploaded image o
 
 This skill is the **single orchestration entry point** for creating a PetHover pet. Given either an uploaded reference image or a textual description, it:
 
-1. Calls the upstream `$hatch-pet` skill to generate the **sprite atlas** and **behavior vocabulary**.
-2. Generates English **`displayName`** and **`description`** plus their parallel Chinese siblings **`displayNameZh`** and **`descriptionZh`** from the pet identity.
-3. Generates a matching set of **MP3 audio clips** for the pet — interaction sounds (user gestures) and agent-state sounds (CLI events).
-4. Writes the entire output to `$HOME/.pethover/pets/<pet-id>/`, including the `pet.json` manifest and the `pethover/` resource folder.
+1. Calls the upstream `$hatch-pet` skill to generate the Codex-compatible **sprite atlas** and canonical 9-row behavior vocabulary.
+2. Uses the `$hatch-pet` package manifest as the source of truth for Codex top-level fields: `id`, `displayName`, `description`, and `spritesheetPath`.
+3. Adds PetHover-only metadata under the top-level `pethover` key: Chinese display strings, optional audio bindings, and optional behavior metadata.
+4. Writes the entire output to `$HOME/.pethover/pets/<pet-id>/`, including `pet.json`, the spritesheet, and any `pethover/` resources.
 
-It is the only PetHover skill — all PetHover-side configuration that the pet package needs lives under the `pethover` top-level key of `pet.json`.
+It is the only PetHover skill. All PetHover-side configuration lives under the `pethover` top-level key of `pet.json`.
 
 ## Upstream skill
 
@@ -32,9 +31,9 @@ Stop at the first hit. If none of the three resolves, the pipeline cannot run.
 ```
 $HOME/.pethover/pets/<pet-id>/
 ├── pet.json
-├── spritesheet.png             ← $hatch-pet output, PNG or WebP (8×9 atlas, 192×208 per cell)
+├── spritesheet.webp            ← or spritesheet.png; Codex 8×9 atlas, 192×208 per cell
 └── pethover/
-    └── audio/                  ← generated MP3 clips
+    └── audio/                  ← optional generated MP3 clips
         ├── click.mp3
         ├── surprised.mp3
         ├── purr.mp3
@@ -63,28 +62,28 @@ Reject otherwise with a clear error; do not call `$hatch-pet` on invalid input.
 
 ### 2. Invoke `$hatch-pet`
 
-Pass the validated input to the upstream `$hatch-pet` skill. Expect back:
+Pass the validated input to the upstream `$hatch-pet` skill. Expect a Codex-compatible pet package containing:
 
 - An **8 × 9 sprite atlas** at 192 px × 208 px per cell (9 behavior rows × 8 frames per row), encoded as either **PNG or WebP** — whichever `$hatch-pet` produced for this pet.
-- A **pet identity record**: name, color palette, species/silhouette descriptors, and character traits.
-- The **behavior vocabulary** (one row per behavior, in `$hatch-pet`'s canonical order).
+- A `pet.json` manifest with top-level `id`, `displayName`, `description`, and `spritesheetPath`.
+- The canonical 9-row Codex behavior vocabulary.
 
-Write the spritesheet to `spritesheet.png` or `spritesheet.webp`, matching `$hatch-pet`'s output format; the file name's extension determines the format. Record the chosen path in the manifest (see step 5). Hold the pet identity record in memory; the next step uses it as creative direction.
+Use the `$hatch-pet` output package as the base package. Copy its spritesheet into the PetHover package root as `spritesheet.png` or `spritesheet.webp`, matching `$hatch-pet`'s output format. The file name's extension determines the format. Keep the generated manifest fields as the Codex source of truth; the next steps add PetHover metadata.
 
 ### 3. Generate display strings
 
-Using the pet identity record from step 2, produce two short pieces of copy in **English**:
+Use the `$hatch-pet` manifest and the original user input to confirm two short pieces of copy in **English** for the Codex top-level fields:
 
 - **`displayName`** — a friendly, human-readable name for the pet (≤ 24 chars). Distinct from the machine `id` / `name`.
 - **`description`** — a one-sentence summary of the pet's appearance and personality (≤ 140 chars).
 
-Then **translate each into Chinese**, stored as parallel sibling fields **`displayNameZh`** and **`descriptionZh`**. Translations must preserve tone (playful, warm, regal, etc.) and stay within the same length budget — they are translations of the English, not retellings. All four fields are required; missing any one is a generation failure.
+Then **translate each into Chinese**, stored under `pethover` as **`displayNameZh`** and **`descriptionZh`**. Translations must preserve tone (playful, warm, regal, etc.) and stay within the same length budget — they are translations of the English, not retellings. All four fields are required for PetHover-generated packages; missing any one is a generation failure.
 
-The English originals and the Chinese siblings live side by side in `pethover` — see the schema in step 5.
+The English originals stay in the Codex-compatible top-level fields. The Chinese siblings live under `pethover` — see the schema in step 5.
 
 ### 4. Generate audio
 
-Using the pet identity record from step 2, synthesize **11 short MP3 clips**.
+Using the generated pet identity, synthesize short MP3 clips for the events this package supports. A full PetHover package may include the default 11 clips below; omit keys that are not generated.
 
 **Interaction sounds (5):**
 
@@ -109,26 +108,28 @@ Using the pet identity record from step 2, synthesize **11 short MP3 clips**.
 
 See [`gesture-sound-map.md`](./references/gesture-sound-map.md) for suggested sound *roles* (advisory) and [`audio-asset-format.md`](./references/audio-asset-format.md) for binding asset rules (MP3 only, size cap, loudness target, silence trimming).
 
-Save each clip under `pethover/audio/`. Filenames are free-form; the manifest references them by relative path.
+Save each generated clip under `pethover/audio/`. Filenames are free-form; the manifest references them by relative path. Do not add a manifest key for a missing or failed clip.
 
 ### 5. Write `pet.json`
 
-Write the manifest at `$HOME/.pethover/pets/<pet-id>/pet.json`. Only mutate the `pethover` top-level key (see **Write principle** below).
+Write the manifest at `$HOME/.pethover/pets/<pet-id>/pet.json`. Start from the `$hatch-pet` manifest when available, then add or replace only the top-level `pethover` object. The top-level fields must remain Codex-compatible; PetHover extensions must stay inside `pethover`.
 
-Schema for the `pethover` section:
+Recommended package schema:
 
 ```json
 {
+  "id": "sparky",
+  "displayName": "Sparky",
+  "description": "An energetic orange fox who loves to bounce.",
+  "spritesheetPath": "spritesheet.webp",
+  "frameWidth": 192,
+  "frameHeight": 208,
+  "gridColumns": 8,
+  "gridRows": 9,
   "pethover": {
-    "source": {
-      "kind": "image",
-      "summary": "short human-readable description of the input"
-    },
-    "displayName": "Sparky",
+    "schemaVersion": 1,
     "displayNameZh": "小火花",
-    "description": "An energetic orange fox who loves to bounce.",
     "descriptionZh": "一只精力旺盛、爱蹦跳的橙色小狐狸。",
-    "spritesheet": "spritesheet.png",
     "audio": {
       "interactionSounds": {
         "click":       "pethover/audio/click.mp3",
@@ -145,6 +146,19 @@ Schema for the `pethover` section:
         "inspecting":       "pethover/audio/peek.mp3",
         "awaitingApproval": "pethover/audio/wait.mp3"
       }
+    },
+    "behaviors": {
+      "stateRows": {
+        "idle":          { "row": 0, "frames": 6, "durationMs": 1100 },
+        "running-right": { "row": 1, "frames": 8, "durationMs": 1060 },
+        "running-left":  { "row": 2, "frames": 8, "durationMs": 1060 },
+        "waving":        { "row": 3, "frames": 4, "durationMs": 700 },
+        "jumping":       { "row": 4, "frames": 5, "durationMs": 840 },
+        "failed":        { "row": 5, "frames": 8, "durationMs": 1220 },
+        "waiting":       { "row": 6, "frames": 6, "durationMs": 1010 },
+        "running":       { "row": 7, "frames": 6, "durationMs": 820 },
+        "review":        { "row": 8, "frames": 6, "durationMs": 1030 }
+      }
     }
   }
 }
@@ -152,25 +166,33 @@ Schema for the `pethover` section:
 
 All paths are relative to the pet package root (the directory containing `pet.json`). Absolute paths or `../` segments are rejected.
 
-`source.kind` is `"image"` or `"text"`. `displayName`, `description`, `displayNameZh`, and `descriptionZh` are all required non-empty strings within the length budgets defined in step 3 — the English originals and the Chinese translations are stored as parallel sibling fields (no nested locale objects). Further locales would follow the same pattern with suffixes like `Ja`, `Ko`, but this skill always writes the English originals and the `Zh` siblings. `spritesheet` is the relative path to the file written in step 2 — either `"spritesheet.png"` or `"spritesheet.webp"` depending on `$hatch-pet`'s output format. All keys under `audio.interactionSounds` and `audio.agentSounds` are optional — a missing key means no sound for that event.
+Top-level `displayName` and `description` are required non-empty English strings within the length budgets defined in step 3. `pethover.displayNameZh` and `pethover.descriptionZh` are required non-empty Chinese translations for PetHover-generated packages. Further locales should follow the same suffix pattern, such as `displayNameJa` or `descriptionKo`; do not introduce nested locale objects in this schema version.
+
+`spritesheetPath` is the Codex-compatible top-level path to the file written in step 2 — either `"spritesheet.png"` or `"spritesheet.webp"` depending on `$hatch-pet`'s output format. Do not duplicate that value as `pethover.spritesheet`.
+
+All keys under `pethover.audio.interactionSounds` and `pethover.audio.agentSounds` are optional. A missing key means no package-provided sound for that event.
+
+`pethover.behaviors` is optional metadata for future PetHover behavior support. In schema version 1, `stateRows` mirrors the canonical 9-row Codex vocabulary and may be omitted when the package uses the default rows. If provided, it must not contradict the actual atlas geometry.
 
 ### 6. Validate the result
 
-- The spritesheet file referenced by `pethover.spritesheet` (either `spritesheet.png` or `spritesheet.webp`) exists at the pet package root and matches `$hatch-pet`'s dimensions.
-- `pethover.displayName` and `pethover.displayNameZh` are non-empty strings, each ≤ 24 chars.
-- `pethover.description` and `pethover.descriptionZh` are non-empty strings, each ≤ 140 chars.
-- Every audio path resolves to a file inside `pethover/audio/`.
+- The spritesheet file referenced by top-level `spritesheetPath` (either `spritesheet.png` or `spritesheet.webp`) exists at the pet package root and matches `$hatch-pet`'s dimensions.
+- Top-level `displayName` and `pethover.displayNameZh` are non-empty strings, each ≤ 24 chars.
+- Top-level `description` and `pethover.descriptionZh` are non-empty strings, each ≤ 140 chars.
+- Every audio path under `pethover.audio` resolves to a file inside `pethover/audio/`.
 - Every audio file is `.mp3`, ≤ 16 MB, and within the loudness target.
+- If `pethover.behaviors.stateRows` is present, every row value is within the atlas bounds and every frame count is positive.
 
 ## Write principle
 
-When updating `pet.json`, only overwrite the value of the `pethover` key. Do not touch or rewrite any other top-level field — those belong to the pet package itself (`id`, `name`, `version`) or to other ecosystems that may share this manifest, and clobbering them would destroy unrelated configuration.
+When creating a new package, write the Codex-compatible top-level fields and the `pethover` section together. When updating an existing package, only overwrite the value of the `pethover` key unless you are filling missing Codex-required fields for a package this skill is creating.
 
 Implementations must:
 
 - Read the existing `pet.json` (treat a missing file as `{}`).
-- Replace or set only the `pethover` field.
-- Preserve every other top-level key verbatim, including its value and (where practical) its formatting.
+- Ensure `id`, `displayName`, `description`, and `spritesheetPath` exist for packages this skill creates, preferably copied from the `$hatch-pet` manifest.
+- Replace or set the `pethover` field.
+- Preserve every unrelated top-level key verbatim, including its value and (where practical) its formatting.
 
 Never rewrite the whole file from a hard-coded template, and never delete sibling keys whose schema this skill does not own.
 
@@ -181,22 +203,23 @@ Never rewrite the whole file from a hard-coded template, and never delete siblin
 | `interactionSounds` | User gestures (click, petted, etc.) |
 | `agentSounds` | Agent CLI events (`pet-state-changed`) |
 
-There is **no app-level on/off toggle** for the generated audio. If the pet package configures a sound for an event and that event fires, the sound plays. The only thing that suppresses a sound is the cooldown coupling below.
+Generated audio is package-provided capability. The PetHover app may still apply user preferences such as mute or click-sound settings before playback. If playback is enabled and the package configures a sound for an event, the runtime may play that sound when the event fires.
 
 ### Cooldown coupling (interaction sounds only)
 
-Interaction sounds piggy-back on the runtime's per-gesture cooldown: a gesture suppressed by cooldown does not fire at all, so no sound is emitted for it. Audio playback does not run its own cooldown logic — when the runtime invokes this skill with a gesture key, the sound plays.
+Interaction sounds piggy-back on the runtime's per-gesture cooldown: a gesture suppressed by cooldown does not fire at all, so no sound is emitted for it. Audio playback should not add a second package-level cooldown.
 
 Agent sounds have no cooldown coupling — they fire as agent events arrive (subject to PetHover's own debouncing of high-frequency state changes).
 
 ## Anti-patterns
 
-- Don't generate audio before `$hatch-pet` returns the pet identity — the audio must reflect the pet's traits.
+- Don't generate audio before `$hatch-pet` has produced the pet manifest and sprite identity — the audio must reflect the pet's traits.
 - Don't reference files outside the pet package (absolute paths, `../` segments, URLs).
-- Don't add app-level gating on top of audio playback. If the skill emits a sound, it plays — no "Enable click sounds"-style toggle.
+- Don't put PetHover fields at the top level except for the single `pethover` object.
+- Don't duplicate `spritesheetPath` as a PetHover-only spritesheet field.
 - Don't author long clips. ≤ 1 second is plenty for gesture feedback; longer is fine for ambient agent sounds but rare.
 - Don't include silence padding — trim at generation time.
-- Don't rewrite `pet.json` from a template or mutate keys other than `pethover` — other top-level fields are owned by the pet package or by other ecosystems and must be preserved verbatim.
+- Don't rewrite `pet.json` from a template or delete unowned top-level fields — other ecosystems may share this manifest.
 
 ## References
 
