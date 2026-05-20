@@ -1,6 +1,10 @@
 import { useMemo, useRef } from "react";
 
-import { useAppData } from "./useAppData";
+import {
+  useAgentMessages,
+  useAppSlice,
+  usePetState,
+} from "./useAppStore";
 import { useAgentState } from "./useAgentState";
 import { useBaseState } from "./useBaseState";
 import { useEmotionState } from "./useEmotionState";
@@ -30,10 +34,11 @@ export function useLayeredPetState(opts?: {
   onLongPress?: (origin: { x: number; y: number }) => void;
   onInteractionSound?: (kind: InteractionSoundKey) => void;
 }): UseLayeredPetStateResult {
-  const { petState, agentMessages, loadState } = useAppData();
-  const cooldownStyle: CooldownStyle = loadState.status === "ready"
-    ? loadState.data.petInteractions?.cooldownStyle ?? "normal"
-    : "normal";
+  const petState = usePetState();
+  const agentMessages = useAgentMessages();
+  const cooldownStyle: CooldownStyle = useAppSlice(
+    (s) => s.appState?.petInteractions?.cooldownStyle ?? "normal",
+  );
 
   const agent = useAgentState({ petState, agentMessages });
   const interaction = useInteractionState({

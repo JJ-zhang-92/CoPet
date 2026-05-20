@@ -8,11 +8,27 @@ import type {
   PointerEvent as ReactPointerEvent,
 } from "react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 
 import { ErrorView, LoadingView } from "./components/AppShell";
 import { PetSprite } from "./components/PetSprite";
+import { Toaster } from "./components/ui/sonner";
 import { useLayeredPetState } from "./hooks/useLayeredPetState";
-import { useAppData } from "./hooks/useAppData";
+import {
+  useAgentMessages,
+  useLoadState,
+  useLocale,
+  usePetInteractions,
+  usePetState,
+  usePetWindowSize,
+  useResponsePaused,
+  useSelectedPet,
+} from "./hooks/useAppStore";
+import {
+  dismissAgentMessage,
+  reloadAppStore,
+  setResponsePaused as setResponsePausedCommand,
+} from "./lib/appCommands";
 import { usePetContextMenu } from "./hooks/usePetContextMenu";
 import { agentSoundKeyForPetState, usePetSounds } from "./hooks/usePetSounds";
 import { createTranslator } from "./lib/i18n";
@@ -32,21 +48,21 @@ import type { PetWindowSizeSliderDragPayload } from "./lib/petWindowUi";
 import { agentIconUrl } from "./lib/agentIcons";
 
 export function PetWindow() {
-  const {
-    agentMessages,
-    dismissAgentMessage,
-    load,
-    loadState,
-    petState,
-    selectedPet,
-    setResponsePaused,
-  } = useAppData();
-  const soundEnabled =
-    loadState.status === "ready"
-      ? loadState.data.petInteractions?.enableClickSounds ?? false
-      : false;
-  const pauseEnabled =
-    loadState.status === "ready" ? loadState.data.responsePaused ?? false : false;
+  const loadState = useLoadState();
+  const agentMessages = useAgentMessages();
+  const selectedPet = useSelectedPet();
+  const petState = usePetState();
+  const pauseEnabled = useResponsePaused();
+  const petInteractions = usePetInteractions();
+  const soundEnabled = petInteractions.enableClickSounds;
+  const petWindowSize = usePetWindowSize();
+  const locale = useLocale();
+  const t = createTranslator(locale);
+
+  const setResponsePaused = async (paused: boolean) => {
+    const { errorMessage } = await setResponsePausedCommand(paused);
+    if (errorMessage) toast.error(errorMessage);
+  };
   const { playInteractionSound, playAgentSound, stopAllSounds } = usePetSounds({
     enabled: soundEnabled,
     sounds: selectedPet?.sounds,
@@ -86,10 +102,6 @@ export function PetWindow() {
     startSize: PetWindowSize;
   } | null>(null);
 
-  const petWindowSize =
-    loadState.status === "ready" ? loadState.data.petWindowSize : defaultPetWindowSize;
-  const locale = loadState.status === "ready" ? loadState.data.locale ?? "en-US" : "en-US";
-  const t = createTranslator(locale);
   const { openMenu: openPetContextMenu } = usePetContextMenu({
     labels: {
       pause: pauseEnabled ? t("contextMenuPauseOff") : t("contextMenuPauseOn"),
@@ -281,45 +293,48 @@ export function PetWindow() {
   }
 
   if (loadState.status === "error") {
-    return <ErrorView message={loadState.message} onRetry={() => void load()} />;
+    return <ErrorView message={loadState.error ?? "Unknown error"} onRetry={() => void reloadAppStore()} />;
   }
 
   const motionHandlers = bindMotion();
 
   return (
-    <main
-      className="pet-window"
-      data-tauri-drag-region
-      onPointerDown={handlePointerDown}
-      onContextMenu={handleContextMenu}
-    >
-      <div
-        className="pet-window-stack"
-        data-fit-pet={agentMessages.length === 0}
-        ref={stackRef}
-        style={
-          selectedPet
-            ? ({
-                "--pet-agent-message-min-width": `${Math.ceil(
-                  selectedPet.frameWidth * petScale + 12,
-                )}px`,
-              } as CSSProperties)
-            : undefined
-        }
+    <>
+      <main
+        className="pet-window"
+        data-tauri-drag-region
+        onPointerDown={handlePointerDown}
+        onContextMenu={handleContextMenu}
       >
-        {agentMessages.length > 0 ? (
-          <AgentMessages messages={agentMessages} onDismiss={dismissAgentMessage} />
-        ) : null}
-        {selectedPet ? (
-          <PetSprite
-            pet={selectedPet}
-            composed={composed}
-            scale={petScale}
-            inputHandlers={bindInput()}
-          />
-        ) : null}
-      </div>
-    </main>
+        <div
+          className="pet-window-stack"
+          data-fit-pet={agentMessages.length === 0}
+          ref={stackRef}
+          style={
+            selectedPet
+              ? ({
+                  "--pet-agent-message-min-width": `${Math.ceil(
+                    selectedPet.frameWidth * petScale + 12,
+                  )}px`,
+                } as CSSProperties)
+              : undefined
+          }
+        >
+          {agentMessages.length > 0 ? (
+            <AgentMessages messages={agentMessages} onDismiss={dismissAgentMessage} />
+          ) : null}
+          {selectedPet ? (
+            <PetSprite
+              pet={selectedPet}
+              composed={composed}
+              scale={petScale}
+              inputHandlers={bindInput()}
+            />
+          ) : null}
+        </div>
+      </main>
+      <Toaster position="bottom-center" />
+    </>
   );
 }
 
@@ -328,7 +343,7 @@ function AgentMessages({
   onDismiss,
 }: {
   messages: AgentMessage[];
-  onDismiss: (agentId: String) => void;
+  onDismiss: (agentId: string) => void;
 }) {
   return (
     <div className="pet-agent-messages" data-testid="pet-agent-messages">

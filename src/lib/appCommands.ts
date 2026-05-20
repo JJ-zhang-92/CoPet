@@ -1,0 +1,274 @@
+import { invoke } from "@tauri-apps/api/core";
+
+import { agentMessageKey, appStore } from "./appStore";
+import type {
+  AdapterSummary,
+  AgentMessageDisplay,
+  AppState,
+  LocalePreference,
+  PetInteractionPrefs,
+  PetSummary,
+  PetWindowSize,
+  RuntimeStatus,
+} from "./appTypes";
+
+export type CommandResult = { errorMessage: string | null };
+
+function toMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
+function patchAppState(next: AppState): void {
+  appStore.patch({ appState: next });
+}
+
+export async function reloadAppStore(): Promise<CommandResult> {
+  appStore.patch({ loadStatus: "loading", loadError: null });
+  try {
+    const [app, runtime, adapters, codex, visible] = await Promise.all([
+      invoke<AppState>("get_app_state"),
+      invoke<RuntimeStatus>("get_runtime_status"),
+      invoke<AdapterSummary[]>("list_agent_adapters"),
+      invoke<PetSummary[]>("list_codex_pets"),
+      invoke<boolean>("get_pet_window_visible"),
+    ]);
+    appStore.patch({
+      loadStatus: "ready",
+      loadError: null,
+      appState: app,
+      petState: runtime.currentState.state,
+      agentMessages: runtime.messages,
+      adapters,
+      codexPets: codex,
+      petVisible: visible,
+    });
+    return { errorMessage: null };
+  } catch (error) {
+    const message = toMessage(error);
+    appStore.patch({ loadStatus: "error", loadError: message });
+    return { errorMessage: message };
+  }
+}
+
+export async function selectPet(pet: PetSummary): Promise<CommandResult> {
+  appStore.patch({ isSelecting: true });
+  try {
+    const next = await invoke<AppState>("select_pet", { petId: pet.id });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  } finally {
+    appStore.patch({ isSelecting: false });
+  }
+}
+
+export async function setPetWindowSize(
+  size: PetWindowSize,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_pet_window_size", { size });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function setLocalePreference(
+  localePreference: LocalePreference,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_locale_preference", {
+      localePreference,
+    });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function setAgentMessageDisplay(
+  agentMessageDisplay: AgentMessageDisplay,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_agent_message_display", {
+      agentMessageDisplay,
+    });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function setResponsePaused(
+  paused: boolean,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_response_paused", { paused });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function setPetInteractions(
+  prefs: PetInteractionPrefs,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_pet_interactions", { prefs });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function setPetVisible(visible: boolean): Promise<CommandResult> {
+  if (visible === appStore.get().petVisible) {
+    return { errorMessage: null };
+  }
+  try {
+    const next = await invoke<boolean>("toggle_pet_window_visibility");
+    appStore.patch({ petVisible: next });
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function runAdapterAction(
+  adapter: AdapterSummary,
+  action:
+    | "install_agent_adapter"
+    | "repair_agent_adapter"
+    | "uninstall_agent_adapter",
+): Promise<CommandResult> {
+  appStore.patch({ adapterBusyId: adapter.id });
+  try {
+    await invoke(action, { adapterId: adapter.id });
+    const [agentAdapters, runtime] = await Promise.all([
+      invoke<AdapterSummary[]>("list_agent_adapters"),
+      invoke<RuntimeStatus>("get_runtime_status"),
+    ]);
+    appStore.patch({
+      adapters: agentAdapters,
+      agentMessages: runtime.messages,
+    });
+    return { errorMessage: null };
+  } catch (error) {
+    try {
+      const [agentAdapters, runtime] = await Promise.all([
+        invoke<AdapterSummary[]>("list_agent_adapters"),
+        invoke<RuntimeStatus>("get_runtime_status"),
+      ]);
+      appStore.patch({
+        adapters: agentAdapters,
+        agentMessages: runtime.messages,
+      });
+    } catch {
+      // best-effort refresh on failure path
+    }
+    return { errorMessage: toMessage(error) };
+  } finally {
+    appStore.patch({ adapterBusyId: null });
+  }
+}
+
+async function refreshPetListsInternal(): Promise<CommandResult> {
+  try {
+    const [next, codexPets] = await Promise.all([
+      invoke<AppState>("get_app_state"),
+      invoke<PetSummary[]>("list_codex_pets"),
+    ]);
+    appStore.patch({ appState: next, codexPets });
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export const refreshPetLists = refreshPetListsInternal;
+
+export async function installCodexPet(pet: PetSummary): Promise<CommandResult> {
+  appStore.patch({ petBusyId: pet.id });
+  try {
+    await invoke<AppState>("install_codex_pet", { petId: pet.id });
+    return await refreshPetListsInternal();
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  } finally {
+    appStore.patch({ petBusyId: null });
+  }
+}
+
+export async function importLocalPet(
+  manifestJson: string,
+  spriteFile: File,
+): Promise<CommandResult & { state: AppState | null }> {
+  appStore.patch({ petBusyId: "local-import" });
+  try {
+    const spriteBytes = Array.from(
+      new Uint8Array(await spriteFile.arrayBuffer()),
+    );
+    const next = await invoke<AppState>("import_pet_files", {
+      manifestJson,
+      spriteFileName: spriteFile.name,
+      spriteBytes,
+    });
+    await refreshPetListsInternal();
+    return { errorMessage: null, state: next };
+  } catch (error) {
+    return { errorMessage: toMessage(error), state: null };
+  } finally {
+    appStore.patch({ petBusyId: null });
+  }
+}
+
+export async function importLocalPetFolder(
+  folderPath: string,
+): Promise<CommandResult & { state: AppState | null }> {
+  appStore.patch({ petBusyId: "local-import" });
+  try {
+    const next = await invoke<AppState>("import_pet_folder", { folderPath });
+    await refreshPetListsInternal();
+    return { errorMessage: null, state: next };
+  } catch (error) {
+    return { errorMessage: toMessage(error), state: null };
+  } finally {
+    appStore.patch({ petBusyId: null });
+  }
+}
+
+export async function resetPetWindowPosition(): Promise<CommandResult> {
+  try {
+    await invoke("reset_pet_window_position");
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
+export async function removePet(pet: PetSummary): Promise<CommandResult> {
+  appStore.patch({ petBusyId: pet.id });
+  try {
+    await invoke<AppState>("remove_pet", { petId: pet.id });
+    return await refreshPetListsInternal();
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  } finally {
+    appStore.patch({ petBusyId: null });
+  }
+}
+
+export function dismissAgentMessage(agentId: string): void {
+  const { agentMessages, dismissedAgentMessageKeys } = appStore.get();
+  const message = agentMessages.find((m) => m.agent === agentId);
+  if (!message) return;
+  const next = new Set(dismissedAgentMessageKeys);
+  next.add(agentMessageKey(message));
+  appStore.patch({ dismissedAgentMessageKeys: next });
+}
