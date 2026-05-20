@@ -12,6 +12,7 @@ import { toast } from "sonner";
 
 import { ErrorView, LoadingView } from "./components/AppShell";
 import { PetSprite } from "./components/PetSprite";
+import { Toaster } from "./components/ui/sonner";
 import { useLayeredPetState } from "./hooks/useLayeredPetState";
 import {
   useAgentMessages,
@@ -298,39 +299,42 @@ export function PetWindow() {
   const motionHandlers = bindMotion();
 
   return (
-    <main
-      className="pet-window"
-      data-tauri-drag-region
-      onPointerDown={handlePointerDown}
-      onContextMenu={handleContextMenu}
-    >
-      <div
-        className="pet-window-stack"
-        data-fit-pet={agentMessages.length === 0}
-        ref={stackRef}
-        style={
-          selectedPet
-            ? ({
-                "--pet-agent-message-min-width": `${Math.ceil(
-                  selectedPet.frameWidth * petScale + 12,
-                )}px`,
-              } as CSSProperties)
-            : undefined
-        }
+    <>
+      <main
+        className="pet-window"
+        data-tauri-drag-region
+        onPointerDown={handlePointerDown}
+        onContextMenu={handleContextMenu}
       >
-        {agentMessages.length > 0 ? (
-          <AgentMessages messages={agentMessages} onDismiss={dismissAgentMessage} />
-        ) : null}
-        {selectedPet ? (
-          <PetSprite
-            pet={selectedPet}
-            composed={composed}
-            scale={petScale}
-            inputHandlers={bindInput()}
-          />
-        ) : null}
-      </div>
-    </main>
+        <div
+          className="pet-window-stack"
+          data-fit-pet={agentMessages.length === 0}
+          ref={stackRef}
+          style={
+            selectedPet
+              ? ({
+                  "--pet-agent-message-min-width": `${Math.ceil(
+                    selectedPet.frameWidth * petScale + 12,
+                  )}px`,
+                } as CSSProperties)
+              : undefined
+          }
+        >
+          {agentMessages.length > 0 ? (
+            <AgentMessages messages={agentMessages} onDismiss={dismissAgentMessage} />
+          ) : null}
+          {selectedPet ? (
+            <PetSprite
+              pet={selectedPet}
+              composed={composed}
+              scale={petScale}
+              inputHandlers={bindInput()}
+            />
+          ) : null}
+        </div>
+      </main>
+      <Toaster position="bottom-center" />
+    </>
   );
 }
 
