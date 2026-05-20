@@ -1,0 +1,14 @@
+{
+  "id": "rain",
+  "displayName": "Gentle Rain",
+  "displayNameZh": "细雨",
+  "schemaVersion": 1,
+  "kind": "persistent",
+  "slot": "behind",
+  "animationPath": "rain.svg",
+  "viewBox": { "width": 192, "height": 208 },
+  "playback": { "loop": true, "speed": 1 },
+  "visibility": {
+    "states": ["idle", "running-right", "running-left", "waving", "jumping", "failed", "waiting", "running", "review"]
+  }
+}

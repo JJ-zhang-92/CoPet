@@ -1,0 +1,16 @@
+{
+  "id": "smoke-puff",
+  "displayName": "Smoke Puff",
+  "displayNameZh": "烟雾噗",
+  "schemaVersion": 1,
+  "kind": "burst",
+  "slot": "over",
+  "animationPath": "smoke-puff.svg",
+  "viewBox": { "width": 192, "height": 208 },
+  "playback": { "loop": false, "speed": 1 },
+  "trigger": {
+    "states": ["failed"],
+    "agentStates": ["hurt"],
+    "emotions": ["smoke"]
+  }
+}

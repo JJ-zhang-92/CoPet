@@ -1,0 +1,14 @@
+{
+  "id": "halo-glow",
+  "displayName": "Halo Glow",
+  "displayNameZh": "光环辉光",
+  "schemaVersion": 1,
+  "kind": "persistent",
+  "slot": "behind",
+  "animationPath": "halo-glow.svg",
+  "viewBox": { "width": 192, "height": 208 },
+  "playback": { "loop": true, "speed": 1 },
+  "visibility": {
+    "states": ["idle", "waiting", "review"]
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "id": "heart-burst",
+  "displayName": "Heart Burst",
+  "displayNameZh": "爱心绽放",
+  "schemaVersion": 1,
+  "kind": "burst",
+  "slot": "corner",
+  "animationPath": "heart-burst.svg",
+  "viewBox": { "width": 32, "height": 24 },
+  "playback": { "loop": false, "speed": 1 },
+  "trigger": {
+    "emotions": ["heart"]
+  }
+}

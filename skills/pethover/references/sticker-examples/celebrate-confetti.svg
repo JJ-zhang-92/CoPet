@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 208">
+  <style>
+    .piece { transform-origin: 96px 92px; animation: burst 900ms ease-out infinite; }
+    .p2 { animation-delay: 90ms; }
+    .p3 { animation-delay: 180ms; }
+    @keyframes burst {
+      0% { opacity: 0; transform: translate(0, 18px) scale(.4) rotate(0deg); }
+      25% { opacity: 1; }
+      100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(1) rotate(160deg); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+  <rect class="piece" x="92" y="86" width="8" height="14" rx="2" fill="#ffcc33" style="--dx:-48px;--dy:-56px"/>
+  <circle class="piece p2" cx="96" cy="92" r="5" fill="#ff5c8a" style="--dx:42px;--dy:-62px"/>
+  <path class="piece p3" d="M94 90l10 4-6 9-10-4z" fill="#46c7ff" style="--dx:10px;--dy:-76px"/>
+  <rect class="piece p2" x="92" y="86" width="7" height="12" rx="2" fill="#6ee58f" style="--dx:-12px;--dy:-68px"/>
+  <circle class="piece p3" cx="96" cy="92" r="4" fill="#b86cff" style="--dx:58px;--dy:-34px"/>
+</svg>

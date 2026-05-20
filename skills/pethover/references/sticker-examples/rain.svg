@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 208">
+  <style>
+    .drop { animation: rain 900ms linear infinite; stroke-linecap: round; }
+    .late { animation-delay: 180ms; }
+    @keyframes rain {
+      0% { transform: translateY(-40px); opacity: 0; }
+      20% { opacity: .8; }
+      100% { transform: translateY(230px); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+  <line class="drop" x1="42" y1="-8" x2="30" y2="26" stroke="#63b3ed" stroke-width="3"/>
+  <line class="drop late" x1="92" y1="-22" x2="80" y2="12" stroke="#90cdf4" stroke-width="3"/>
+  <line class="drop" x1="142" y1="-12" x2="130" y2="22" stroke="#63b3ed" stroke-width="3"/>
+  <line class="drop late" x1="170" y1="8" x2="158" y2="42" stroke="#90cdf4" stroke-width="3"/>
+</svg>

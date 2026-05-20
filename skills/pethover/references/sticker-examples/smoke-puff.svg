@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 208">
+  <style>
+    .puff { transform-origin: 96px 112px; animation: puff 1200ms ease-out infinite; }
+    .p2 { animation-delay: 120ms; }
+    .p3 { animation-delay: 240ms; }
+    @keyframes puff {
+      0% { opacity: 0; transform: translateY(18px) scale(.45); }
+      25% { opacity: .72; }
+      100% { opacity: 0; transform: translateY(-26px) scale(1.35); }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+  <circle class="puff" cx="80" cy="112" r="16" fill="#9ca3af"/>
+  <circle class="puff p2" cx="100" cy="104" r="20" fill="#cbd5e1"/>
+  <circle class="puff p3" cx="118" cy="114" r="14" fill="#94a3b8"/>
+</svg>

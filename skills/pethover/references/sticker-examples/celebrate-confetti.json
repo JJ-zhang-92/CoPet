@@ -1,0 +1,14 @@
+{
+  "id": "celebrate-confetti",
+  "displayName": "Confetti Burst",
+  "displayNameZh": "彩纸爆炸",
+  "schemaVersion": 1,
+  "kind": "burst",
+  "slot": "over",
+  "animationPath": "celebrate-confetti.svg",
+  "viewBox": { "width": 192, "height": 208 },
+  "playback": { "loop": false, "speed": 1 },
+  "trigger": {
+    "agentStates": ["celebrating"]
+  }
+}

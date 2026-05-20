@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 208">
+  <style>
+    .flake { animation: fall 2200ms linear infinite; opacity: .85; }
+    .slow { animation-duration: 3000ms; }
+    @keyframes fall {
+      0% { transform: translateY(-20px); opacity: 0; }
+      15% { opacity: .9; }
+      100% { transform: translateY(220px); opacity: 0; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      * { animation: none !important; }
+    }
+  </style>
+  <circle class="flake" cx="34" cy="8" r="3" fill="#dff7ff"/>
+  <circle class="flake slow" cx="78" cy="-18" r="2.5" fill="#ffffff"/>
+  <circle class="flake" cx="122" cy="-6" r="3.5" fill="#c9f0ff"/>
+  <circle class="flake slow" cx="158" cy="10" r="2" fill="#ffffff"/>
+</svg>
