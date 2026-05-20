@@ -1,118 +1,54 @@
-# Anti-patterns
+# Anti-Patterns
 
-**Read this when:** before committing to a generation step, OR when something is failing and you want to check whether you have violated a known rule.
+**Read this when:** before committing to a generation step, or when a run is failing and you need to check whether a hard rule was violated.
 
-Grouped by concern. Each "Don't" is a hard rule; violating it is a generation error.
+Each "Don't" is a hard rule. Violating it is a failed run.
 
-## Pipeline orchestration
+## Menu and pipeline
 
-- Don't run any sub-task without first presenting the task checklist and receiving user confirmation, except when the calling agent has been given explicit pre-selection by the user (e.g. "regenerate audio only").
-- Don't proceed when the user selected zero tasks — surface a "nothing to do" error and re-prompt.
-- Don't drop the **PetHover** brand from the audio and omni options on the user-facing checklist. These features are PetHover-runtime-specific and the brand belongs in the label, not in a footnote.
-- Don't hold the audio sub-task back to wait for the sprite sub-task. They share the same raw user input; they must start together when both are selected.
-- Don't start the omni sub-task before a spritesheet exists — either freshly written by 3a in this run, or already on disk via an existing `pet.json`.
-- Don't run audio and omni sequentially when both are selected and the omni precondition is met. They are independent of each other and **must** run in parallel.
-- Don't write `pet.json` from inside a sub-task. Sub-tasks emit in-memory fragments only; the merge step (4) is the sole writer.
-- Don't return success before step 5 (validate) has passed on the merged manifest.
-- Don't write a partial `pet.json` when a sub-task fails. Abort the run and surface the error; leave the prior `pet.json` (if any) untouched.
+- Don't run generation before validating the input.
+- Don't accept multiple menu choices. This skill runs exactly one of `audios` or `stickers`.
+- Don't accept zero menu choices.
+- Don't generate sprite atlases from this skill. Invoke `$hatch-pet` directly for sprite work.
+- Don't generate omni directional body atlases from this skill.
+- Don't create, copy, seed, or modify any pet package.
+- Don't read or write `$HOME/.pethover/pets/`.
+- Don't write or modify `pet.json`.
+- Don't write into the live `$HOME/.pethover/audios/` or `$HOME/.pethover/stickers/` directory before validation passes.
+- Don't promote staging via copy-and-delete. Promotion is a directory rename.
+- Don't delete staging on failure. Leave it available for debugging.
 
-## Audio sourcing
+## Audio packs
 
-- Don't read sprite output (manifest, spritesheet, frames) to drive audio character. Audio's vocal class and traits are inferred from the **raw user input** (image + caption / text) — the very same input sprite receives. Both sub-tasks consume the input independently.
-- Don't refuse to run audio when sprite was not selected. Audio is an independently runnable PetHover task; it does not need `$hatch-pet` to have run.
-- Don't infer the animal class from the spritesheet pixels post-hoc — if the user input is text-only, infer from the text; if it's an image, classify from the image directly.
-- Don't author long clips. ≤ 1 second is plenty for gesture feedback; longer is fine for ambient agent sounds but rare.
-- Don't include silence padding — trim at generation time.
+- Don't ask for a target pet. Audio packs are global.
+- Don't omit any of the 11 required MP3 clips.
+- Don't add extra top-level keys to `audio-pack.json`.
+- Don't reference paths outside the audio pack root.
+- Don't use nested paths for MP3 files. The v1 pack layout keeps all 11 clips beside `audio-pack.json`.
+- Don't synthesize audio from oscillators, generated tones, MIDI, `ffmpeg sine=`, `aevalsrc=`, `tremolo=`, or code-generated waveforms.
+- Don't reuse one clip across several keys with pitch, speed, or duration tweaks.
+- Don't ship silence or near-silence as a valid clip.
+- Don't exceed 16 MB per MP3 file.
 
-## Generation backend (never substitute code-rendered assets)
+## Sticker packs
 
-**The single most important rule in this file: every visual frame and audio clip must come from a real generative model. If the backend is unavailable, abort the sub-task — never substitute.** All entries below are concrete instances of that rule.
+- Don't guess when the input could be either burst or persistent. Ask one clarifying question.
+- Don't omit `trigger` from a burst sticker.
+- Don't include `visibility` on a burst sticker.
+- Don't omit `visibility` from a persistent sticker.
+- Don't include `trigger` on a persistent sticker.
+- Don't use state names outside the current `PetStateId`, `AgentState`, or `EmotionState` unions.
+- Don't embed uploaded images into SVG.
+- Don't use `<image>`, `<script>`, `<foreignObject>`, or `<iframe>`.
+- Don't use external `href`, `xlink:href`, external fonts, URLs, or `data:image/` references.
+- Don't set root `width` or `height`; use `viewBox`.
+- Don't omit the `prefers-reduced-motion: reduce` fallback.
+- Don't ship a non-animated SVG. Use SMIL or CSS keyframes.
+- Don't exceed 64 KB for `animation.svg`.
+- Don't assemble sticker SVGs with Python, Node, templates, generated path strings, canvas, raster tracing, GIF conversion, or frame extraction.
 
-- **Don't draw sprite or omni frames procedurally.** PIL / Pillow / Cairo / Skia / canvas APIs / SVG-to-raster pipelines / any code-rendered geometry that paints rounded shapes, gradients, eyes, or silhouettes into the spritesheet are not acceptable sprite or omni output, even when the result *looks* like a "3D toy pet" at thumbnail size. This applies to every directional frame composited into `pethover/omni-spritesheet.webp` and to the eye atlas at `pethover/eyes.webp`.
-- **Don't synthesize PetHover audio from oscillators.** Sine waves, FM synthesis, `ffmpeg sine=` / `aevalsrc=` / `tremolo=` chains, MIDI rendering, or any code-generated waveform are not acceptable audio output, even when wrapped in a valid MP3 container at the right loudness, sample rate, and duration. The user expects real character vocalizations or curated sound design, not a 0.4-second tone.
-- **Don't write a "local PetHover package generator" that bypasses `$hatch-pet`.** A script that paints atlases in `<staging-dir>`, mixes tones, writes `pet.json`, and exits 0 satisfies the post-conditions of the staging-and-validate pipeline while abandoning the actual generation contract. The structural validation in step 5 cannot tell the difference — that's why the line is drawn at generation, not at validation. A package that passes step 5 with procedurally authored assets is still a failed run.
-- **Don't treat `$hatch-pet`'s script-based pipeline as "not really `$hatch-pet`".** The canonical way to invoke `$hatch-pet` **is** `prepare_pet_run.py` → `imagegen-jobs.json` → atlas + QA scripts. The absence of a single binary on `$PATH` is not "Hatch Pet isn't installed"; it is the normal install state. Pipeline-based invocation is the contract — do not look for a binary and silently downgrade to a self-authored alternative when there isn't one.
-- **Don't bypass `$hatch-pet` because the image-generation tool in this environment looks awkward to drive.** "The built-in `image_gen` tool can't pass a reference path the way row jobs want" is not a license to write your own generator. It is a reason to abort the sprite sub-task and surface "image generation backend incompatible with `$hatch-pet`'s row jobs in this environment" so the user can pick a different environment or a different backend.
-- **Don't accept a sub-task whose backend is missing.** Backend unavailability is a sub-task failure. Per step 3's partial-failure rule, that aborts the whole run — that is the **correct** outcome. The wrong outcome is silently producing a placeholder package.
-- **Don't manufacture `qa/review.json` to satisfy the consumer check.** `qa/review.json` is written by `$hatch-pet`'s own Final-QA worker, not by this skill. A self-authored `review.json` with `errors == 0` placed in `<staging-dir>/.hatch-run/qa/` to make the sprite sub-task's QA verdict pass is a generation error, not a workaround.
-- **Don't generate a "themed" placeholder.** A package whose visual identity is *inspired by* the user's input but whose contents were authored procedurally does not satisfy the request. The user asked for the pet they described, rendered by a generative model.
-- **Don't expect step 5 to catch a code-rendered fallback.** Validation is structural — it checks JSON shape, file existence, pixel dimensions, path safety, audio container format, and directory cleanliness. It cannot tell whether 1536 × 1872 pixels came from a real image model or from a Python script that drew circles, nor whether a 44.1 kHz mono MP3 contains a real bark or a sine sweep. The responsibility for refusing a substitute sits in the generation step, not in validation.
+## Cleanliness
 
-## Visual style defaults
-
-- **Don't omit `--style-preset` from the `$hatch-pet` invocation.** This is the load-bearing fix for the "skill says 3D, output is pixel art" failure. `$hatch-pet`'s default `auto` mode infers style from prompt context, and the surrounding sprite-atlas vocabulary biases it toward `pixel` regardless of any prose description in the user prompt or `--style-notes`. The preset flag, not the prose, drives the rendering style.
-- Don't deviate from the **`3d-toy`** default preset unless the user has explicitly named a different art style (pixel art, watercolor, anime, photorealistic, etc.). Subject descriptors like "chubby", "glowing", "steampunk-themed" are not style overrides — they modify the pet's appearance within the default aesthetic, so they go in `--style-notes`, not into the preset choice.
-- Don't conflate `--style-preset` with `--style-notes`. The preset is one of the fixed first-class values (`pixel`, `plush`, `clay`, `sticker`, `flat-vector`, `3d-toy`, `painterly`, `brand-inspired`); notes are freeform prose that refines *within* the chosen preset's aesthetic. Notes alone cannot switch presets.
-- Don't silently inherit the art style of an uploaded reference image when that style differs from the default. A user-uploaded image is a **subject reference** (species, color, accessories), not a style reference, unless the user explicitly asked to match the image's art style. The `$hatch-pet` invocation still carries `--style-preset 3d-toy`.
-- Don't apply different visual styles to sprite and omni in the same package. Omni inherits style from sprite via image conditioning; a style mismatch between the two atlases breaks the character-continuity guarantee.
-- Don't fail to log the style override. When the user opts out of the default, record both the user's wording and the resulting `--style-preset` value in the run log so the result can be cited if it looks wrong.
-
-## Translation discipline
-
-- **Don't translate inside the sprite sub-task.** Sub-task 3a's job is end-to-end English: derive the English `displayName` and `description`, hand them to `$hatch-pet`, write them to the sprite fragment unchanged. Chinese siblings (`pethover.displayNameZh`, `pethover.descriptionZh`) are derived during step 4 sub-step 6 — never inside any sub-task.
-- **Don't include `displayNameZh` or `descriptionZh` in any fragment.** No sub-task owns these keys. A fragment that carries them violates the ownership matrix and is a generation error.
-- **Don't translate twice in the same run.** Sub-step 6 is the only translation pass. If audio or omni sub-tasks somehow infer Chinese strings as a side-effect, drop them — only sub-step 6's output reaches the merged manifest.
-- **Don't re-translate when the English source is unchanged.** The merge step's preserve-vs-retranslate rule keeps the base's Chinese siblings byte-identical when the merged English equals the base's English. Re-translating gratuitously produces visible churn in `displayNameZh` / `descriptionZh` across runs that didn't change the source.
-- **Don't ship a manifest with missing or empty Chinese siblings.** Translation failure is a merge failure — abort the run, leave the staging dir for debugging. Never ship `pet.json` with `displayNameZh: ""` or absent.
-
-## `$hatch-pet` boundary discipline (treat it as a black box)
-
-The most important rule first: **influence `$hatch-pet` only through its documented input flags and consume its documented outputs. Never reach into its internal execution.** Everything below is a specific instance of that principle.
-
-- **Don't inspect or mutate `$hatch-pet`'s scratch beyond the documented output files.** `imagegen-jobs.json`, `decoded/`, `frames/`, `prompts/`, layout-guide PNGs, and the QA artifacts that feed its internal Final-QA worker are all internal state. The only files in `<staging-dir>/.hatch-run/` that this skill reads are `final/spritesheet.webp` (or `.png`), `pet.json`, and `qa/review.json`. Anything else is off-limits.
-- **Don't manipulate `imagegen-jobs.json` to selectively retry rows.** `$hatch-pet` has its own retry policy ("If `$imagegen` returns Bad Request for a row, retry once with `retry_prompt_file`; stop after second failure"). Layering a PetHover-side retry on top is exactly the kind of internal-decision-from-outside the boundary rule forbids. If `$hatch-pet`'s output is rejected, the only PetHover-side recovery is to re-run the entire sprite sub-task with `--force` — that is itself a fresh `$hatch-pet` invocation, not a partial re-execution of the previous one.
-- **Don't re-evaluate the contact sheet or preview GIFs from the PetHover side.** `$hatch-pet`'s Final-QA worker already inspects those and emits its verdict into `qa/review.json`. Re-judging the visual artifacts from PetHover side means we and `$hatch-pet` could disagree about acceptance — fertile ground for brittle interop. Trust `review.json`'s `errors` count as the verdict; nothing more.
-- **Don't choose `$hatch-pet`'s extract-frame method, prompt template, worker model, parallelism cap, or QA threshold.** Those are internal choices it makes from its inputs. The flags we pass are the only contract.
-- **Don't omit `--pet-name`.** PetHover owns the package directory name (`$HOME/.pethover/pets/<pet-id>/`); we must pass the canonical kebab-case id to `$hatch-pet` so its manifest's `id` matches ours. Letting `$hatch-pet` auto-generate a name leads to a manifest/path mismatch and a downstream merge error.
-- **Don't omit `--description`.** We already derive the one-sentence English description (≤ 140 chars) during sub-task 3a; pass it via `--description` so `$hatch-pet`'s manifest matches ours. Two independent description strings would be a manifest inconsistency.
-- **Don't put style-related prose into `--pet-notes`.** `--pet-notes` is the "Stable pet description or avatar seed" field — *species, color, personality, distinguishing features*. Style guidance (e.g. "smooth gradient shading") goes in `--style-notes`. Crossing these channels makes `$hatch-pet`'s auto-inference noisier.
-- **Don't put subject-related prose into `--style-notes`.** Subject (what the pet *is*) belongs in `--pet-notes`; style (how it's rendered) belongs in `--style-notes`. Notes only ever refine *within* the chosen preset's aesthetic.
-- **Don't pass an uploaded image as part of a prompt string.** Use the `--reference <absolute-path>` flag. Reference images carry positional/structural cues that prose cannot reproduce.
-- **Don't skip the brand pre-flight when the user input names a brand.** If the user mentions a brand/product/company by name, run the brand-discovery worker before `prepare_pet_run.py` and pass `--brand-name`, `--brand-brief`, `--brand-source`, `--brand-discovery-file`. Without these, `$hatch-pet` cannot ground brand details. Also switch `--style-preset` to `brand-inspired` for brand pets.
-- **Don't omit `--output-dir` and let `$hatch-pet` auto-place its run-dir.** Pass an absolute path inside the current run's staging area: `<staging-dir>/.hatch-run/`. This keeps `$hatch-pet`'s scratch inside the per-run staging directory so step 4 sub-step 8's reconciliation deletes it before promotion, and so a failed run leaves the scratch in `$HOME/.pethover/tmp/` for debugging without ever touching the live `$HOME/.pethover/pets/<pet-id>/`.
-- **Don't omit `--force` when regenerating sprite on an existing package.** Without it, `$hatch-pet` refuses to overwrite the run-dir and the sub-task fails. Re-running sprite is an explicit user opt-in in step 2, so `--force` is the correct semantics.
-- **Don't reject `$hatch-pet`'s output for any reason beyond the three documented consumer checks**: (a) zero exit status, (b) `qa/review.json` with `errors == 0`, (c) the documented output files exist. Inventing extra rejection criteria — even well-meaning ones — is influencing `$hatch-pet`'s acceptance threshold from outside.
-- **Don't trust `$hatch-pet`'s manifest when its `id` or `description` disagrees with what we passed.** Treat any mismatch as a generation error; `$hatch-pet` should echo our values, not invent new ones. (This is verifying the input contract, not re-judging the visual output.)
-- **Don't leave `.hatch-run/` or `.hatch-codex/` in the final package.** Both are `$hatch-pet`'s scratch under the staging directory (`.hatch-run/` = run-dir, `.hatch-codex/` = redirected `CODEX_HOME`); step 4 sub-step 8 deletes both before the package-cleanliness check.
-- **Don't let `$hatch-pet` write to `$HOME/.codex/pets/<pet-id>/`.** Its **Final Packaged Output** step targets `${CODEX_HOME:-$HOME/.codex}/pets/<pet-id>/` by default — without the `CODEX_HOME=<staging-dir>/.hatch-codex` env-var redirection, those files escape the staging directory and violate the staging invariant. The `CODEX_HOME` redirection is a documented `$hatch-pet` input, not internal influence; we are choosing its value.
-
-## Manifest discipline
-
-- Don't reference files outside the pet package (absolute paths, `../` segments, URLs).
-- Don't put PetHover fields at the top level except for the single `pethover` object.
-- Don't duplicate `spritesheetPath` as a PetHover-only spritesheet field.
-- Don't write the final PetHover package under `$HOME/.codex/pets/`.
-- Don't rewrite `pet.json` from a template or delete unowned top-level fields — other ecosystems may share this manifest.
-- Don't let two sub-task fragments write the same key (see the ownership matrix in `merge-and-validate.md`). Overlapping writes are a generation error.
-
-## Atomic staging
-
-- **Don't write any artifact into `$HOME/.pethover/pets/<pet-id>/` between the start of step 3 and the end of step 5.** Every sub-task writes into `<staging-dir> = $HOME/.pethover/tmp/pet-<unix-epoch>-<pet-id>/`. The live package is read-only until the atomic promotion at the end of step 5. Writing to the live location mid-run defeats the entire "failure leaves the live package unchanged" guarantee.
-- **Don't pass live-package paths into sub-task tools.** `$hatch-pet`'s `--output-dir`, audio-clip output paths, omni atlas paths, and the merge step's `pet.json` write must all be under `<staging-dir>`. A single path that escapes the staging directory breaks atomicity even if everything else is correct.
-- **Don't skip the seed-copy for existing-package updates.** When `$HOME/.pethover/pets/<pet-id>/` exists at the start of step 3, copy its full contents into `<staging-dir>` before any sub-task runs. Otherwise the merge step's "preserve unowned keys" rule has no base to read from, and sub-tasks that did not run this time will appear to have been deleted after promotion.
-- **Don't reuse a fixed staging directory name across runs.** Use the timestamp + pet-id naming so back-to-back regenerations on the same pet do not collide and so a still-running prior invocation's staging is not clobbered by a new one.
-- **Don't promote before validation passes.** Validation is the gate. If validation fails, leave `<staging-dir>` in place for the operator to inspect; never attempt a partial promotion or per-file copy as a "best effort".
-- **Don't perform the promotion via copy-and-delete.** The promotion is a `rename(2)` (or pair of renames for Case B in `references/merge-and-validate.md`). Copy-and-delete is not atomic; an interrupted copy leaves the live location in a partially-written state — the exact failure mode the staging mechanism exists to prevent.
-- **Don't delete `<staging-dir>` on failure.** Leave it for debugging. Failed runs are diagnostic gold; deleting the staging dir destroys evidence of what went wrong.
-- **Don't leave the backup directory behind after a successful Case B promotion.** Once the new package is in place at `<live-dir>` and verified there, delete `<backup-dir>` from `$HOME/.pethover/tmp/`. Leaving it leaks disk over time.
-
-## Package cleanliness
-
-- Don't leave a stale spritesheet from a previous run in a different format. If this run writes `spritesheet.png`, the prior `spritesheet.webp` must be deleted in step 4's reconciliation sweep — and vice versa. Two files at the package root that both look like spritesheets is a cleanliness failure even if only one is referenced by the manifest.
-- Don't ship staging / QA / preview / source / intermediate directories inside `pethover/`. Common offenders: `pethover/qa/`, `pethover/staging/`, `pethover/preview/`, `pethover/source/`, `pethover/omni-src/`. If you need scratch space during generation, use a path **outside** the pet package directory (e.g. an OS temp dir) and clean it up regardless of success or failure.
-- Don't ship intermediate per-direction frames as siblings of `omni-spritesheet.webp` — the omni atlas is the only artifact omni produces under `pethover/`; the individual frames it was composed from must not survive into the package.
-- Don't ship audio clips from previous runs that the current manifest no longer references. If the user's current run shrinks the audio set (e.g. agent sounds dropped), the orphaned MP3s must be deleted from `pethover/audio/`.
-- Don't leave `.tmp`, `.bak`, `.swp`, or `.DS_Store` files anywhere in the package. Atomic-write temp files must be renamed or deleted before the run returns success.
-- Don't skip step 4's reconciliation sweep "because the manifest is correct". The manifest being correct is not enough — the on-disk directory must also be exactly the set of files the manifest references, no more and no less.
-
-## Omni-specific
-
-- **Don't generate a "similar" or "themed" character for omni — generate the SAME character as the sprite atlas.** Omni's purpose is to add viewing angles to one pet identity, not to ship a second pet that happens to look related. Always pass the sprite atlas (or a frame cropped from it) as visual conditioning to the image generator; never run omni generation from text prompts alone.
-- Don't change cell dimensions between the sprite atlas and the omni atlas. `pethover.omni.frameWidth` / `frameHeight` must equal the top-level `frameWidth` / `frameHeight` of the sprite atlas. Different cell sizes break the visual continuity guarantee even if the character art matches.
-- Don't introduce colors, accessories, lighting, or stylistic touches in omni that don't appear in the sprite atlas. If the sprite atlas's character has no scarf, omni's character has no scarf. If it has one, every omni frame has it in the right place.
-- Don't accept a directional frame whose character has drifted (changed fur pattern, lost an accessory, changed proportions). Discard and regenerate — a drifted frame is more visible than a missing direction.
-- Don't generate a fresh image for a mirror direction (`W`, `NW`, `SW`). Always declare them as `{ "mirrorOf": <primary direction> }`. Generating both halves wastes generation budget and produces visible left/right asymmetry from random AI variation.
-- Don't emit `omni-spritesheet.webp` as lossless WebP at full omni dimensions — the file balloons past 8 MB. Use lossy q90.
-- Don't emit `omniStateRows` keys for states the pet does not need direction for (`waving`, `jumping`, `failed`, `waiting`, `review`) beyond a single front-facing `S` entry.
-- Don't emit a partial `eyes` block — anchors covering only some directions are rejected by the runtime. Either supply all 8 or omit `eyes` entirely.
-- Don't reference the legacy `spritesheet.webp` from `omniStateRows`. Omni rows always index into `omni-spritesheet.webp`; the two atlases are independent.
+- Don't leave `.tmp`, `.bak`, `.swp`, `.DS_Store`, source prompts, preview files, scratch directories, `.hatch-run`, or `.hatch-codex` in staging.
+- Don't leave files not referenced by the manifest in staging.
+- Don't promote a staging directory unless it contains exactly the files required by the selected pack type.

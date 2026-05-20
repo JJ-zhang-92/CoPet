@@ -1,250 +1,171 @@
 ---
 name: pethover
-description: Use when generating or updating a PetHover-compatible Codex pet package from a user image or text description, especially when the package needs PetHover display translations, audio, or behavior metadata.
+description: Use when generating PetHover global audio packs or animated sticker packs from a user image or text description.
 ---
 
 # PetHover
 
 ## Overview
 
-This skill is the **single orchestration entry point** for creating or updating a PetHover pet. Given either an uploaded reference image or a textual description, it:
+This skill is the single orchestration entry point for PetHover global pack generation. It produces one of two self-contained pack types:
 
-1. **Presents a task checklist** with three independently-selectable task domains: **Sprite atlas** (codex-compatible spritesheet + display strings via `$hatch-pet`), **PetHover audio** (interaction & agent MP3 clips), and **PetHover omni** (8-direction body atlas + eye overlay). The two PetHover-branded tasks correspond to PetHover-runtime-only features; the sprite task is the codex-compatible base shared with other ecosystems.
-2. **Executes the selected tasks honoring their dependencies.** Sprite and PetHover audio are both driven directly from the user's raw input and run **in parallel** when both are selected. PetHover omni needs a spritesheet for **character identity and visual style** — it depicts the same character as the sprite atlas at additional viewing angles — so it runs after the sprite task (or directly, reading the existing package's spritesheet for visual conditioning, when sprite is not selected). All sub-tasks emit in-memory manifest fragments only — they do not write `pet.json` themselves.
-3. **Merges** each task's manifest fragments into a single `pet.json` under a per-run **temporary staging directory** (`$HOME/.pethover/tmp/pet-<unix-epoch>-<pet-id>/`), alongside the generated assets, using a write-temp-then-rename atomic pattern, then reconciles the staging directory to remove any file not referenced by the final manifest.
-4. **Validates** the merged manifest and the on-disk staging directory as a single coherent package before returning. Only after validation passes is the staging directory **atomically renamed** into its final location at `$HOME/.pethover/pets/<pet-id>/`. Until then, the live package directory is untouched.
+1. **audios** - an 11-clip MP3 audio pack under `$HOME/.pethover/audios/<audio-pack-id>/`.
+2. **stickers** - an animated SVG sticker pack under `$HOME/.pethover/stickers/<sticker-id>/`.
 
-It is the only PetHover skill. All PetHover-side configuration lives under the top-level `pethover` key of `pet.json`. Codex-compatible top-level fields (`id`, `displayName`, `description`, `spritesheetPath`, frame geometry) are owned by the sprite task; PetHover audio and PetHover omni each own a disjoint subtree under `pethover`.
+This skill does not generate sprite atlases, omni directional atlases, or pet packages. It never writes to `$HOME/.pethover/pets/`, never creates an empty pet package, and never modifies `pet.json`. If the caller wants a fresh Codex-compatible pet spritesheet, invoke `$hatch-pet` directly instead of this skill.
 
-**Every visual frame and audio clip this skill ships must come from a real generative model — never from a procedurally drawn / code-rendered substitute.** If the required image-generation or audio-generation backend is not available in the current environment, the affected sub-task aborts and surfaces the missing-backend error. See ["Generation backend discipline"](#generation-backend-discipline) below for the full rule. This sits on the same tier as the staging-directory invariant: structural validation in step 5 cannot detect a code-rendered placeholder, so the line is drawn here.
+Every shipped artifact must come from the required authoring backend:
 
-## Upstream skill
+- Audio MP3s come from a real audio-generation backend, text-to-speech backend, sound-effect generation backend, field recording library, or curated sample library.
+- Sticker SVGs are emitted directly by the LLM as XML in a single authoring pass.
 
-This skill depends on the sibling **`$hatch-pet`** skill. Every `$hatch-pet` reference in this doc points to that one upstream skill, resolved in the following order:
+Procedural substitutes are failed runs even when structural validation passes.
 
-1. **Sibling install** — a `hatch-pet/` folder installed alongside this skill (same skills root).
-2. **Codex install** — `$HOME/.codex/skills/hatch-pet/`.
-3. **Upstream source** — fetch / install from <https://github.com/openai/skills/blob/main/skills/.curated/hatch-pet/SKILL.md>.
+## Global package layout
 
-Stop at the first hit. If none of the three resolves, the sprite sub-task cannot run; audio is still runnable on its own.
-
-**Always invoke `$hatch-pet` with explicit parameters and treat its execution as a black box.** Specifically: set the `CODEX_HOME` env var to `<staging-dir>/.hatch-codex` and pass `--style-preset`, `--pet-name`, `--description`, `--output-dir`, and (per input) `--reference`, `--pet-notes`, `--style-notes`, `--force`, and the brand-discovery flag set. Never rely on `$hatch-pet`'s default `auto` modes — they infer from the surrounding sprite-atlas context, which leads to pixel-art output even when prose describes a 3D rendering. Never reach into `$hatch-pet`'s scratch (its `imagegen-jobs.json`, decoded rows, prompt files, contact sheet) to influence row-level retries or visual judgments — those are its internals, and we only ever read its three documented consumer outputs: `qa/review.json` (verdict), the final spritesheet, and the final manifest. See [`references/sub-task-sprite.md`](./references/sub-task-sprite.md) for the full parameter table and example invocations.
-
-## Pet package layout
-
+```text
+$HOME/.pethover/
+├── audios/
+│   └── <audio-pack-id>/
+│       ├── audio-pack.json
+│       ├── click.mp3
+│       ├── surprised.mp3
+│       ├── purr.mp3
+│       ├── sigh.mp3
+│       ├── wheee.mp3
+│       ├── hmm.mp3
+│       ├── tap.mp3
+│       ├── peek.mp3
+│       ├── wait.mp3
+│       ├── yay.mp3
+│       └── oof.mp3
+└── stickers/
+    └── <sticker-id>/
+        ├── sticker.json
+        └── animation.svg
 ```
-$HOME/.pethover/pets/<pet-id>/
-├── pet.json
-├── spritesheet.webp            ← or spritesheet.png; Codex 8×9 atlas, 192×208 per cell
-└── pethover/
-    ├── audio/                  ← optional generated MP3 clips
-    │   ├── click.mp3
-    │   ├── surprised.mp3
-    │   ├── purr.mp3
-    │   └── ...
-    ├── omni-spritesheet.webp   ← optional 8-direction atlas (see references/sub-task-omni.md)
-    └── eyes.webp               ← optional 3×3 pupil overlay for omni pets
-```
 
-`<pet-id>` is a kebab-case identifier, unique within `$HOME/.pethover/pets/`. Built-in pets ship in the app bundle using the same layout. This skill writes its final package only to `$HOME/.pethover/pets/<pet-id>/`; do not write or mirror the finished PetHover package into `$HOME/.codex/pets/`.
+Pack ids are kebab-case slugs derived from `displayName`. If a slug collides with an existing entry under the same global directory, append `-2`, `-3`, and continue until the destination is unique.
 
 ## Inputs
 
 | Input kind | Format | Notes |
 |---|---|---|
-| `image` | PNG or JPEG, ≤ 8 MB | A reference picture (photo, sketch, etc.). Used as primary inspiration. |
-| `text`  | UTF-8 string, ≤ 2 000 chars | A description of the desired pet (appearance, personality, mood). |
+| `image` | PNG or JPEG, 8 MB or smaller | A reference picture. It must be decodable and not transparent-only. |
+| `text` | UTF-8 string, 2,000 characters or fewer | A description of the desired audio character or sticker. It must not be empty after trimming whitespace. |
 
-Exactly one input kind per generation. An image with an optional caption is allowed; the caption is treated as additional text context but the image is the primary signal.
+Exactly one primary input kind is used. An image with a caption is allowed; the image is primary and the caption is supporting context.
 
-## Default visual style
+Reject invalid input before presenting the menu or invoking any sub-task.
 
-All generated sprite art — both the sprite atlas (3a) and the omni directional frames (3c) — defaults to the `$hatch-pet` style preset **`3d-toy`**: a rounded 3D toy pet character — smooth gradient shading, soft edges, plush-figurine proportions, friendly silhouette, transparent background. No sharp pixel-art outlines, no photorealism, no rough sketch lines, no flat-shaded vector look. This default is what gives the PetHover gallery a consistent identity across pets — the existing built-in PetHover (the default mascot) is itself "a cheerful blue-purple gradient fox pet inspired by a rounded 3D toy reference," and new generations match that family by default.
+## Menu
 
-**Always invoke `$hatch-pet` with an explicit `--style-preset`. Never rely on its `auto` mode.** Without an explicit preset, `$hatch-pet` infers the style from prompt context, and the surrounding sprite-atlas vocabulary (`192×208 cell`, `8×9 grid`, `frames per row`) biases auto-inference toward `pixel` regardless of any prose style description in the user prompt or `--style-notes`. The flag is the load-bearing signal; prose alone does not override `auto`.
+Present a single-choice menu:
 
-**Style → preset mapping** (use these mappings when the user signals an override):
+```text
+Which PetHover pack should I generate?
+  ○ audios   - global 11-clip MP3 pack
+  ○ stickers - global animated SVG sticker pack
+```
 
-| User signal | `--style-preset` | Notes |
-|---|---|---|
-| (default — no explicit style request) | `3d-toy` | Always pass; this is the load-bearing fix. |
-| "pixel art", "8-bit", "retro sprite" | `pixel` | |
-| "plush", "stuffed toy", "felt" | `plush` | |
-| "claymation", "stop-motion", "clay" | `clay` | |
-| "sticker", "die-cut", "thick outline" | `sticker` | |
-| "flat vector", "minimal vector", "logo-style" | `flat-vector` | |
-| "watercolor", "painterly", "painted" | `painterly` | |
-| "brand X style" (named real brand) | `brand-inspired` | Pass the brand name in `--style-notes` |
+Accept exactly one choice. Reject multi-select with:
 
-Use `--style-notes` to pass supplementary prose ("rounded plush figurine", "blue-purple gradient", etc.) **on top of** the explicit preset — notes refine within a preset's aesthetic, they do not switch presets.
+```text
+Choose exactly one PetHover pack type: audios or stickers.
+```
 
-**Apply the default `3d-toy` preset unless the user explicitly opts out.** Override triggers (any one is sufficient):
+Reject zero selections with:
 
-- The user's text or caption explicitly names a different art style — e.g. *"make it pixel art"*, *"watercolor style"*, *"flat anime"*, *"low-poly"*, *"photorealistic"*, *"line drawing"*. Treat phrases that merely describe the subject's traits (*"chubby"*, *"glowing"*, *"steampunk-themed"*) as **not** style overrides — those modify the pet's appearance within the rounded 3D toy aesthetic.
-- The user uploads a reference image **and** explicitly asks to match the image's art style (e.g. *"keep the same art style as this picture"*).
-
-**Default behavior for a reference image whose style differs from the rounded 3D toy aesthetic:** treat the image as a **subject reference** (species, color palette, accessories, pose) rather than a style reference. Pass `--style-preset 3d-toy` regardless of the image's own style; the image becomes a *subject* reference image, not a *style* reference image. Do not silently inherit pixel-art / sketch / photo styling from the upload; the user expects PetHover's gallery look.
-
-This default propagates to every visual sub-task in the run. Sprite (3a) bakes the style into the codex spritesheet via the `--style-preset` it passes to `$hatch-pet`. Omni (3c) inherits the style automatically because it uses the sprite atlas as visual conditioning. Audio (3b) is unaffected — it has no visual style.
-
-When an override is in effect, record the chosen style and the resulting preset explicitly in the run log so the result can be cited if it looks wrong.
-
-## Generation backend discipline
-
-Every visual frame, audio clip, and reference image this skill ships **must come from a real generative model.** This rule is on the same level as the staging-directory invariant — violate it and the package is a failed run no matter how cleanly it passes the structural checks in step 5.
-
-- **Sprite (3a)** is produced by `$hatch-pet`'s full pipeline (`prepare_pet_run.py` → `imagegen-jobs.json` → atlas + QA scripts) backed by a real image-generation model. The "script pipeline" **is** the canonical way to invoke `$hatch-pet`; the absence of a single binary on `$PATH` is not a reason to bypass it, and "the image-generation tool in this environment doesn't take a reference path the way `$hatch-pet`'s row jobs want" is not a reason to bypass it either — it is a reason to abort.
-- **Audio (3b)** is produced by a real audio-generation backend (text-to-speech, sound-effect generation, curated sample library, etc.). The 11 MP3 clips are authored content.
-- **Omni (3c)** is produced by an image-generation model that accepts the sprite atlas (or a frame cropped from it) as **visual conditioning** — img2img, reference-image input, IP-adapter / character-LoRA, or the model's character-consistency feature. Text-only prompting is insufficient regardless of which model is used.
-
-If the required backend is unavailable in this environment — the image-generation tool exposed to you cannot accept a reference image, the audio backend is missing, the row-level prompts cannot be dispatched the way `$hatch-pet` expects, etc. — **abort the affected sub-task and surface the specific missing-backend error to the user.** Per step 3's partial-failure rule, a sub-task abort aborts the whole run; that is the correct outcome. Do **not** substitute any of the following:
-
-- **No procedural drawing.** Frames drawn with PIL / Pillow / Cairo / Skia / canvas APIs / SVG-to-raster pipelines / any code-rendered geometry are not acceptable sprite or omni output. Rounded shapes, gradients, and silhouettes that *look* like a "3D toy pet" but were authored by code are a generation failure even if they satisfy step 5's dimensions, paths, and cleanliness checks. The same applies to the eye atlas and to every directional frame composited into the omni spritesheet.
-- **No synthesized tones.** Sine waves, FM synthesis, `ffmpeg sine=` / `aevalsrc=` / `tremolo=`-based clips, MIDI-rendered notes, oscillator-driven audio, or any code-generated waveform are not acceptable PetHover audio output, even when wrapped in a valid MP3 container at the right loudness and duration.
-- **No locally-authored "PetHover package generator".** Inventing a script that paints atlases, mixes tones, writes `pet.json`, and exits 0 satisfies the post-conditions of the staging-and-validate pipeline while abandoning the actual generation contract. The structural validation in step 5 has no way to distinguish a real generation from a code-rendered placeholder — that's why the line is drawn here.
-- **No "themed" placeholder package.** A package whose visual identity is *inspired by* the user's input but whose contents were authored procedurally does not satisfy the request. The user asked for the pet they described, rendered by a generative model — not a stand-in chosen because the real backend was inconvenient.
-
-**Step 5 validation is structural.** It checks JSON shape, file existence, pixel dimensions, path safety, audio container format, and directory cleanliness. It cannot tell whether the pixels inside a 1536 × 1872 spritesheet came from an image-generation model or from a Python script that drew circles, and it cannot tell whether a 44.1 kHz mono MP3 contains a real bark or a 0.4-second sine sweep. The responsibility for refusing a code-rendered substitute therefore sits **here**, in the generation step — not in validation. A run that passes step 5 with procedurally authored assets is still a failed run; surface the failure to the user instead of promoting the package.
+```text
+Choose a PetHover pack type before generation: audios or stickers.
+```
 
 ## Pipeline
 
-The pipeline has five steps: **validate → select → execute → merge → validate**. The execution step runs the user-selected task subset on a small dependency DAG, parallelizing independent sub-tasks.
-
-**Atomic staging is a load-bearing invariant.** From step 3 (execute) onward, every artifact this skill writes lands in a per-run **staging directory** at `$HOME/.pethover/tmp/pet-<unix-epoch>-<pet-id>/`. The live package directory at `$HOME/.pethover/pets/<pet-id>/` is read-only until step 5 finishes validation; only then does the skill rename the staging directory into its final location. This means a failure at any point in steps 3–5 leaves the live package exactly as it was before the run — partial sprite generation, a failed audio batch, or a missing omni frame can never corrupt an existing pet, and a brand-new pet never appears half-baked.
-
-For existing-package updates (re-running audio or omni on a pet that already has `pet.json`), the live package's full contents are copied into the staging directory at the start of step 3, so sub-tasks that did not run still see their previous outputs preserved through the merge.
+The pipeline has five steps: validate input -> choose one sub-task -> stage -> execute -> validate and promote.
 
 ### 1. Validate input
 
-- **Image**: decodable, within size cap, not transparent-only.
-- **Text**: non-empty, within character cap, not pure whitespace.
+- Image: decodable, 8 MB or smaller, not transparent-only.
+- Text: non-empty after trimming, 2,000 characters or fewer.
 
-Reject otherwise with a clear error; do not invoke any sub-task on invalid input.
+Reject invalid input before generation.
 
-### 2. Determine package state and present task selection
+### 2. Choose one sub-task
 
-First, check whether the package already exists at `$HOME/.pethover/pets/<pet-id>/`. The result determines which sub-tasks are independently runnable:
+Ask the single-choice menu above unless the caller already explicitly selected `audios` or `stickers`.
 
-- **New package** (no `pet.json` at the target path) — **sprite** and **PetHover audio** can each run independently from the user's image/text input. **PetHover omni** requires a spritesheet for visual style, so it can only run if the sprite task is also selected in the same run.
-- **Existing package** (valid `pet.json` present, with `spritesheetPath` resolving to an actual file) — all three sub-tasks are independently optional. Re-running sprite replaces the spritesheet and identity; re-running PetHover audio replaces previously generated MP3 clips; re-running PetHover omni replaces omni assets and reads the existing spritesheet for visual style reference.
+Do not ask for additional profile choices. Use the defaults documented in the selected sub-task reference.
 
-Then **present the task checklist to the user** and wait for confirmation before doing any generation. Use a UI affordance that supports multi-select (checkboxes, prompts with multi-pick, etc.). The wording of the options must keep the **PetHover** brand visible for the two PetHover-owned sub-tasks (audio, omni), since those features are specific to the PetHover runtime — codex-compatible consumers ignore them. Use this exact phrasing for the prompt, translated into the user's language:
+### 3. Stage
 
-> Which PetHover generation tasks should I run?
->   ☐ **Sprite atlas** — codex-compatible spritesheet pet package (via `$hatch-pet`)
->   ☐ **PetHover audio** — interaction & agent MP3 clips played by the PetHover runtime
->   ☐ **PetHover omni** — 8-direction body atlas + eye overlay for cursor-aware rendering in PetHover
+Create one empty staging directory:
 
-For a new package, pre-check **Sprite atlas** and present the two PetHover-branded options as opt-in. For an existing package, present all three unchecked. Disable (or surface a clear message for) the **PetHover omni** option when no spritesheet would be present after this run — i.e. when the existing package lacks `spritesheetPath` *and* the user has not selected sprite atlas. Reject a submission that selects zero tasks with a clear error ("nothing to do").
+```text
+$HOME/.pethover/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.pethover/tmp/stickers-<unix-epoch>-<sticker-id>/
+```
 
-The selected subset drives step 3. Do **not** prompt the user again for sub-task profile choices (e.g. omni `balanced` vs `rich`) unless the user explicitly asked for control; use the defaults documented in each sub-task reference.
+Every file written during generation goes into that staging directory. The live `$HOME/.pethover/audios/` and `$HOME/.pethover/stickers/` directories are read-only until final promotion.
 
-### 3. Execute selected tasks
+### 4. Execute selected sub-task
 
-**Set up the staging directory first.** Before invoking any sub-task, compute `<staging-dir> = $HOME/.pethover/tmp/pet-<unix-epoch-seconds>-<pet-id>/` and create it (creating `$HOME/.pethover/tmp/` if missing). For existing-package updates (when `$HOME/.pethover/pets/<pet-id>/` already exists), **copy that directory's full contents into `<staging-dir>` first** — this becomes the merge base so sub-tasks not selected this run see their previous outputs preserved.
+For `audios`, read `references/sub-task-audio.md`.
 
-From this point on, **every artifact this skill writes lands inside `<staging-dir>`**, never in the live `$HOME/.pethover/pets/<pet-id>/`. Sub-tasks write their assets there (e.g. `<staging-dir>/spritesheet.webp`, `<staging-dir>/pethover/audio/click.mp3`, `<staging-dir>/pethover/omni-spritesheet.webp`). The merge step writes `<staging-dir>/pet.json`. Validation reads from `<staging-dir>`. Only the final swap in step 5 touches the live location.
+The audio sub-task:
 
-The three sub-tasks form a small dependency DAG. Schedule them so independent sub-tasks run **in parallel** from the moment their inputs are available; only block where a real dependency exists.
+1. Infers animal class, object class, material, size, energy, and voice character from the raw user input.
+2. Derives `displayName`, `displayNameZh`, and `id`.
+3. Writes 11 real MP3 clips into staging.
+4. Composes `audio-pack.json` in the staging root.
 
-| Sub-task | Inputs | Depends on | Reference |
-|---|---|---|---|
-| Sprite atlas (3a) | Raw user input (image / text) | nothing | [`references/sub-task-sprite.md`](./references/sub-task-sprite.md) |
-| PetHover audio (3b) | Raw user input (image / text) | nothing — derives the target animal class / sound character from the user's input directly, not from sprite output | [`references/sub-task-audio.md`](./references/sub-task-audio.md) |
-| PetHover omni (3c) | A spritesheet (either freshly produced by 3a in this run, *or* read from an existing `pet.json`) | Sprite atlas (3a) if it is also selected; otherwise the existing package's `spritesheetPath` | [`references/sub-task-omni.md`](./references/sub-task-omni.md) |
+For `stickers`, read `references/sub-task-sticker.md`.
 
-**Concrete scheduling rules.**
+The sticker sub-task:
 
-- If sprite and audio are both selected, they **MUST start together** and run in parallel — audio does not wait for sprite.
-- If omni is selected and sprite is **also** selected, omni waits for sprite to finish, then runs concurrently with whatever else is still running (typically just audio).
-- If omni is selected and sprite is **not** selected, omni reads the existing package's spritesheet for style reference and starts immediately, concurrently with audio.
-- If only one sub-task is selected, run it alone.
+1. Classifies `kind`, `slot`, and `trigger` or `visibility` with `references/sticker-classification.md`.
+2. Derives `displayName`, `displayNameZh`, and `id`.
+3. Emits `animation.svg` directly as SVG XML.
+4. Composes `sticker.json` in the staging root.
 
-Each sub-task produces:
+### 5. Validate and atomically promote
 
-1. A set of asset files written under the pet package directory (the spritesheet at the package root for sprite; MP3 clips for audio; omni atlas + eyes for omni).
-2. A **manifest fragment** — a JSON object describing only the keys that sub-task owns. The fragment is held in memory until step 4 (merge).
+Validate the full staging directory before promotion.
 
-Sub-tasks **MUST NOT** write `pet.json` themselves. They produce assets + an in-memory fragment; the merge step is the sole writer. If a sub-task fails after the others have started, abort the whole run and surface the error — do not write a partial `pet.json`. Any already-written asset files from sibling sub-tasks may be left in place (the next run's merge will reconcile them) but `pet.json` itself must not be touched.
+For audio packs, use `references/audio-pack-schema.md`.
 
-For per-sub-task details (inputs, prompts, output artifacts, manifest fragment shape), read the matching reference doc above before invoking that sub-task.
+For sticker packs, use `references/sub-task-sticker.md` and `references/svg-authoring.md`.
 
-### 4. Merge manifest fragments into `pet.json`
+On validation success, atomically rename staging into the final live directory:
 
-The merge collects the fragments produced by the selected sub-tasks (any subset of sprite, audio, omni) into a single `pet.json` **inside the staging directory** (`<staging-dir>/pet.json`). This is also the only step that writes `pet.json` and the only point that reconciles the staging directory's file layout.
+```text
+$HOME/.pethover/audios/<audio-pack-id>/
+$HOME/.pethover/stickers/<sticker-id>/
+```
 
-The live package directory at `$HOME/.pethover/pets/<pet-id>/` is **not** touched by this step. The live → staging seed copy happened at the start of step 3; the staging → live swap happens at the end of step 5.
+On validation failure, leave staging in place, report the specific failed checklist item, and do not touch the live directory.
 
-**Read the full algorithm in [`references/merge-and-validate.md`](./references/merge-and-validate.md).** It covers:
+## Generation discipline
 
-- The fragment ownership matrix (which sub-task owns which manifest keys), plus the merge-step-owned keys (`pethover.displayNameZh`, `pethover.descriptionZh`) that no sub-task produces.
-- The 8-step merge algorithm operating inside the staging directory (read base → apply sprite → apply audio → apply omni → preserve unowned keys → **derive Chinese display strings** → atomic write → reconcile directory). The Chinese-translation sub-step is the only translation pass in the whole pipeline; it runs against the merged document, not against any individual fragment, and re-uses the previous Chinese siblings unchanged when the English source is byte-identical to the seeded base.
-- The staging directory reconciliation rules (keep-set + deletion rules + empty-directory cleanup + temp-file cleanup + removal of `$hatch-pet`'s `.hatch-run/` and `.hatch-codex/` scratch sub-directories) that ensure the staging directory contains exactly what the manifest references — no orphaned spritesheets in stale formats, no scratch directories, no leftover audio clips from the previous run that was seeded in.
-- The fully-merged package schema as a reference.
+Audio generation must not fall back to synthesized tones, oscillator output, MIDI rendering, silence, or pitch-shifted duplicates. The output must be authored audio from a real backend or curated source.
 
-### 5. Validate the merged manifest, then atomically swap into the live location
+Sticker generation must not fall back to procedural SVG assembly, programmatic path construction, raster tracing, GIF conversion, canvas rendering, or embedded images. The LLM authors the SVG XML directly.
 
-Run all checks on the **merged `<staging-dir>/pet.json` and the on-disk artifacts under the staging directory together** — not on individual fragments and not on the live package. Validation is the final gate before the swap; a failure here is a generation failure, not a warning. Validation runs even when only one sub-task ran, because the full document must be coherent.
+Image input is only a reference for palette, character mood, or subject cues. It is never embedded into sticker SVG and never passed directly to an audio backend as a waveform source.
 
-**Read the full validation checklist in [`references/merge-and-validate.md`](./references/merge-and-validate.md).** It covers:
-
-- Manifest shape checks (JSON well-formed; required top-level fields; PetHover-namespace required fields; schema version; path safety).
-- Sprite artifact checks (file exists, dimensions match frame geometry, stateRows in bounds).
-- Audio artifact checks (file paths resolve under `pethover/audio/`; MP3 format and size).
-- Omni artifact checks (file exists; dimensions; frame geometry matches sprite atlas; omniStateRows bounds; mirror entries resolve; no chains; defaultFacing valid).
-- Eyes artifact checks (file exists; dimensions; all 8 anchors present).
-- **Package cleanliness checks**: the staging directory contains exactly the files the manifest references — no more, no less. No stale spritesheets, no scratch directories, no `.tmp` / `.bak` / `.DS_Store`, no orphaned audio clips, no `.hatch-run/`, no `.hatch-codex/`.
-
-If any check fails, treat the run as failed, leave the staging directory in place for debugging, and surface the specific failing bullet. The live `$HOME/.pethover/pets/<pet-id>/` is **never** touched on validation failure.
-
-**On validation success, atomically promote staging to live.** See `references/merge-and-validate.md` "Atomic promotion" for the exact swap protocol (handles both new packages and updates of existing packages without leaving the live location in a half-renamed state). After a successful promotion, the staging directory no longer exists at its original path — it has been renamed into the live location.
-
-## Write principle
-
-The merge step (step 4) is the **only place** `pet.json` is written to disk. Sub-tasks emit in-memory fragments; they never write the manifest themselves. This invariant is what makes the parallel execution of any independent sub-tasks (sprite ∥ audio, or audio ∥ omni, or all three respecting omni's dependency on sprite) safe — N concurrent writers to the same `pet.json` would race; N concurrent fragment producers feeding a single serialized merge cannot.
-
-Implementations must:
-
-- Read the existing `pet.json` (treat a missing file as `{}`).
-- Apply only the fragments that this run produced. Fields owned by sub-tasks that were not selected are preserved verbatim from the base manifest.
-- Ensure `id`, `displayName`, `description`, and `spritesheetPath` are present in the final manifest. For a new package these come from the sprite fragment; for an existing package they come from the base.
-- Preserve every unrelated top-level key (and every unowned key under `pethover`) verbatim from the base — both value and, where practical, formatting.
-- Write the final package only under `$HOME/.pethover/pets/<pet-id>/`, using a write-temp-then-rename atomic pattern so a crash mid-write never leaves a half-merged manifest.
-- Reconcile the on-disk directory after writing `pet.json`, per the rules in [`references/merge-and-validate.md`](./references/merge-and-validate.md). The package must not ship leftover files.
-
-Never rewrite the whole file from a hard-coded template, and never delete sibling keys whose schema this skill does not own.
-
-## Channels
-
-| Channel | Triggered by |
-|---|---|
-| `interactionSounds` | User gestures (click, petted, etc.) |
-| `agentSounds` | Agent CLI events (`pet-state-changed`) |
-
-Generated audio is package-provided capability. The PetHover app may still apply user preferences such as mute or click-sound settings before playback. If playback is enabled and the package configures a sound for an event, the runtime may play that sound when the event fires.
-
-### Cooldown coupling (interaction sounds only)
-
-Interaction sounds piggy-back on the runtime's per-gesture cooldown: a gesture suppressed by cooldown does not fire at all, so no sound is emitted for it. Audio playback should not add a second package-level cooldown.
-
-Agent sounds have no cooldown coupling — they fire as agent events arrive (subject to PetHover's own debouncing of high-frequency state changes).
+If the selected sub-task cannot satisfy its generation discipline after three attempts, abort the run, leave staging in place, and report the specific missing backend or validation failure.
 
 ## Anti-patterns
 
-**Read the full grouped anti-pattern list in [`references/anti-patterns.md`](./references/anti-patterns.md)** — pipeline orchestration, audio sourcing, manifest discipline, package cleanliness, and omni-specific groups.
-
-Three cross-cutting reminders worth keeping in front of you:
-
-- **Don't write `pet.json` from inside a sub-task.** Sub-tasks emit in-memory fragments only; step 4 is the sole writer.
-- **Don't return success before step 5 validates the merged manifest and the on-disk package.** Manifest correctness and package cleanliness are independent checks; both must pass.
-- **Don't generate a "similar" or "themed" character for omni — generate the SAME character as the sprite atlas.** Pass the sprite atlas (or a frame from it) as visual conditioning to the image generator; text-only prompts are insufficient.
+Read `references/anti-patterns.md` before generation and when diagnosing a failure.
 
 ## References
 
-- [`references/sub-task-sprite.md`](./references/sub-task-sprite.md) — Sprite atlas sub-task (3a): `$hatch-pet` invocation, English/Chinese display strings, manifest fragment.
-- [`references/sub-task-audio.md`](./references/sub-task-audio.md) — PetHover audio sub-task (3b): animal-class inference from raw input, vocal palette, 11-clip set, manifest fragment.
-- [`references/sub-task-omni.md`](./references/sub-task-omni.md) — PetHover omni sub-task (3c): character-consistency requirement, image conditioning, layout, mirror declarations, encoding, manifest fragment.
-- [`references/merge-and-validate.md`](./references/merge-and-validate.md) — Step 4 merge algorithm + directory reconciliation rules + step 5 validation checklist + fully-merged schema reference.
-- [`references/anti-patterns.md`](./references/anti-patterns.md) — Full grouped anti-pattern list.
-- [`references/audio-asset-format.md`](./references/audio-asset-format.md) — MP3 format rules, size caps, loudness target, silence trimming, validation notes.
-- [`references/gesture-sound-map.md`](./references/gesture-sound-map.md) — suggested gesture-to-sound-role mapping (advisory).
+- `references/sub-task-audio.md` - audio pack generation.
+- `references/sub-task-sticker.md` - sticker pack generation.
+- `references/audio-pack-schema.md` - `audio-pack.json` schema and validation.
+- `references/svg-authoring.md` - sticker SVG authoring rules.
+- `references/sticker-classification.md` - sticker kind, slot, and binding classification.
+- `references/anti-patterns.md` - hard failure rules.
+- `references/audio-asset-format.md` - MP3 format guidance.
+- `references/gesture-sound-map.md` - advisory interaction sound roles.
