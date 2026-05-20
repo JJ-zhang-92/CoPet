@@ -3,6 +3,7 @@ import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { Info, PawPrint, Plug, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
+import { toast } from "sonner";
 
 import pethoverLogoUrl from "./assets/logo-transparent.png";
 import { ErrorView, LoadingView } from "./components/AppShell";
@@ -17,9 +18,20 @@ import type {
   SettingsSectionId,
 } from "./lib/settingsTypes";
 import { Toaster } from "./components/ui/sonner";
-import { useAppData } from "./hooks/useAppData";
+import {
+  useAdapters,
+  useAppState,
+  useCodexPets,
+  useIsSelecting,
+  useLoadState,
+  usePetVisible,
+} from "./hooks/useAppStore";
+import * as commands from "./lib/appCommands";
 import { createTranslator } from "./lib/i18n";
-import type { PetSummary } from "./lib/appTypes";
+import type {
+  AdapterSummary,
+  PetSummary,
+} from "./lib/appTypes";
 import { defaultPetInteractionPrefs } from "./lib/appTypes";
 import { defaultPetWindowSize } from "./lib/petWindowUi";
 
@@ -35,28 +47,75 @@ const NAV_ITEMS: SettingsNavItem[] = [
 ];
 
 export function SettingsWindow() {
-  const data = useAppData();
-  const {
-    adapterBusyId,
-    adapters,
-    importLocalPet,
-    importLocalPetFolder,
-    isSelecting,
-    load,
-    loadState,
-    petBusyId,
-    refreshPetLists,
-    removePet,
-    resetPetWindowPosition,
-    runAdapterAction,
-    selectPet,
-    setAgentMessageDisplay,
-    setLocalePreference,
-    setPetInteractions,
-    setPetVisible,
-    setPetWindowSize,
-    setResponsePaused,
-  } = data;
+  const loadState = useLoadState();
+  const appState = useAppState();
+  const { adapters, busyId: adapterBusyId } = useAdapters();
+  const { codexPets, busyId: petBusyId } = useCodexPets();
+  const isSelecting = useIsSelecting();
+  const petVisible = usePetVisible();
+
+  const reportErr = (errorMessage: string | null) => {
+    if (errorMessage) toast.error(errorMessage);
+  };
+
+  const selectPet = async (pet: PetSummary) => {
+    const r = await commands.selectPet(pet);
+    reportErr(r.errorMessage);
+  };
+  const setPetWindowSize = async (size: number) => {
+    const r = await commands.setPetWindowSize(size);
+    reportErr(r.errorMessage);
+  };
+  const setLocalePreference = async (
+    pref: Parameters<typeof commands.setLocalePreference>[0],
+  ) => {
+    const r = await commands.setLocalePreference(pref);
+    reportErr(r.errorMessage);
+  };
+  const setAgentMessageDisplay = async (
+    display: Parameters<typeof commands.setAgentMessageDisplay>[0],
+  ) => {
+    const r = await commands.setAgentMessageDisplay(display);
+    reportErr(r.errorMessage);
+  };
+  const setResponsePaused = async (paused: boolean) => {
+    const r = await commands.setResponsePaused(paused);
+    reportErr(r.errorMessage);
+  };
+  const setPetInteractions = async (
+    prefs: Parameters<typeof commands.setPetInteractions>[0],
+  ) => {
+    const r = await commands.setPetInteractions(prefs);
+    reportErr(r.errorMessage);
+  };
+  const setPetVisible = async (visible: boolean) => {
+    const r = await commands.setPetVisible(visible);
+    reportErr(r.errorMessage);
+  };
+  const runAdapterAction = (
+    adapter: AdapterSummary,
+    action:
+      | "install_agent_adapter"
+      | "repair_agent_adapter"
+      | "uninstall_agent_adapter",
+  ) => commands.runAdapterAction(adapter, action);
+  const importLocalPet = (manifestJson: string, spriteFile: File) =>
+    commands.importLocalPet(manifestJson, spriteFile);
+  const importLocalPetFolder = (folderPath: string) =>
+    commands.importLocalPetFolder(folderPath);
+  const refreshPetLists = async () => {
+    const r = await commands.refreshPetLists();
+    reportErr(r.errorMessage);
+    return { errorMessage: r.errorMessage };
+  };
+  const removePet = async (pet: PetSummary) => {
+    const r = await commands.removePet(pet);
+    reportErr(r.errorMessage);
+  };
+  const resetPetWindowPosition = async () => {
+    const r = await commands.resetPetWindowPosition();
+    return r.errorMessage ? { errorMessage: r.errorMessage } : {};
+  };
 
   const [activeSection, setActiveSection] =
     useState<SettingsSectionId>("pets");
@@ -73,7 +132,6 @@ export function SettingsWindow() {
     };
   }, []);
 
-  const appState = loadState.status === "ready" ? loadState.data : null;
   const t = useMemo(
     () => createTranslator(appState?.locale),
     [appState?.locale],
@@ -84,7 +142,12 @@ export function SettingsWindow() {
   }
 
   if (loadState.status === "error") {
-    return <ErrorView message={loadState.message} onRetry={() => void load()} />;
+    return (
+      <ErrorView
+        message={loadState.error ?? "Unknown error"}
+        onRetry={() => void commands.reloadAppStore()}
+      />
+    );
   }
 
   if (!appState) {
@@ -178,7 +241,7 @@ export function SettingsWindow() {
               agentMessageDisplay={appState.agentMessageDisplay}
               locale={appState.localePreference === "zh-CN" ? "zh-CN" : "en-US"}
               petInteractions={appState.petInteractions ?? defaultPetInteractionPrefs}
-              petVisible={data.petVisible}
+              petVisible={petVisible}
               petWindowSize={petWindowSize}
               resetPetWindowPosition={resetPetWindowPosition}
               responsePaused={appState.responsePaused}
