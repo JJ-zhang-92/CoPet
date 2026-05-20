@@ -16,6 +16,8 @@ This skill is the **single orchestration entry point** for creating or updating 
 
 It is the only PetHover skill. All PetHover-side configuration lives under the top-level `pethover` key of `pet.json`. Codex-compatible top-level fields (`id`, `displayName`, `description`, `spritesheetPath`, frame geometry) are owned by the sprite task; PetHover audio and PetHover omni each own a disjoint subtree under `pethover`.
 
+**Every visual frame and audio clip this skill ships must come from a real generative model — never from a procedurally drawn / code-rendered substitute.** If the required image-generation or audio-generation backend is not available in the current environment, the affected sub-task aborts and surfaces the missing-backend error. See ["Generation backend discipline"](#generation-backend-discipline) below for the full rule. This sits on the same tier as the staging-directory invariant: structural validation in step 5 cannot detect a code-rendered placeholder, so the line is drawn here.
+
 ## Upstream skill
 
 This skill depends on the sibling **`$hatch-pet`** skill. Every `$hatch-pet` reference in this doc points to that one upstream skill, resolved in the following order:
@@ -86,6 +88,23 @@ Use `--style-notes` to pass supplementary prose ("rounded plush figurine", "blue
 This default propagates to every visual sub-task in the run. Sprite (3a) bakes the style into the codex spritesheet via the `--style-preset` it passes to `$hatch-pet`. Omni (3c) inherits the style automatically because it uses the sprite atlas as visual conditioning. Audio (3b) is unaffected — it has no visual style.
 
 When an override is in effect, record the chosen style and the resulting preset explicitly in the run log so the result can be cited if it looks wrong.
+
+## Generation backend discipline
+
+Every visual frame, audio clip, and reference image this skill ships **must come from a real generative model.** This rule is on the same level as the staging-directory invariant — violate it and the package is a failed run no matter how cleanly it passes the structural checks in step 5.
+
+- **Sprite (3a)** is produced by `$hatch-pet`'s full pipeline (`prepare_pet_run.py` → `imagegen-jobs.json` → atlas + QA scripts) backed by a real image-generation model. The "script pipeline" **is** the canonical way to invoke `$hatch-pet`; the absence of a single binary on `$PATH` is not a reason to bypass it, and "the image-generation tool in this environment doesn't take a reference path the way `$hatch-pet`'s row jobs want" is not a reason to bypass it either — it is a reason to abort.
+- **Audio (3b)** is produced by a real audio-generation backend (text-to-speech, sound-effect generation, curated sample library, etc.). The 11 MP3 clips are authored content.
+- **Omni (3c)** is produced by an image-generation model that accepts the sprite atlas (or a frame cropped from it) as **visual conditioning** — img2img, reference-image input, IP-adapter / character-LoRA, or the model's character-consistency feature. Text-only prompting is insufficient regardless of which model is used.
+
+If the required backend is unavailable in this environment — the image-generation tool exposed to you cannot accept a reference image, the audio backend is missing, the row-level prompts cannot be dispatched the way `$hatch-pet` expects, etc. — **abort the affected sub-task and surface the specific missing-backend error to the user.** Per step 3's partial-failure rule, a sub-task abort aborts the whole run; that is the correct outcome. Do **not** substitute any of the following:
+
+- **No procedural drawing.** Frames drawn with PIL / Pillow / Cairo / Skia / canvas APIs / SVG-to-raster pipelines / any code-rendered geometry are not acceptable sprite or omni output. Rounded shapes, gradients, and silhouettes that *look* like a "3D toy pet" but were authored by code are a generation failure even if they satisfy step 5's dimensions, paths, and cleanliness checks. The same applies to the eye atlas and to every directional frame composited into the omni spritesheet.
+- **No synthesized tones.** Sine waves, FM synthesis, `ffmpeg sine=` / `aevalsrc=` / `tremolo=`-based clips, MIDI-rendered notes, oscillator-driven audio, or any code-generated waveform are not acceptable PetHover audio output, even when wrapped in a valid MP3 container at the right loudness and duration.
+- **No locally-authored "PetHover package generator".** Inventing a script that paints atlases, mixes tones, writes `pet.json`, and exits 0 satisfies the post-conditions of the staging-and-validate pipeline while abandoning the actual generation contract. The structural validation in step 5 has no way to distinguish a real generation from a code-rendered placeholder — that's why the line is drawn here.
+- **No "themed" placeholder package.** A package whose visual identity is *inspired by* the user's input but whose contents were authored procedurally does not satisfy the request. The user asked for the pet they described, rendered by a generative model — not a stand-in chosen because the real backend was inconvenient.
+
+**Step 5 validation is structural.** It checks JSON shape, file existence, pixel dimensions, path safety, audio container format, and directory cleanliness. It cannot tell whether the pixels inside a 1536 × 1872 spritesheet came from an image-generation model or from a Python script that drew circles, and it cannot tell whether a 44.1 kHz mono MP3 contains a real bark or a 0.4-second sine sweep. The responsibility for refusing a code-rendered substitute therefore sits **here**, in the generation step — not in validation. A run that passes step 5 with procedurally authored assets is still a failed run; surface the failure to the user instead of promoting the package.
 
 ## Pipeline
 

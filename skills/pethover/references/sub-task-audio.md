@@ -6,6 +6,21 @@
 
 This sub-task runs from the **raw user input** (image + caption, or text-only description) and is **independent** of the sprite sub-task. It must not wait for `$hatch-pet` to finish, and it must not read any sprite-produced metadata. If both audio and sprite are selected in the same run, they start together and consume the same raw input independently — the merge in step 4 reconciles them afterwards.
 
+## Abort if the real backend is unavailable
+
+This sub-task **only** ships MP3 clips produced by a real audio-generation backend — text-to-speech, sound-effect generation, or a curated sample library matched to the inferred (category, traits) tuple. See SKILL.md ["Generation backend discipline"](../SKILL.md#generation-backend-discipline) for the rationale.
+
+If no such backend is available in the current environment, **abort the audio sub-task and surface the missing-backend error.** Per step 3's partial-failure rule, that aborts the whole run; do not "partially succeed" by shipping placeholder audio.
+
+**Specifically forbidden substitutes** (each one is a generation error):
+
+- Code-synthesized waveforms via `ffmpeg sine=` / `aevalsrc=` / `tremolo=` / pure-tone generation / FM synthesis / MIDI rendering / any oscillator-driven approach, even when wrapped in a valid MP3 container at the correct sample rate, mono channel, loudness, and ≤ 1-second duration.
+- Drawing a "vocal envelope" in code (attack / sustain / release on a synthesized tone) and labeling it "click", "purr", "celebrating", etc.
+- Using the same generated waveform across multiple clip keys with minor pitch or duration tweaks.
+- Authoring an MP3 of silence (or near-silence) and accepting it because the audio-format validation in step 5 only checks container, bit-rate, and size — it cannot tell whether the audio is meaningful.
+
+The audio-format validation in step 5 (`.mp3` container, ≤ 16 MB, within the loudness target) is structural; it cannot detect that the file contains a sine sweep instead of a real bark. The responsibility for refusing synthesized tones sits here, in the generation step.
+
 ## What this sub-task owns
 
 Only `pethover.audio`. Nothing else.

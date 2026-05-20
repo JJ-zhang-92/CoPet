@@ -167,6 +167,8 @@ Run all checks on **`<staging-dir>/pet.json` and the on-disk artifacts under `<s
 
 **Always run validation, even when only one sub-task ran.** Re-running just audio on an existing pet still validates the full merged document (in staging), because a stale or corrupted seeded base can invalidate the new fragment.
 
+**Validation is structural, not perceptual.** It checks JSON shape, file existence, pixel dimensions, path safety, audio container format, manifest cross-references, and directory cleanliness. It **cannot** detect whether a 1536 × 1872 spritesheet was rendered by an image-generation model or painted by a Python script that drew circles; it cannot detect whether a 44.1 kHz mono MP3 contains a real bark or a 0.4-second sine sweep. Refusing code-rendered substitutes is the **generation step's** responsibility, not validation's — see SKILL.md ["Generation backend discipline"](../SKILL.md#generation-backend-discipline) and the matching sections of each sub-task reference. A run that passes every bullet below while shipping procedurally authored assets is still a failed run; the assertion "validation passed" does not override the generation-backend rule.
+
 ### Manifest shape (always)
 
 - `pet.json` is well-formed JSON. The parser must accept it as a single object.

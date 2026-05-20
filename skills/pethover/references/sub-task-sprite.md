@@ -10,6 +10,26 @@ Top-level Codex-compatible fields: `id`, `displayName`, `description`, `spritesh
 
 Nothing else under `pethover` is touched by this sub-task.
 
+## Abort if the real backend is unavailable
+
+This sub-task **only** ships sprite atlases produced by `$hatch-pet`'s full pipeline backed by a real image-generation model. See SKILL.md ["Generation backend discipline"](../SKILL.md#generation-backend-discipline) for the rationale.
+
+If any of the following holds, abort the sub-task and surface the specific error to the user — do **not** improvise a substitute pipeline:
+
+- `$hatch-pet` cannot be resolved at any of the three install locations listed in SKILL.md "Upstream skill".
+- `prepare_pet_run.py` / `imagegen-jobs.json` / the atlas + QA scripts cannot be invoked in this environment (missing Python deps, sandboxed file access, no shell, etc.). The script pipeline **is** `$hatch-pet`; pipeline failure is `$hatch-pet` failure.
+- The image-generation backend exposed to you cannot accept the inputs `$hatch-pet`'s row jobs need — most commonly, it cannot take a reference image path per-row, or it cannot return a deterministic atlas-cell-sized image. This is a backend / environment incompatibility, not a license to write a row-job replacement.
+- `$hatch-pet` exits non-zero, or `<staging-dir>/.hatch-run/qa/review.json` reports `errors > 0`, or the documented output files are missing. These are the three documented consumer checks; failing any of them is a sprite generation failure.
+
+**Specifically forbidden substitutes** (each one is a generation error, not a recovery path):
+
+- Painting the 8 × 9 spritesheet with PIL / Pillow / Cairo / Skia / canvas APIs / SVG-to-raster pipelines / any code-rendered geometry, even when the result *looks* like a rounded 3D toy character at thumbnail size.
+- Writing your own row-job loop that calls the image-generation tool with simplified inputs because `$hatch-pet`'s real loop won't run in this environment.
+- Authoring `<staging-dir>/.hatch-run/qa/review.json` yourself to make the QA verdict check pass.
+- Producing a "themed" or "placeholder" spritesheet inspired by the user input and shipping it as if `$hatch-pet` had produced it.
+
+A sub-task abort here aborts the whole run, per the partial-failure rule in step 3. That is the correct outcome when the backend isn't there.
+
 ## `$hatch-pet` invocation
 
 `$hatch-pet` is invoked via `prepare_pet_run.py` with explicit flags — never with `auto` defaults. See SKILL.md "Upstream skill" for resolution order.
