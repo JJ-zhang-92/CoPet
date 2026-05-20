@@ -193,11 +193,11 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     pets: [pethover],
     onboardingComplete: false,
     petWindowSize: 30,
-    agentMessageDisplay: "latest",
+    agentMessageDisplay: "all",
     responsePaused: false,
   };
   if (state.agentMessageDisplay === undefined) {
-    state = { ...state, agentMessageDisplay: "latest" };
+    state = { ...state, agentMessageDisplay: "all" };
   }
   if (state.responsePaused === undefined) {
     state = { ...state, responsePaused: false };

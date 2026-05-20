@@ -139,7 +139,7 @@ export function useAppData() {
   }, [loadState]);
 
   const agentMessageDisplay =
-    loadState.status === "ready" ? loadState.data.agentMessageDisplay : "latest";
+    loadState.status === "ready" ? loadState.data.agentMessageDisplay : "all";
   const responsePaused =
     loadState.status === "ready" ? loadState.data.responsePaused : false;
 

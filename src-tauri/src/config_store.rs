@@ -750,7 +750,7 @@ impl Default for StoredConfig {
             onboarding_complete: false,
             locale_preference: LocalePreference::System,
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
-            agent_message_display: AgentMessageDisplay::Latest,
+            agent_message_display: AgentMessageDisplay::All,
             response_paused: false,
             pet_interactions: PetInteractionPrefs::default(),
         }

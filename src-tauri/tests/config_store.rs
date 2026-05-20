@@ -1,4 +1,5 @@
 use pethover_lib::{
+    app_state::AgentMessageDisplay,
     config_store::ConfigStore,
     i18n::{Locale, LocalePreference},
     pet_registry::BUILTIN_PET_ID,
@@ -24,6 +25,7 @@ fn ensure_ready_initializes_pethover_tree_without_copying_builtins() {
 
     assert_eq!(state.current_pet_id, "pethover");
     assert!(!state.onboarding_complete);
+    assert_eq!(state.agent_message_display, AgentMessageDisplay::All);
     assert!(state.pets.iter().any(|pet| pet.id == "pethover"));
     assert!(store.root().join("config.json").exists());
     assert!(store.root().join("runtime").exists());

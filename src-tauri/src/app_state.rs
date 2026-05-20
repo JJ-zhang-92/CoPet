@@ -26,7 +26,7 @@ pub enum AgentMessageDisplay {
 
 impl Default for AgentMessageDisplay {
     fn default() -> Self {
-        Self::Latest
+        Self::All
     }
 }
 
