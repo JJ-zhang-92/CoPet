@@ -113,6 +113,18 @@ impl AgentManager {
         }
     }
 
+    pub fn new_with_exact_executable_search_paths(
+        copet_root: impl Into<PathBuf>,
+        home: impl Into<PathBuf>,
+        executable_search_paths: Vec<PathBuf>,
+    ) -> Self {
+        Self {
+            copet_root: copet_root.into(),
+            home: home.into(),
+            executable_search_paths,
+        }
+    }
+
     pub fn list(&self) -> Result<Vec<AdapterSummary>, AdapterError> {
         ADAPTERS
             .iter()

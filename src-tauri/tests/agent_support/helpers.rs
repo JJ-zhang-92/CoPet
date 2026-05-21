@@ -36,7 +36,7 @@ pub fn manager_with_fake_agent_names(
             fs::set_permissions(&path, permissions).unwrap();
         }
     }
-    AgentManager::new_with_executable_search_paths(root, home, vec![bin])
+    AgentManager::new_with_exact_executable_search_paths(root, home, vec![bin])
 }
 
 pub fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
