@@ -31,6 +31,24 @@ test("enabled interaction sound plays on successful click", async ({ browser }) 
   ]);
 });
 
+test("pet sounds default to enabled when interaction prefs are missing", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: copetWithSounds.id,
+      pets: [copetWithSounds],
+      onboardingComplete: false,
+      responsePaused: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+
+  await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
+
+  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
+    "/pets/copet/copet/audio/click.mp3",
+  ]);
+});
+
 test("disabled pet sounds suppress interaction playback", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {

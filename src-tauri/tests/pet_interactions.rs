@@ -16,7 +16,7 @@ fn make_store(temp: &tempfile::TempDir) -> ConfigStore {
 fn pet_interaction_prefs_default_values() {
     let prefs = PetInteractionPrefs::default();
 
-    assert!(!prefs.enable_click_sounds);
+    assert!(prefs.enable_click_sounds);
     assert_eq!(prefs.cooldown_style, CooldownStyle::Normal);
 }
 
@@ -31,6 +31,14 @@ fn pet_interaction_prefs_round_trips_via_json() {
     let deserialized: PetInteractionPrefs = serde_json::from_str(&json).unwrap();
 
     assert_eq!(prefs, deserialized);
+}
+
+#[test]
+fn pet_interaction_prefs_missing_sound_field_defaults_enabled() {
+    let prefs: PetInteractionPrefs = serde_json::from_str(r#"{"cooldownStyle":"lazy"}"#).unwrap();
+
+    assert!(prefs.enable_click_sounds);
+    assert_eq!(prefs.cooldown_style, CooldownStyle::Lazy);
 }
 
 #[test]

@@ -65,7 +65,7 @@ export type PetInteractionPrefs = {
 };
 
 export const defaultPetInteractionPrefs: PetInteractionPrefs = {
-  enableClickSounds: false,
+  enableClickSounds: true,
   cooldownStyle: "normal",
 };
 

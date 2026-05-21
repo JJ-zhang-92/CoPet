@@ -205,7 +205,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
   if (state.petInteractions === undefined) {
     state = {
       ...state,
-      petInteractions: { enableClickSounds: false, cooldownStyle: "normal" },
+      petInteractions: { enableClickSounds: true, cooldownStyle: "normal" },
     };
   }
   let adapters = options.adapters ?? [];

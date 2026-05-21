@@ -44,12 +44,16 @@ impl Default for CooldownStyle {
     }
 }
 
+fn default_enable_click_sounds() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PetInteractionPrefs {
     // Per-field defaults so this struct survives being flattened into a
     // parent config when individual keys are missing from disk.
-    #[serde(default)]
+    #[serde(default = "default_enable_click_sounds")]
     pub enable_click_sounds: bool,
     #[serde(default)]
     pub cooldown_style: CooldownStyle,
@@ -58,7 +62,7 @@ pub struct PetInteractionPrefs {
 impl Default for PetInteractionPrefs {
     fn default() -> Self {
         Self {
-            enable_click_sounds: false,
+            enable_click_sounds: true,
             cooldown_style: CooldownStyle::Normal,
         }
     }
