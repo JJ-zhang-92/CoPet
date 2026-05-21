@@ -90,6 +90,7 @@ Every adapter implements the same Rust trait (`src-tauri/src/agents/mod.rs`):
 trait AgentAdapter {
     fn id(&self) -> &'static str;
     fn display_name(&self) -> &'static str;
+    fn executable_names(&self) -> &'static [&'static str];
     fn detect(&self) -> DetectResult;
     fn inspect(&self) -> InspectResult;
     fn install(&self, hook: HookCommand) -> InstallResult;
@@ -100,7 +101,7 @@ trait AgentAdapter {
 
 Adapters are responsible for: resolving platform-specific config paths; parsing existing config without dropping user settings; writing only CoPet-owned entries (with a stable id); backing originals up to `~/.copet/backups/<adapter-id>/` before modification; and recording metadata to `~/.copet/adapters/<id>.json`. Core is responsible for: generating the hook command, providing the runtime endpoint/token, mapping events to state, and localizing errors.
 
-Startup auto-install is executable-based, not config-file-based: CoPet checks adapter `executable_names()` once per config directory, installs hooks for detected CLIs that are not already installed, records completion in `config.json`, and does not auto-install again after a user manually disables an adapter.
+Startup auto-install is executable-based, not config-file-based: until `agentAutoInstallComplete` is set in CoPet's `config.json`, CoPet checks adapter `executable_names()`, installs hooks for detected CLIs that are not already installed, records completion in `config.json`, and does not auto-install again after a user manually disables an adapter.
 
 Default config locations: Claude Code → `~/.claude/settings.json`; Codex → `~/.codex/hooks.json` + `config.toml`; Gemini → per the official docs; OpenCode honors `OPENCODE_CONFIG_DIR` / `XDG_CONFIG_HOME`.
 
