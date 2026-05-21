@@ -2,6 +2,7 @@
 .worktrees/
 .pnpm-store/
 .claude/
+.codex/
 .agents/
 .superpowers/
 docs/superpowers/
