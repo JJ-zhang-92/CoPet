@@ -1,5 +1,7 @@
-use super::helpers::{manager_with_fake_agents, read_json, with_opencode_config_dir};
-use copet_lib::agents::AgentManager;
+use super::helpers::{
+    manager_with_fake_agent_names, manager_with_fake_agents, read_json, with_opencode_config_dir,
+};
+use copet_lib::{agents::AgentManager, config_store::ConfigStore, run_agent_auto_install_once};
 use std::fs;
 
 #[test]
@@ -117,4 +119,114 @@ fn assert_adapter_config_does_not_contain_marker(
 fn assert_json_file_lacks_marker(path: impl AsRef<std::path::Path>) {
     let content = fs::read_to_string(path).unwrap_or_default();
     assert!(!content.contains("copet-hook.sh"));
+}
+
+#[test]
+fn auto_install_detected_agents_installs_only_available_cli_adapters() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    let home = temp.path().join("home");
+    let manager = manager_with_fake_agent_names(&root, &home, &["codex", "gemini"]);
+
+    let summary = manager.auto_install_detected_agents();
+
+    assert_eq!(
+        summary.installed,
+        vec!["codex".to_string(), "gemini".to_string()]
+    );
+    assert_eq!(
+        summary.skipped,
+        vec!["claude-code".to_string(), "opencode".to_string()]
+    );
+    assert!(summary.failed.is_empty());
+    assert!(home.join(".codex/hooks.json").exists());
+    assert!(home.join(".gemini/settings.json").exists());
+    assert!(!home.join(".claude/settings.json").exists());
+    assert!(!home.join(".config/opencode/plugins/copet.js").exists());
+}
+
+#[test]
+fn auto_install_detected_agents_skips_already_installed_hooks_without_rewriting() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    let home = temp.path().join("home");
+    let manager = manager_with_fake_agent_names(&root, &home, &["codex"]);
+
+    manager.install("codex").unwrap();
+    let hooks_path = home.join(".codex/hooks.json");
+    let config_path = home.join(".codex/config.toml");
+    let hooks_before = fs::read_to_string(&hooks_path).unwrap();
+    let config_before = fs::read_to_string(&config_path).unwrap();
+
+    let summary = manager.auto_install_detected_agents();
+
+    assert!(summary.installed.is_empty());
+    assert!(summary.failed.is_empty());
+    assert!(summary.skipped.contains(&"codex".to_string()));
+    assert_eq!(fs::read_to_string(&hooks_path).unwrap(), hooks_before);
+    assert_eq!(fs::read_to_string(&config_path).unwrap(), config_before);
+}
+
+#[test]
+fn auto_install_detected_agents_continues_after_adapter_failure() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    let home = temp.path().join("home");
+    let claude_settings = home.join(".claude/settings.json");
+    fs::create_dir_all(claude_settings.parent().unwrap()).unwrap();
+    fs::write(&claude_settings, "{not valid json").unwrap();
+    let manager = manager_with_fake_agent_names(&root, &home, &["claude", "codex"]);
+
+    let summary = manager.auto_install_detected_agents();
+
+    assert_eq!(summary.installed, vec!["codex".to_string()]);
+    assert_eq!(summary.failed.len(), 1);
+    assert_eq!(summary.failed[0].adapter_id, "claude-code");
+    assert!(summary.failed[0].error.contains("invalid JSON"));
+    assert!(home.join(".codex/hooks.json").exists());
+}
+
+#[test]
+fn run_agent_auto_install_once_sets_completion_marker_and_preserves_later_uninstall() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    let home = temp.path().join("home");
+    let store = ConfigStore::new(&root);
+    store.ensure_ready().unwrap();
+    let manager = manager_with_fake_agent_names(&root, &home, &["codex"]);
+
+    let first = run_agent_auto_install_once(&store, &manager).unwrap();
+
+    assert_eq!(first.installed, vec!["codex".to_string()]);
+    assert!(store.agent_auto_install_complete().unwrap());
+    assert!(home.join(".codex/hooks.json").exists());
+
+    manager.uninstall("codex").unwrap();
+    let second = run_agent_auto_install_once(&store, &manager).unwrap();
+
+    assert!(second.installed.is_empty());
+    assert!(second.skipped.is_empty());
+    assert!(second.failed.is_empty());
+    let hooks = fs::read_to_string(home.join(".codex/hooks.json")).unwrap_or_default();
+    assert!(!hooks.contains("copet-hook.sh"));
+}
+
+#[test]
+fn run_agent_auto_install_once_marks_complete_even_when_adapter_fails() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    let home = temp.path().join("home");
+    let store = ConfigStore::new(&root);
+    store.ensure_ready().unwrap();
+    let claude_settings = home.join(".claude/settings.json");
+    fs::create_dir_all(claude_settings.parent().unwrap()).unwrap();
+    fs::write(&claude_settings, "{not valid json").unwrap();
+    let manager = manager_with_fake_agent_names(&root, &home, &["claude"]);
+
+    let summary = run_agent_auto_install_once(&store, &manager).unwrap();
+
+    assert!(summary.installed.is_empty());
+    assert_eq!(summary.failed.len(), 1);
+    assert_eq!(summary.failed[0].adapter_id, "claude-code");
+    assert!(store.agent_auto_install_complete().unwrap());
 }

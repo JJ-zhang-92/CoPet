@@ -14,10 +14,18 @@ pub fn manager_with_fake_agents(
     root: impl Into<PathBuf>,
     home: impl Into<PathBuf>,
 ) -> AgentManager {
+    manager_with_fake_agent_names(root, home, &["claude", "codex", "gemini", "opencode"])
+}
+
+pub fn manager_with_fake_agent_names(
+    root: impl Into<PathBuf>,
+    home: impl Into<PathBuf>,
+    executables: &[&str],
+) -> AgentManager {
     let temp = tempfile::tempdir().unwrap();
     let bin = temp.keep().join("bin");
     fs::create_dir_all(&bin).unwrap();
-    for executable in ["claude", "codex", "gemini", "opencode"] {
+    for executable in executables {
         let path = bin.join(executable);
         fs::write(&path, "#!/bin/sh\nexit 0\n").unwrap();
         #[cfg(unix)]
@@ -28,7 +36,7 @@ pub fn manager_with_fake_agents(
             fs::set_permissions(&path, permissions).unwrap();
         }
     }
-    AgentManager::new_with_executable_search_paths(root, home, vec![bin])
+    AgentManager::new_with_exact_executable_search_paths(root, home, vec![bin])
 }
 
 pub fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
