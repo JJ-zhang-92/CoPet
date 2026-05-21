@@ -90,6 +90,16 @@ impl ConfigStore {
         &self.root
     }
 
+    pub fn agent_auto_install_complete(&self) -> Result<bool, StoreError> {
+        Ok(self.load_or_create_config()?.agent_auto_install_complete)
+    }
+
+    pub fn set_agent_auto_install_complete(&self, complete: bool) -> Result<(), StoreError> {
+        let mut config = self.load_or_create_config()?;
+        config.agent_auto_install_complete = complete;
+        self.save_config(&config)
+    }
+
     pub fn effective_locale(&self) -> Result<Locale, StoreError> {
         let config = self.load_or_create_config()?;
         Ok(config.locale_preference.effective_locale(default_locale()))
@@ -725,6 +735,8 @@ struct StoredConfig {
     current_pet_id: String,
     onboarding_complete: bool,
     #[serde(default)]
+    agent_auto_install_complete: bool,
+    #[serde(default)]
     locale_preference: LocalePreference,
     #[serde(
         default = "default_pet_window_size",
@@ -748,6 +760,7 @@ impl Default for StoredConfig {
         Self {
             current_pet_id: BUILTIN_PET_ID.to_string(),
             onboarding_complete: false,
+            agent_auto_install_complete: false,
             locale_preference: LocalePreference::System,
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
             agent_message_display: AgentMessageDisplay::All,

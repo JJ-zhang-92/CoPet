@@ -537,6 +537,44 @@ fn legacy_config_missing_response_paused_defaults_to_false() {
     assert!(!state.response_paused);
 }
 
+#[test]
+fn agent_auto_install_complete_defaults_to_false() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+
+    store.ensure_ready().unwrap();
+
+    assert!(!store.agent_auto_install_complete().unwrap());
+}
+
+#[test]
+fn set_agent_auto_install_complete_persists_and_round_trips() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+
+    store.set_agent_auto_install_complete(true).unwrap();
+
+    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".copet"), builtin_pets_dir());
+    assert!(reopened.agent_auto_install_complete().unwrap());
+}
+
+#[test]
+fn legacy_config_missing_agent_auto_install_complete_defaults_to_false() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    fs::create_dir_all(&root).unwrap();
+    fs::write(
+        root.join("config.json"),
+        r#"{"currentPetId":"copet","onboardingComplete":false,"petWindowSize":30}"#,
+    )
+    .unwrap();
+
+    let store = ConfigStore::with_builtin_dir(root, builtin_pets_dir());
+
+    assert!(!store.agent_auto_install_complete().unwrap());
+}
+
 fn create_user_pet(root: &Path, id: &str, display_name: &str) {
     let dir = root.join("pets").join(id);
     create_pet_package(&dir, id, display_name);
