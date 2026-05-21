@@ -1,4 +1,4 @@
-use pethover_lib::{
+use hoverpet_lib::{
     app_state::AgentMessageDisplay,
     config_store::ConfigStore,
     i18n::{Locale, LocalePreference},
@@ -13,24 +13,24 @@ fn builtin_pets_dir() -> PathBuf {
 }
 
 fn make_store(temp: &tempfile::TempDir) -> ConfigStore {
-    ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir())
+    ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir())
 }
 
 #[test]
-fn ensure_ready_initializes_pethover_tree_without_copying_builtins() {
+fn ensure_ready_initializes_hoverpet_tree_without_copying_builtins() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
 
     let state = store.ensure_ready().unwrap();
 
-    assert_eq!(state.current_pet_id, "pethover");
+    assert_eq!(state.current_pet_id, "hoverpet");
     assert!(!state.onboarding_complete);
     assert_eq!(state.agent_message_display, AgentMessageDisplay::All);
-    assert!(state.pets.iter().any(|pet| pet.id == "pethover"));
+    assert!(state.pets.iter().any(|pet| pet.id == "hoverpet"));
     assert!(store.root().join("config.json").exists());
     assert!(store.root().join("runtime").exists());
     // Built-in pets are not copied to the user dir under the new architecture.
-    assert!(!store.root().join("pets/pethover").exists());
+    assert!(!store.root().join("pets/hoverpet").exists());
     assert!(!store
         .root()
         .join("pets")
@@ -55,7 +55,7 @@ fn list_pets_exposes_all_builtin_packages_from_resource_dir() {
         .find(|pet| pet.id == NON_DEFAULT_BUILTIN_PET_ID)
         .unwrap();
 
-    assert!(ids.contains(&"pethover"));
+    assert!(ids.contains(&"hoverpet"));
     assert!(ids.contains(&NON_DEFAULT_BUILTIN_PET_ID));
     assert!(zodiac_dragon.built_in);
 }
@@ -69,14 +69,14 @@ fn list_pets_returns_user_imports_alongside_builtins() {
 
     let state = store.app_state().unwrap();
     let desk_cat = state.pets.iter().find(|pet| pet.id == "desk-cat").unwrap();
-    let pethover = state.pets.iter().find(|pet| pet.id == "pethover").unwrap();
+    let hoverpet = state.pets.iter().find(|pet| pet.id == "hoverpet").unwrap();
 
     assert!(!desk_cat.built_in);
-    assert!(pethover.built_in);
+    assert!(hoverpet.built_in);
 }
 
 #[test]
-fn list_pets_orders_pethover_then_user_imports_then_builtins() {
+fn list_pets_orders_hoverpet_then_user_imports_then_builtins() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
@@ -85,24 +85,24 @@ fn list_pets_orders_pethover_then_user_imports_then_builtins() {
 
     let pets = store.list_pets().unwrap();
 
-    assert_eq!(pets.first().unwrap().id, "pethover");
+    assert_eq!(pets.first().unwrap().id, "hoverpet");
 
     let user_indices = pets
         .iter()
         .enumerate()
         .filter_map(|(idx, pet)| (!pet.built_in).then_some((idx, pet.id.as_str())))
         .collect::<Vec<_>>();
-    let builtin_non_pethover_indices = pets
+    let builtin_non_hoverpet_indices = pets
         .iter()
         .enumerate()
         .filter_map(|(idx, pet)| {
-            (pet.built_in && pet.id != "pethover").then_some((idx, pet.id.as_str()))
+            (pet.built_in && pet.id != "hoverpet").then_some((idx, pet.id.as_str()))
         })
         .collect::<Vec<_>>();
 
-    // Every user import must come before any non-pethover built-in.
+    // Every user import must come before any non-hoverpet built-in.
     let max_user_idx = user_indices.iter().map(|(idx, _)| *idx).max().unwrap();
-    let min_builtin_idx = builtin_non_pethover_indices
+    let min_builtin_idx = builtin_non_hoverpet_indices
         .iter()
         .map(|(idx, _)| *idx)
         .min()
@@ -120,13 +120,13 @@ fn ensure_ready_prunes_stale_builtin_copies_from_user_dir() {
     let store = make_store(&temp);
     fs::create_dir_all(store.root().join("pets")).unwrap();
     // Simulate a stale copy left over from the previous sync-based architecture.
-    create_user_pet(store.root(), "pethover", "Stale PetHover");
+    create_user_pet(store.root(), "hoverpet", "Stale HoverPet");
     create_user_pet(store.root(), NON_DEFAULT_BUILTIN_PET_ID, "Stale Builtin");
     create_user_pet(store.root(), "desk-cat", "Desk Cat");
 
     store.ensure_ready().unwrap();
 
-    assert!(!store.root().join("pets/pethover").exists());
+    assert!(!store.root().join("pets/hoverpet").exists());
     assert!(!store
         .root()
         .join("pets")
@@ -310,7 +310,7 @@ fn app_state_exposes_default_locale() {
 
     let state = store.ensure_ready().unwrap();
 
-    assert_eq!(state.locale, pethover_lib::i18n::default_locale());
+    assert_eq!(state.locale, hoverpet_lib::i18n::default_locale());
     assert_eq!(state.locale_preference, LocalePreference::System);
 }
 
@@ -341,7 +341,7 @@ fn set_locale_preference_system_returns_to_default_locale_detection() {
         .unwrap();
 
     assert_eq!(state.locale_preference, LocalePreference::System);
-    assert_eq!(state.locale, pethover_lib::i18n::default_locale());
+    assert_eq!(state.locale, hoverpet_lib::i18n::default_locale());
 }
 
 #[test]
@@ -382,7 +382,7 @@ fn list_pets_hides_broken_user_packages_without_crashing() {
     let pets = store.list_pets().unwrap();
     let ids = pets.iter().map(|pet| pet.id.as_str()).collect::<Vec<_>>();
 
-    assert!(ids.contains(&"pethover"));
+    assert!(ids.contains(&"hoverpet"));
     assert!(ids.contains(&"good-pet"));
     assert!(!ids.contains(&"broken-pet"));
 }
@@ -514,7 +514,7 @@ fn set_response_paused_persists_and_round_trips() {
     assert!(updated.response_paused);
 
     // Open a fresh handle pointed at the same root; field must survive.
-    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir());
+    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir());
     let state = reopened.app_state().unwrap();
     assert!(state.response_paused);
 }
@@ -522,12 +522,12 @@ fn set_response_paused_persists_and_round_trips() {
 #[test]
 fn legacy_config_missing_response_paused_defaults_to_false() {
     let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     fs::create_dir_all(&root).unwrap();
     // Write a config.json that resembles the old schema — no responsePaused key.
     fs::write(
         root.join("config.json"),
-        r#"{"currentPetId":"pethover","onboardingComplete":false,"petWindowSize":30}"#,
+        r#"{"currentPetId":"hoverpet","onboardingComplete":false,"petWindowSize":30}"#,
     )
     .unwrap();
 

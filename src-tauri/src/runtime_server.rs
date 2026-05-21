@@ -135,7 +135,7 @@ impl RuntimeManager {
         let tick_shutdown = Arc::clone(&shutdown);
 
         thread::Builder::new()
-            .name("pethover-runtime-event-server".to_string())
+            .name("hoverpet-runtime-event-server".to_string())
             .spawn(move || {
                 for stream in listener.incoming().flatten() {
                     if server_shutdown.load(Ordering::Relaxed) {
@@ -149,7 +149,7 @@ impl RuntimeManager {
             })?;
 
         thread::Builder::new()
-            .name("pethover-runtime-state-tick".to_string())
+            .name("hoverpet-runtime-state-tick".to_string())
             .spawn(move || loop {
                 if tick_shutdown.load(Ordering::Relaxed) {
                     break;
@@ -817,7 +817,7 @@ fn now_ms() -> u64 {
 
 #[cfg(debug_assertions)]
 fn dev_log_runtime(stage: &str, payload: serde_json::Value) {
-    eprintln!("[pethover:runtime:{stage}] {payload}");
+    eprintln!("[hoverpet:runtime:{stage}] {payload}");
 }
 
 #[cfg(not(debug_assertions))]

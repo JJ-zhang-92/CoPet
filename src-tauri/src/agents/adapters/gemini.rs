@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use super::super::{
-    install_json_hooks, json_config_has_pethover_hooks, remove_json_hooks, AdapterError,
+    install_json_hooks, json_config_has_hoverpet_hooks, remove_json_hooks, AdapterError,
     AgentManager, CliAdapter, HookEvent,
 };
 
@@ -52,7 +52,7 @@ impl CliAdapter for GeminiAdapter {
     }
 
     fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
-        json_config_has_pethover_hooks(config_path, self.id(), EVENTS)
+        json_config_has_hoverpet_hooks(config_path, self.id(), EVENTS)
     }
 
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError> {

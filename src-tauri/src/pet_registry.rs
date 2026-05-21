@@ -1,1 +1,1 @@
-pub const BUILTIN_PET_ID: &str = "pethover";
+pub const BUILTIN_PET_ID: &str = "hoverpet";

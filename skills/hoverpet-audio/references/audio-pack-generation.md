@@ -1,8 +1,8 @@
-# Audio Pack Sub-Task
+# Audio Pack Generation
 
-**Read this when:** the user selected `audios` from the PetHover skill menu and you are about to generate a global audio pack.
+**Read this when:** generating a global HoverPet audio pack.
 
-This sub-task produces a self-contained audio pack under `$HOME/.pethover/audios/<audio-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
+This workflow produces a self-contained audio pack under `$HOME/.hoverpet/audios/<audio-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
 
 ## Input contract
 
@@ -12,13 +12,13 @@ The input is the same validated input accepted by `SKILL.md`:
 - Text, 2,000 characters or fewer, non-empty after trimming whitespace.
 - Image plus caption is allowed; the image is the primary signal and the caption is supporting context.
 
-The sub-task infers the audio character directly from that input.
+The workflow infers the audio character directly from that input.
 
 ## Abort if the real backend is unavailable
 
 Every MP3 must come from a real audio-generation backend: text-to-speech, sound-effect generation, field recording library, curated sample library, or another authored audio source selected to match the inferred character.
 
-Abort the sub-task if no real backend is available. Do not ship synthesized tones, code-generated waveforms, MIDI renders, oscillator output, silence, or pitch-shifted duplicates as substitutes.
+Abort if no real backend is available. Do not ship synthesized tones, code-generated waveforms, MIDI renders, oscillator output, silence, or pitch-shifted duplicates as substitutes.
 
 Forbidden substitutes include:
 
@@ -35,17 +35,17 @@ Derive:
 - `displayNameZh`: natural Chinese display name.
 - `id`: kebab-case slug from `displayName`.
 
-If `$HOME/.pethover/audios/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
+If `$HOME/.hoverpet/audios/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
 
 ## Staging
 
 Write all in-flight files to:
 
 ```text
-$HOME/.pethover/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.hoverpet/tmp/audios-<unix-epoch>-<audio-pack-id>/
 ```
 
-Create `$HOME/.pethover/tmp/` if needed. The live `$HOME/.pethover/audios/<audio-pack-id>/` directory is read-only until validation passes.
+Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/audios/<audio-pack-id>/` directory is read-only until validation passes.
 
 ## Audio target inference
 
@@ -118,13 +118,13 @@ Before promotion, validate the staging directory with `audio-pack-schema.md`.
 On success, atomically rename:
 
 ```text
-$HOME/.pethover/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.hoverpet/tmp/audios-<unix-epoch>-<audio-pack-id>/
 ```
 
 to:
 
 ```text
-$HOME/.pethover/audios/<audio-pack-id>/
+$HOME/.hoverpet/audios/<audio-pack-id>/
 ```
 
-On failure, leave staging in place, report the specific failed checklist item, and do not touch the live directory.
+On failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

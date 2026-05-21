@@ -1,4 +1,4 @@
-use pethover_lib::{
+use hoverpet_lib::{
     app_state::{CooldownStyle, PetInteractionPrefs},
     config_store::ConfigStore,
 };
@@ -9,7 +9,7 @@ fn builtin_pets_dir() -> PathBuf {
 }
 
 fn make_store(temp: &tempfile::TempDir) -> ConfigStore {
-    ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir())
+    ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir())
 }
 
 #[test]
@@ -36,12 +36,12 @@ fn pet_interaction_prefs_round_trips_via_json() {
 #[test]
 fn pet_interactions_defaults_to_defaults_when_missing_from_legacy_config() {
     let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     fs::create_dir_all(&root).unwrap();
     // Write a config.json that resembles the old schema — no petInteractions key.
     fs::write(
         root.join("config.json"),
-        r#"{"currentPetId":"pethover","onboardingComplete":false,"petWindowSize":30}"#,
+        r#"{"currentPetId":"hoverpet","onboardingComplete":false,"petWindowSize":30}"#,
     )
     .unwrap();
 
@@ -54,11 +54,11 @@ fn pet_interactions_defaults_to_defaults_when_missing_from_legacy_config() {
 #[test]
 fn legacy_nested_pet_interactions_migrate_to_flat_keys_on_load() {
     let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     fs::create_dir_all(&root).unwrap();
     fs::write(
         root.join("config.json"),
-        r#"{"currentPetId":"pethover","onboardingComplete":true,"petWindowSize":30,"petInteractions":{"enableClickSounds":true,"cooldownStyle":"lazy"}}"#,
+        r#"{"currentPetId":"hoverpet","onboardingComplete":true,"petWindowSize":30,"petInteractions":{"enableClickSounds":true,"cooldownStyle":"lazy"}}"#,
     )
     .unwrap();
 
@@ -102,7 +102,7 @@ fn set_pet_interactions_writes_flat_keys() {
         })
         .unwrap();
 
-    let raw = fs::read_to_string(temp.path().join(".pethover").join("config.json")).unwrap();
+    let raw = fs::read_to_string(temp.path().join(".hoverpet").join("config.json")).unwrap();
     let json: serde_json::Value = serde_json::from_str(&raw).unwrap();
     let object = json.as_object().unwrap();
     assert!(!object.contains_key("petInteractions"));
@@ -130,7 +130,7 @@ fn set_pet_interactions_persists_and_round_trips() {
     assert_eq!(updated.pet_interactions, prefs);
 
     // Open a fresh handle pointed at the same root; field must survive.
-    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir());
+    let reopened = ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir());
     let state = reopened.app_state().unwrap();
     assert_eq!(state.pet_interactions, prefs);
 }

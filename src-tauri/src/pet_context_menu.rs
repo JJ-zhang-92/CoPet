@@ -4,7 +4,7 @@ use tauri::{
     AppHandle, Emitter, EventTarget, LogicalPosition, Manager, WebviewWindow,
 };
 
-pub const PET_CONTEXT_MENU_ACTION_EVENT: &str = "pethover-pet-context-menu-action";
+pub const PET_CONTEXT_MENU_ACTION_EVENT: &str = "hoverpet-pet-context-menu-action";
 pub const PET_CONTEXT_MENU_PAUSE_ID: &str = "pet-context-menu-toggle-pause";
 pub const PET_CONTEXT_MENU_SETTINGS_ID: &str = "pet-context-menu-open-settings";
 pub const PET_CONTEXT_MENU_HIDE_ID: &str = "pet-context-menu-hide-pet";

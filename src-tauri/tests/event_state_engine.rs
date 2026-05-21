@@ -1,4 +1,4 @@
-use pethover_lib::runtime_state::{EventStateEngine, PetStateId, RuntimeEvent};
+use hoverpet_lib::runtime_state::{EventStateEngine, PetStateId, RuntimeEvent};
 use serde_json::json;
 
 fn tool_before_with_command(command: &str) -> RuntimeEvent {

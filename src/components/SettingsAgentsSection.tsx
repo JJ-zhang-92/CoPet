@@ -2,7 +2,7 @@ import type { KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import type { AdapterSummary } from "../lib/appTypes";
-import { PETHOVER_ISSUES_URL } from "../lib/appLinks";
+import { HOVERPET_ISSUES_URL } from "../lib/appLinks";
 import { agentIconUrl } from "../lib/agentIcons";
 import { agentMeta } from "../lib/agentMeta";
 import { useOpenExternalUrl } from "../hooks/useOpenExternalUrl";
@@ -168,10 +168,10 @@ function renderFootnoteWithLink(
       {before}
       <a
         className="adapter-footnote-link"
-        href={PETHOVER_ISSUES_URL}
+        href={HOVERPET_ISSUES_URL}
         onClick={(event) => {
           event.preventDefault();
-          void openExternal(PETHOVER_ISSUES_URL);
+          void openExternal(HOVERPET_ISSUES_URL);
         }}
         rel="noreferrer"
       >

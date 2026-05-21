@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, goku, pethover } from "./app-harness";
+import { createAppHarness, goku, hoverpet } from "./app-harness";
 
 function logicalSetSize(call: { args?: Record<string, unknown> }) {
   const rawValue = call.args?.value as
@@ -39,14 +39,14 @@ test("selecting a pet in settings updates the visible pet window immediately", a
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover, goku],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet, goku],
       onboardingComplete: false,
     },
   });
 
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
 
   const settingsPage = await harness.openPage("settings");
   await settingsPage.getByRole("button", { name: /goku/i }).click();
@@ -57,8 +57,8 @@ test("selecting a pet in settings updates the visible pet window immediately", a
 test("settings header is a draggable window region", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -88,8 +88,8 @@ test("pet window exposes a draggable Tauri region while keeping settings clickab
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -116,8 +116,8 @@ test("right-clicking the pet opens the native menu without resizing or repositio
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -144,7 +144,7 @@ test("pet sprite stays inside the pet window when the selected pet frame is larg
   browser,
 }) => {
   const largePet = {
-    ...pethover,
+    ...hoverpet,
     id: "large-pet",
     slug: "large-pet",
     displayName: "Large Pet",
@@ -199,7 +199,7 @@ test("pet window content sizing keeps the logical window width at least 180", as
   browser,
 }) => {
   const tinyPet = {
-    ...pethover,
+    ...hoverpet,
     id: "tiny-pet",
     slug: "tiny-pet",
     displayName: "Tiny Pet",
@@ -248,7 +248,7 @@ test("pet window height follows the message container plus pet height", async ({
   browser,
 }) => {
   const tinyPet = {
-    ...pethover,
+    ...hoverpet,
     id: "height-fit-pet",
     slug: "height-fit-pet",
     displayName: "Height Fit Pet",
@@ -297,7 +297,7 @@ test("agent messages expand the pet window without shrinking the configured pet 
   browser,
 }) => {
   const largePet = {
-    ...pethover,
+    ...hoverpet,
     id: "large-message-pet",
     slug: "large-message-pet",
     displayName: "Large Message Pet",
@@ -411,14 +411,14 @@ test("dragging the size slider expands the pet window to the max logical height"
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await expect
     .poll(() => harness.calls.filter((call) => call.command === "plugin:window|set_size").length)
     .toBeGreaterThan(0);
@@ -458,14 +458,14 @@ test("starting the size slider does not resize the pet window to a fit-content s
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await expect
     .poll(() => harness.calls.filter((call) => call.command === "plugin:window|set_size").length)
     .toBeGreaterThan(0);
@@ -522,14 +522,14 @@ test("clicking the size slider directly does not expand the pet window to max", 
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await expect
     .poll(() => harness.calls.filter((call) => call.command === "plugin:window|set_size").length)
     .toBeGreaterThan(0);
@@ -576,14 +576,14 @@ test("pet size control mouse press alone does not start slider window resizing",
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await expect
     .poll(() => harness.calls.filter((call) => call.command === "plugin:window|set_size").length)
     .toBeGreaterThan(0);
@@ -610,7 +610,7 @@ test("size slider window resizing does not change pet scale without a value chan
   browser,
 }) => {
   const largePet = {
-    ...pethover,
+    ...hoverpet,
     id: "slider-stable-pet",
     slug: "slider-stable-pet",
     displayName: "Slider Stable Pet",
@@ -700,15 +700,15 @@ test("starting the size slider resizes the pet window from its center", async ({
       pet: { x: 1540, y: 80 },
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 1,
     },
   });
   const petPage = await harness.openPage("pet");
   await petPage.setViewportSize({ width: 100, height: 110 });
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await petPage.waitForTimeout(50);
   const positionBeforeSlider =
     harness.calls
@@ -820,15 +820,15 @@ test("initial pet content resize keeps the reset-position bottom-right anchor", 
       pet: initialSize,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
 
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
 
   await expect
     .poll(() =>
@@ -905,15 +905,15 @@ test("initial pet content resize falls back to the current monitor", async ({
       pet: initialSize,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
     },
   });
 
   const petPage = await harness.openPage("pet");
-  await expect(petPage.getByRole("img", { name: "PetHover" })).toBeVisible();
+  await expect(petPage.getByRole("img", { name: "HoverPet" })).toBeVisible();
   await expect
     .poll(() =>
       harness.calls
@@ -958,7 +958,7 @@ test("growing the size slider expands the pet window to max while rendering slid
   browser,
 }) => {
   const largePet = {
-    ...pethover,
+    ...hoverpet,
     id: "ordered-grow-pet",
     slug: "ordered-grow-pet",
     displayName: "Ordered Grow Pet",
@@ -1066,7 +1066,7 @@ test("shrinking the size slider renders the smaller pet before shrinking the win
   browser,
 }) => {
   const largePet = {
-    ...pethover,
+    ...hoverpet,
     id: "ordered-shrink-pet",
     slug: "ordered-shrink-pet",
     displayName: "Ordered Shrink Pet",
@@ -1173,8 +1173,8 @@ test("dragging the pet window switches the pet into directional running states",
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1219,8 +1219,8 @@ test("dragging the pet window switches the pet into directional running states",
 test("pet drag animation ignores small pointer jitter", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1285,8 +1285,8 @@ test("pet drag animation follows native window movement direction", async ({
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1306,13 +1306,13 @@ test("pet drag animation follows native window movement direction", async ({
   await expect(sprite).toHaveAttribute("data-pet-state", "idle");
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 120, y: 40 });
-    window.__pethoverTestEmit("tauri://move", { x: 96, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 120, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 96, y: 40 });
   });
   await expect(sprite).toHaveAttribute("data-pet-state", "running-left");
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 130, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 130, y: 40 });
   });
   await expect(sprite).toHaveAttribute("data-pet-state", "running-right");
 
@@ -1330,8 +1330,8 @@ test("size slider window movement does not change the pet direction animation", 
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1355,8 +1355,8 @@ test("size slider window movement does not change the pet direction animation", 
     pointerType: "mouse",
   });
   await petPage.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 120, y: 40 });
-    window.__pethoverTestEmit("tauri://move", { x: 96, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 120, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 96, y: 40 });
   });
 
   await expect(sprite).toHaveAttribute("data-pet-state", "idle");
@@ -1367,8 +1367,8 @@ test("pet drag animation ignores small opposite-direction jitter", async ({
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1385,20 +1385,20 @@ test("pet drag animation ignores small opposite-direction jitter", async ({
   });
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 100, y: 40 });
-    window.__pethoverTestEmit("tauri://move", { x: 120, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 100, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 120, y: 40 });
   });
   await expect(sprite).toHaveAttribute("data-pet-state", "running-right");
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 117, y: 40 });
-    window.__pethoverTestEmit("tauri://move", { x: 121, y: 40 });
-    window.__pethoverTestEmit("tauri://move", { x: 116, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 117, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 121, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 116, y: 40 });
   });
   await expect(sprite).toHaveAttribute("data-pet-state", "running-right");
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("tauri://move", { x: 96, y: 40 });
+    window.__hoverpetTestEmit("tauri://move", { x: 96, y: 40 });
   });
   await expect(sprite).toHaveAttribute("data-pet-state", "running-left");
 
@@ -1435,8 +1435,8 @@ test("pet window shows each agent message above the pet", async ({ browser }) =>
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       agentMessageDisplay: "all",
     },
@@ -1482,8 +1482,8 @@ test("pet window shows only the most recent message in latest mode", async ({ br
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       agentMessageDisplay: "latest",
     },
@@ -1515,8 +1515,8 @@ test("clicking an agent message row does not hide the message", async ({ browser
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1542,8 +1542,8 @@ test("pet window renders simultaneous hook activity for all supported agents", a
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
       agentMessageDisplay: "all",
     },
@@ -1553,7 +1553,7 @@ test("pet window renders simultaneous hook activity for all supported agents", a
   await expect(page.getByTestId("pet-agent-messages")).toHaveCount(0);
 
   await page.evaluate(() => {
-    window.__pethoverTestEmit("pet-state-changed", {
+    window.__hoverpetTestEmit("pet-state-changed", {
       currentState: { state: "running", sinceMs: 300, idleAfterMs: 1600 },
       messages: [
         {
@@ -1622,8 +1622,8 @@ test("pet agent message wraps long text within the bubble", async ({ browser }) 
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });
@@ -1667,8 +1667,8 @@ test("clicking the x icon on an agent message temporarily hides it on the page",
       rejectedEvents: 0,
     },
     state: {
-      currentPetId: pethover.id,
-      pets: [pethover],
+      currentPetId: hoverpet.id,
+      pets: [hoverpet],
       onboardingComplete: false,
     },
   });

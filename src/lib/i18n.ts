@@ -3,13 +3,13 @@ export type Locale = "en-US" | "zh-CN";
 const messages = {
   "en-US": {
     aboutBuiltWith: "Built with Tauri, Rust, and React.",
-    aboutLicenseNotice: "© PetHover contributors. All rights reserved.",
+    aboutLicenseNotice: "© HoverPet contributors. All rights reserved.",
     aboutRepoLink: "View source on GitHub",
     aboutTitle: "About",
     aboutVersion: "Version",
     agentIntegrations: "Agent integrations",
     agentIntegrationsLead:
-      "Toggle a CLI on and PetHover installs a tiny hook that mirrors its live status onto your desktop pet.",
+      "Toggle a CLI on and HoverPet installs a tiny hook that mirrors its live status onto your desktop pet.",
     agentClaudeCodeDescription: "Anthropic’s official Claude CLI.",
     agentCodexDescription: "OpenAI’s terminal coding agent.",
     agentGeminiDescription: "Google’s open-source CLI agent.",
@@ -69,13 +69,13 @@ const messages = {
   },
   "zh-CN": {
     aboutBuiltWith: "基于 Tauri、Rust 和 React 构建",
-    aboutLicenseNotice: "© PetHover 贡献者，保留所有权利",
+    aboutLicenseNotice: "© HoverPet 贡献者，保留所有权利",
     aboutRepoLink: "在 GitHub 查看源码",
     aboutTitle: "关于",
     aboutVersion: "版本",
     agentIntegrations: "Agent 集成",
     agentIntegrationsLead:
-      "开启后 PetHover 会安装一个轻量钩子，把该 CLI 的实时状态同步到桌面宠物上",
+      "开启后 HoverPet 会安装一个轻量钩子，把该 CLI 的实时状态同步到桌面宠物上",
     agentClaudeCodeDescription: "Anthropic 官方 Claude CLI",
     agentCodexDescription: "OpenAI 终端编码助手",
     agentGeminiDescription: "Google 开源 CLI 智能体",

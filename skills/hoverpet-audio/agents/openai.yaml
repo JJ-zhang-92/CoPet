@@ -1,0 +1,4 @@
+interface:
+  display_name: "HoverPet Audio"
+  short_description: "Create HoverPet audio packs"
+  default_prompt: "Use $hoverpet-audio to create a HoverPet global audio pack."

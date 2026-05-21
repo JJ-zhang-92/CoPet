@@ -1,14 +1,14 @@
 {
   "$schema": "../gen/schemas/desktop-schema.json",
   "identifier": "default",
-  "description": "Default PetHover desktop capability.",
+  "description": "Default HoverPet desktop capability.",
   "windows": ["pet", "settings"],
   "permissions": [
     "core:default",
     "dialog:allow-open",
     {
       "identifier": "shell:allow-open",
-      "allow": [{ "url": "https://github.com/ChanceYu/pethover/**" }]
+      "allow": [{ "url": "https://github.com/ChanceYu/HoverPet/**" }]
     },
     "core:window:allow-hide",
     "core:window:allow-set-position",

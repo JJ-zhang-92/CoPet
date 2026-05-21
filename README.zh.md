@@ -1,4 +1,4 @@
-# PetHover
+# HoverPet
 
 [English](./README.md)
 
@@ -11,7 +11,7 @@
 - 实时响应 Agent 事件：思考、工具使用、等待输入、完成、错误。
 - 内置 Claude Code、Codex、Gemini、OpenCode 适配器。
 - 可自定义的像素宠物包（Codex 兼容格式）。
-- 所有数据保存在 `~/.pethover`，无遥测、无云端。
+- 所有数据保存在 `~/.hoverpet`，无遥测、无云端。
 - 安全的 CLI 配置改写：自动备份、原子写入、可卸载与修复。
 - 双语界面（English / 简体中文）。
 
@@ -22,15 +22,15 @@
 | Claude Code | JSON hooks | `~/.claude/settings.json` |
 | Codex | JSON hooks | `~/.codex/hooks.json` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
-| OpenCode | JS 插件 | `~/.config/opencode/plugins/pethover.js` |
+| OpenCode | JS 插件 | `~/.config/opencode/plugins/hoverpet.js` |
 
 ## 快速开始
 
 环境要求：[Rust](https://www.rust-lang.org/tools/install)、[Node.js](https://nodejs.org/) 与 pnpm。支持 macOS（主要平台）、Windows、Linux。
 
 ```bash
-git clone https://github.com/ChanceYu/pethover.git
-cd pethover
+git clone https://github.com/ChanceYu/HoverPet.git
+cd HoverPet
 pnpm install
 pnpm tauri dev          # 开发模式
 pnpm tauri build        # 构建发行版

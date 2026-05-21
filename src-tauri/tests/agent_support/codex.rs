@@ -1,5 +1,5 @@
 use super::helpers::{manager_with_fake_agents, read_json};
-use pethover_lib::agents::AgentManager;
+use hoverpet_lib::agents::AgentManager;
 use std::{
     fs,
     io::{Read, Write},
@@ -15,7 +15,7 @@ static PROXY_ENV_LOCK: Mutex<()> = Mutex::new(());
 fn codex_install_writes_hooks_json_and_enables_hooks_feature() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     let result = manager.install("codex").unwrap();
@@ -24,7 +24,7 @@ fn codex_install_writes_hooks_json_and_enables_hooks_feature() {
 
     assert!(result.adapter.installed);
     assert!(hooks.contains("\"PreToolUse\""));
-    assert!(hooks.contains("pethover-hook.sh"));
+    assert!(hooks.contains("hoverpet-hook.sh"));
     assert!(hooks.contains("codex"));
     assert!(hooks.contains("tool.before"));
     assert!(config.contains("[features]"));
@@ -35,7 +35,7 @@ fn codex_install_writes_hooks_json_and_enables_hooks_feature() {
 fn codex_install_omits_notification_event_unknown_to_codex() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
@@ -64,7 +64,7 @@ fn codex_helper_bypasses_loopback_proxy_when_posting_runtime_events() {
     let _guard = PROXY_ENV_LOCK.lock().unwrap();
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let runtime = temp.path().join("runtime");
     let manager = manager_with_fake_agents(&root, &home);
 
@@ -109,10 +109,10 @@ fn codex_helper_bypasses_loopback_proxy_when_posting_runtime_events() {
         }
     });
 
-    let helper = root.join("hooks/pethover-hook.sh");
+    let helper = root.join("hooks/hoverpet-hook.sh");
     let mut child = Command::new(helper)
         .args(["codex", "tool.before"])
-        .env("PETHOVER_RUNTIME_DIR", &runtime)
+        .env("HOVERPET_RUNTIME_DIR", &runtime)
         .env("HTTP_PROXY", "http://127.0.0.1:9")
         .env("HTTPS_PROXY", "http://127.0.0.1:9")
         .env("http_proxy", "http://127.0.0.1:9")
@@ -148,15 +148,15 @@ fn codex_helper_bypasses_loopback_proxy_when_posting_runtime_events() {
 fn codex_helper_outputs_schema_neutral_json_when_runtime_is_unavailable() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let runtime = temp.path().join("missing-runtime");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
 
-    let output = Command::new(root.join("hooks/pethover-hook.sh"))
+    let output = Command::new(root.join("hooks/hoverpet-hook.sh"))
         .args(["codex", "session.stop"])
-        .env("PETHOVER_RUNTIME_DIR", &runtime)
+        .env("HOVERPET_RUNTIME_DIR", &runtime)
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()
@@ -172,7 +172,7 @@ fn codex_helper_outputs_schema_neutral_json_when_runtime_is_unavailable() {
 fn codex_install_preserves_existing_config_while_enabling_hooks_feature() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let config = home.join(".codex/config.toml");
     fs::create_dir_all(config.parent().unwrap()).unwrap();
     fs::write(
@@ -202,10 +202,10 @@ approval_policy = "on-request"
 }
 
 #[test]
-fn codex_install_places_pethover_hooks_before_existing_matching_groups() {
+fn codex_install_places_hoverpet_hooks_before_existing_matching_groups() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let hooks = home.join(".codex/hooks.json");
     fs::create_dir_all(hooks.parent().unwrap()).unwrap();
     fs::write(
@@ -221,7 +221,7 @@ fn codex_install_places_pethover_hooks_before_existing_matching_groups() {
     let pre_tool_use = value["hooks"]["PreToolUse"].as_array().unwrap();
     let first_command = pre_tool_use[0]["hooks"][0]["command"].as_str().unwrap();
     let second_command = pre_tool_use[1]["hooks"][0]["command"].as_str().unwrap();
-    assert!(first_command.contains("pethover-hook.sh"));
+    assert!(first_command.contains("hoverpet-hook.sh"));
     assert!(first_command.contains(" codex tool.before"));
     assert_eq!(second_command, "echo existing");
 }
@@ -230,7 +230,7 @@ fn codex_install_places_pethover_hooks_before_existing_matching_groups() {
 fn uninstall_removes_hooks_and_adapter_metadata() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
@@ -240,7 +240,7 @@ fn uninstall_removes_hooks_and_adapter_metadata() {
     let hooks = fs::read_to_string(home.join(".codex/hooks.json")).unwrap();
 
     assert!(!result.adapter.installed);
-    assert!(!hooks.contains("pethover-hook.sh"));
+    assert!(!hooks.contains("hoverpet-hook.sh"));
     assert!(!root.join("adapters/codex.json").exists());
 }
 
@@ -248,7 +248,7 @@ fn uninstall_removes_hooks_and_adapter_metadata() {
 fn install_rejects_missing_local_agent_cli_without_writing_hooks() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = AgentManager::new_with_executable_search_paths(&root, &home, Vec::new());
 
     let error = manager.install("codex").unwrap_err().to_string();
@@ -263,7 +263,7 @@ fn install_rejects_missing_local_agent_cli_without_writing_hooks() {
 fn install_finds_agent_cli_in_common_user_bin_paths_when_process_path_is_sparse() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let local_bin = home.join(".local/bin");
     fs::create_dir_all(&local_bin).unwrap();
     let codex = local_bin.join("codex");
@@ -287,7 +287,7 @@ fn install_finds_agent_cli_in_common_user_bin_paths_when_process_path_is_sparse(
 fn install_finds_codex_in_macos_pnpm_global_bin_when_process_path_is_sparse() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let pnpm_bin = home.join("Library/pnpm");
     fs::create_dir_all(&pnpm_bin).unwrap();
     let codex = pnpm_bin.join("codex");
@@ -311,7 +311,7 @@ fn install_finds_codex_in_macos_pnpm_global_bin_when_process_path_is_sparse() {
 fn codex_install_preserves_user_comments_and_unrelated_keys_in_config_toml() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let config = home.join(".codex/config.toml");
     fs::create_dir_all(config.parent().unwrap()).unwrap();
     fs::write(
@@ -355,10 +355,10 @@ fn codex_install_preserves_user_comments_and_unrelated_keys_in_config_toml() {
 }
 
 #[test]
-fn codex_install_writes_trusted_hashes_for_all_pethover_hooks() {
+fn codex_install_writes_trusted_hashes_for_all_hoverpet_hooks() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
@@ -408,10 +408,10 @@ fn regex_lite_match_sha256(line: &str) -> bool {
 }
 
 #[test]
-fn codex_uninstall_removes_only_pethover_trusted_hashes() {
+fn codex_uninstall_removes_only_hoverpet_trusted_hashes() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
@@ -426,7 +426,7 @@ fn codex_uninstall_removes_only_pethover_trusted_hashes() {
     let after = fs::read_to_string(&config_path).unwrap();
     let hooks_abs = home.join(".codex/hooks.json").display().to_string();
 
-    // PetHover's entries gone.
+    // HoverPet's entries gone.
     for event_label in [
         "user_prompt_submit",
         "pre_tool_use",
@@ -437,7 +437,7 @@ fn codex_uninstall_removes_only_pethover_trusted_hashes() {
         let key = format!("[hooks.state.\"{hooks_abs}:{event_label}:0:0\"]");
         assert!(
             !after.contains(&key),
-            "PetHover trust entry survived uninstall: {key}\n{after}"
+            "HoverPet trust entry survived uninstall: {key}\n{after}"
         );
     }
     // User's entry survives.
@@ -451,7 +451,7 @@ fn codex_uninstall_removes_only_pethover_trusted_hashes() {
 fn codex_install_idempotent_trusted_hashes_stable_across_runs() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();
@@ -469,8 +469,8 @@ fn codex_install_idempotent_trusted_hashes_stable_across_runs() {
 fn codex_repair_refreshes_trusted_hashes_after_helper_path_changes() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root_a = temp.path().join(".pethover-a");
-    let root_b = temp.path().join(".pethover-b");
+    let root_a = temp.path().join(".hoverpet-a");
+    let root_b = temp.path().join(".hoverpet-b");
 
     let manager_a = manager_with_fake_agents(&root_a, &home);
     manager_a.install("codex").unwrap();
@@ -487,7 +487,7 @@ fn codex_repair_refreshes_trusted_hashes_after_helper_path_changes() {
         "trusted_hash should differ when helper path changes (command string differs):\nA: {hash_a}\nB: {hash_b}",
     );
     // No leaked entries pointing to root_a helper.
-    let helper_a = root_a.join("hooks/pethover-hook.sh").display().to_string();
+    let helper_a = root_a.join("hooks/hoverpet-hook.sh").display().to_string();
     assert!(
         !config_after_b.contains(&helper_a),
         "stale reference to old helper path: {config_after_b}",
@@ -509,37 +509,37 @@ fn extract_first_trusted_hash(config: &str) -> String {
 #[test]
 #[cfg(unix)]
 fn codex_trusted_hash_matches_golden_for_pinned_fixture() {
-    // Goldens captured 2026-05-18 against PetHover's vendored hash algorithm
+    // Goldens captured 2026-05-18 against HoverPet's vendored hash algorithm
     // (replica of openai/codex command_hook_hash). If Codex changes the upstream
     // algorithm, this test fails — regenerate by running and pasting actual values.
-    const FIXTURE_BASE: &str = "/tmp/pethover-codex-golden-fixture";
+    const FIXTURE_BASE: &str = "/tmp/hoverpet-codex-golden-fixture";
     const GOLDEN: &[(&str, &str)] = &[
         (
             "user_prompt_submit",
-            "sha256:2e9ef56962305e9a5a1257833ea0157e051b80c4c8a45aead9e13ff47410642b",
+            "sha256:6d451c87facaa60c47e0eeafc62beffdbbfc858577eec7d6b1967014cbe151d3",
         ),
         (
             "pre_tool_use",
-            "sha256:b1ac8a302df1a7b291d7654014729b9437ac71ae96e93eb65ba9a4d7bd837343",
+            "sha256:b567fc8e9bca46a0b0af8b6be25a0c95cf9daf82cd56268d3dbfee67950e6ed5",
         ),
         (
             "post_tool_use",
-            "sha256:84b17bd84f5871e6c94df8daecf10ddccaf5f911d7df8451696d672533b10eb0",
+            "sha256:f9f70e82e1a17806ebf0f6286ebe21edc9630f221d4d2c83f7ef77a8b4d3928c",
         ),
         (
             "permission_request",
-            "sha256:b5997d3dec5768a6ade68a0aa30a5d35aa554bbe057fd003c20f7b9623ab410c",
+            "sha256:40d899bdc89c4426e8bafbf55dd42aed81296f270bfd0831ee44085024fdd708",
         ),
         (
             "stop",
-            "sha256:1004765f3fc06681d1b6c77e2892a9b274f02bdf401b253e9077519a5c2b4a64",
+            "sha256:9172d2c3a8fb4a492ad9a18448e294f1a9ecd7495c9711007cc382504e268a42",
         ),
     ];
 
     let base = std::path::PathBuf::from(FIXTURE_BASE);
     let _ = std::fs::remove_dir_all(&base);
     let home = base.join("home");
-    let root = base.join(".pethover");
+    let root = base.join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("codex").unwrap();

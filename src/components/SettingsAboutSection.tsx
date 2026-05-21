@@ -1,5 +1,5 @@
-import pethoverLogoUrl from "../assets/logo-transparent.png";
-import { PETHOVER_REPO_URL } from "../lib/appLinks";
+import hoverpetLogoUrl from "../assets/logo-transparent.png";
+import { HOVERPET_REPO_URL } from "../lib/appLinks";
 import { useOpenExternalUrl } from "../hooks/useOpenExternalUrl";
 
 import type { Translator } from "../lib/settingsTypes";
@@ -19,7 +19,7 @@ export function SettingsAboutSection({ t }: SettingsAboutSectionProps) {
             aria-hidden="true"
             className="settings-about-logo"
             draggable={false}
-            src={pethoverLogoUrl}
+            src={hoverpetLogoUrl}
           />
         </div>
         <h2 id="settings-section-panel-heading">{t("aboutTitle")}</h2>
@@ -33,10 +33,10 @@ export function SettingsAboutSection({ t }: SettingsAboutSectionProps) {
         <p className="settings-about-line">
           <a
             className="settings-about-link"
-            href={PETHOVER_REPO_URL}
+            href={HOVERPET_REPO_URL}
             onClick={(event) => {
               event.preventDefault();
-              void openExternal(PETHOVER_REPO_URL);
+              void openExternal(HOVERPET_REPO_URL);
             }}
             rel="noreferrer"
           >

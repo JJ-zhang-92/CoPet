@@ -33,8 +33,8 @@ use window_placement::{
     schedule_pet_window_z_order_reassertions,
 };
 
-const APP_STATE_CHANGED_EVENT: &str = "pethover-app-state-changed";
-const PET_WINDOW_VISIBILITY_CHANGED_EVENT: &str = "pethover-pet-window-visibility-changed";
+const APP_STATE_CHANGED_EVENT: &str = "hoverpet-app-state-changed";
+const PET_WINDOW_VISIBILITY_CHANGED_EVENT: &str = "hoverpet-pet-window-visibility-changed";
 
 fn resolve_builtin_pets_dir(app: &tauri::App) -> Option<PathBuf> {
     if let Ok(path) = app.path().resolve("assets/pets", BaseDirectory::Resource) {
@@ -67,7 +67,7 @@ const SETTINGS_SECTION_AGENTS: &str = "agents";
 const SETTINGS_SECTION_PREFERENCES: &str = "preferences";
 const SETTINGS_SECTION_ABOUT: &str = "about";
 
-const SETTINGS_NAVIGATE_EVENT: &str = "pethover-navigate-to-section";
+const SETTINGS_NAVIGATE_EVENT: &str = "hoverpet-navigate-to-section";
 // One vsync frame at 60 Hz, plus a small pad for IPC + React commit. The
 // webview receives the navigate event and paints the target tab within this
 // window on a hot React tree; if it doesn't, a brief flicker is the worst
@@ -163,7 +163,7 @@ fn set_locale_preference(
 fn install_app_menu<M: Manager<Wry>>(manager: &M, locale: Locale) -> tauri::Result<()> {
     use tauri::menu::AboutMetadata;
 
-    let app_name = "PetHover";
+    let app_name = "HoverPet";
     let about_metadata = AboutMetadata {
         name: Some(app_name.to_string()),
         version: Some(env!("CARGO_PKG_VERSION").to_string()),
@@ -668,8 +668,8 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
     )?;
 
     let tray_icon = tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?;
-    let tray = TrayIconBuilder::with_id("pethover")
-        .tooltip("PetHover")
+    let tray = TrayIconBuilder::with_id("hoverpet")
+        .tooltip("HoverPet")
         .icon(tray_icon)
         .icon_as_template(true)
         .menu(&menu)
@@ -872,7 +872,7 @@ pub fn run() {
             commands::reset_pet_window_position
         ])
         .build(tauri::generate_context!())
-        .expect("failed to build PetHover")
+        .expect("failed to build HoverPet")
         .run(|app, event| match event {
             tauri::RunEvent::Reopen { .. } => {
                 // macOS Dock click on the running app. The settings window
@@ -891,7 +891,7 @@ pub fn run() {
 
 #[cfg(debug_assertions)]
 fn dev_log_app(stage: &str, payload: serde_json::Value) {
-    eprintln!("[pethover:app:{stage}] {payload}");
+    eprintln!("[hoverpet:app:{stage}] {payload}");
 }
 
 #[cfg(not(debug_assertions))]

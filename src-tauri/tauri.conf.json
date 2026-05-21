@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "PetHover",
+  "productName": "HoverPet",
   "version": "0.1.0",
-  "identifier": "run.pethover.desktop",
+  "identifier": "run.hoverpet.desktop",
   "build": {
     "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
@@ -14,7 +14,7 @@
     "windows": [
       {
         "label": "pet",
-        "title": "PetHover",
+        "title": "HoverPet",
         "width": 260,
         "height": 300,
         "resizable": false,
@@ -28,7 +28,7 @@
       },
       {
         "label": "settings",
-        "title": "PetHover Settings",
+        "title": "HoverPet Settings",
         "width": 720,
         "height": 760,
         "minWidth": 560,
@@ -46,7 +46,7 @@
       "assetProtocol": {
         "enable": true,
         "scope": [
-          "$HOME/.pethover/pets/**",
+          "$HOME/.hoverpet/pets/**",
           "$HOME/.codex/pets/**",
           "$RESOURCE/assets/pets/**"
         ]

@@ -1,4 +1,4 @@
-use pethover_lib::config_store::ConfigStore;
+use hoverpet_lib::config_store::ConfigStore;
 use std::path::PathBuf;
 
 const NON_DEFAULT_BUILTIN_PET_ID: &str = "zodiac-dragon";
@@ -10,7 +10,7 @@ fn builtin_pets_dir() -> PathBuf {
 #[test]
 fn builtin_pets_persist_across_startup_and_remain_unremovable() {
     let temp = tempfile::tempdir().unwrap();
-    let store = ConfigStore::with_builtin_dir(temp.path().join(".pethover"), builtin_pets_dir());
+    let store = ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir());
 
     let initial = store.ensure_ready().unwrap();
     assert!(initial

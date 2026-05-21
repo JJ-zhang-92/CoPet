@@ -111,38 +111,38 @@ type HarnessMonitor = {
   };
 };
 
-const appStateChangedEvent = "pethover-app-state-changed";
+const appStateChangedEvent = "hoverpet-app-state-changed";
 
-export const pethover: PetSummary = {
-  id: "pethover",
-  slug: "pethover",
-  displayName: "PetHover",
-  description: "Default PetHover pet",
+export const hoverpet: PetSummary = {
+  id: "hoverpet",
+  slug: "hoverpet",
+  displayName: "HoverPet",
+  description: "Default HoverPet pet",
   frameWidth: 192,
   frameHeight: 208,
   gridColumns: 8,
   gridRows: 9,
   builtIn: true,
-  spritePath: "/pets/pethover/spritesheet.webp",
+  spritePath: "/pets/hoverpet/spritesheet.webp",
 };
 
-export const pethoverWithSounds: PetSummary = {
-  ...pethover,
+export const hoverpetWithSounds: PetSummary = {
+  ...hoverpet,
   sounds: {
     interactionSounds: {
-      click: "/pets/pethover/pethover/audio/click.mp3",
-      doubleClick: "/pets/pethover/pethover/audio/surprised.mp3",
-      petted: "/pets/pethover/pethover/audio/purr.mp3",
-      pettedSlow: "/pets/pethover/pethover/audio/sigh.mp3",
-      dragLand: "/pets/pethover/pethover/audio/wheee.mp3",
+      click: "/pets/hoverpet/hoverpet/audio/click.mp3",
+      doubleClick: "/pets/hoverpet/hoverpet/audio/surprised.mp3",
+      petted: "/pets/hoverpet/hoverpet/audio/purr.mp3",
+      pettedSlow: "/pets/hoverpet/hoverpet/audio/sigh.mp3",
+      dragLand: "/pets/hoverpet/hoverpet/audio/wheee.mp3",
     },
     agentSounds: {
-      thinking: "/pets/pethover/pethover/audio/hmm.mp3",
-      editing: "/pets/pethover/pethover/audio/tap.mp3",
-      inspecting: "/pets/pethover/pethover/audio/peek.mp3",
-      awaitingApproval: "/pets/pethover/pethover/audio/wait.mp3",
-      celebrating: "/pets/pethover/pethover/audio/yay.mp3",
-      failed: "/pets/pethover/pethover/audio/oof.mp3",
+      thinking: "/pets/hoverpet/hoverpet/audio/hmm.mp3",
+      editing: "/pets/hoverpet/hoverpet/audio/tap.mp3",
+      inspecting: "/pets/hoverpet/hoverpet/audio/peek.mp3",
+      awaitingApproval: "/pets/hoverpet/hoverpet/audio/wait.mp3",
+      celebrating: "/pets/hoverpet/hoverpet/audio/yay.mp3",
+      failed: "/pets/hoverpet/hoverpet/audio/oof.mp3",
     },
   },
 };
@@ -187,10 +187,10 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
   const pages: Page[] = [];
   const calls: CommandCall[] = [];
   let state: AppState = options.state ?? {
-    currentPetId: pethover.id,
+    currentPetId: hoverpet.id,
     locale: "en-US",
     localePreference: "system",
-    pets: [pethover],
+    pets: [hoverpet],
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "all",
@@ -240,7 +240,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     await Promise.all(
       pages.map((targetPage) =>
         targetPage.evaluate(
-          ({ event, payload }) => window.__pethoverTestEmit(event, payload),
+          ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
           { event: appStateChangedEvent, payload: state },
         ),
       ),
@@ -259,7 +259,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     );
 
     await page.exposeBinding(
-      "__pethoverInvoke",
+      "__hoverpetInvoke",
       async (source, command: string, args: Record<string, unknown> = {}) => {
         calls.push({ command, args });
         const delayMs = options.commandDelayMs?.[command] ?? 0;
@@ -298,7 +298,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
           await Promise.all(
             pages.map((targetPage) =>
               targetPage.evaluate(
-                ({ event, payload }) => window.__pethoverTestEmit(event, payload),
+                ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
                 { event: args.event as string, payload: args.payload },
               ),
             ),
@@ -397,9 +397,9 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
           await Promise.all(
             pages.map((targetPage) =>
               targetPage.evaluate(
-                ({ event, payload }) => window.__pethoverTestEmit(event, payload),
+                ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
                 {
-                  event: "pethover-pet-window-visibility-changed",
+                  event: "hoverpet-pet-window-visibility-changed",
                   payload: petVisible,
                 },
               ),
@@ -440,7 +440,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
         if (command === "remove_pet") {
           state = {
             ...state,
-            currentPetId: state.currentPetId === args.petId ? pethover.id : state.currentPetId,
+            currentPetId: state.currentPetId === args.petId ? hoverpet.id : state.currentPetId,
             pets: state.pets.filter((pet) => pet.id !== args.petId),
           };
           await emitAppState();
@@ -498,7 +498,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
                   installed,
                   healthy: installed,
                   message: installed
-                    ? "PetHover hook installed"
+                    ? "HoverPet hook installed"
                     : "Configuration path not created yet",
                 }
               : adapter,
@@ -520,10 +520,10 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       const callbacks = new Map<number, (payload: unknown) => void>();
       const listeners: Listener[] = [];
 
-      window.__pethoverPlayedAudioUrls = [];
+      window.__hoverpetPlayedAudioUrls = [];
       HTMLMediaElement.prototype.play = function () {
         const rawSrc = (this as HTMLAudioElement).getAttribute("src");
-        window.__pethoverPlayedAudioUrls.push(
+        window.__hoverpetPlayedAudioUrls.push(
           rawSrc || (this as HTMLAudioElement).currentSrc || (this as HTMLAudioElement).src,
         );
         return Promise.resolve();
@@ -572,15 +572,15 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
             return null;
           }
           if (command === "plugin:event|emit" || command === "plugin:event|emit_to") {
-            return window.__pethoverInvoke(command, args);
+            return window.__hoverpetInvoke(command, args);
           }
           if (command === "plugin:window|get_all_windows") {
             return ["pet", "settings"];
           }
-          return window.__pethoverInvoke(command, args);
+          return window.__hoverpetInvoke(command, args);
         },
       };
-      window.__pethoverTestEmit = (event: string, payload: unknown) => {
+      window.__hoverpetTestEmit = (event: string, payload: unknown) => {
         for (const listener of listeners) {
           if (listener.event !== event) {
             continue;
@@ -622,18 +622,18 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       messages: update.messages ?? [],
     };
     await page.evaluate(
-      ({ event, payload: data }) => window.__pethoverTestEmit(event, data),
+      ({ event, payload: data }) => window.__hoverpetTestEmit(event, data),
       { event: "pet-state-changed", payload },
     );
   }
 
   async function playedAudioUrls(page: Page) {
-    return page.evaluate(() => window.__pethoverPlayedAudioUrls);
+    return page.evaluate(() => window.__hoverpetPlayedAudioUrls);
   }
 
   async function clearPlayedAudioUrls(page: Page) {
     await page.evaluate(() => {
-      window.__pethoverPlayedAudioUrls = [];
+      window.__hoverpetPlayedAudioUrls = [];
     });
   }
 
@@ -647,8 +647,8 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       await Promise.all(
         pages.map((targetPage) =>
           targetPage.evaluate(
-            ({ event, payload }) => window.__pethoverTestEmit(event, payload),
-            { event: "pethover-pet-context-menu-action", payload: action },
+            ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
+            { event: "hoverpet-pet-context-menu-action", payload: action },
           ),
         ),
       );
@@ -676,9 +676,9 @@ declare global {
       convertFileSrc: (filePath: string) => string;
       invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
     };
-    __pethoverInvoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-    __pethoverPlayedAudioUrls: string[];
-    __pethoverScrolledPetIds: string[];
-    __pethoverTestEmit: (event: string, payload: unknown) => void;
+    __hoverpetInvoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+    __hoverpetPlayedAudioUrls: string[];
+    __hoverpetScrolledPetIds: string[];
+    __hoverpetTestEmit: (event: string, payload: unknown) => void;
   }
 }

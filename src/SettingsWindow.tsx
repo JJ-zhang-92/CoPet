@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 
-import pethoverLogoUrl from "./assets/logo-transparent.png";
+import hoverpetLogoUrl from "./assets/logo-transparent.png";
 import { ErrorView, LoadingView } from "./components/AppShell";
 import { SettingsAboutSection } from "./components/SettingsAboutSection";
 import { SettingsAgentsSection } from "./components/SettingsAgentsSection";
@@ -122,7 +122,7 @@ export function SettingsWindow() {
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
-    void listen<SettingsSectionId>("pethover-navigate-to-section", (event) => {
+    void listen<SettingsSectionId>("hoverpet-navigate-to-section", (event) => {
       setActiveSection(event.payload);
     }).then((cleanup) => {
       dispose = cleanup;
@@ -184,9 +184,9 @@ export function SettingsWindow() {
               aria-hidden="true"
               className="settings-logo-image"
               draggable={false}
-              src={pethoverLogoUrl}
+              src={hoverpetLogoUrl}
             />
-            <span className="settings-brand-name">PetHover</span>
+            <span className="settings-brand-name">HoverPet</span>
           </div>
           <SettingsNav
             active={activeSection}

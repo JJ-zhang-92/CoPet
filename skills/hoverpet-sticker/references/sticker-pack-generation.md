@@ -1,8 +1,8 @@
-# Sticker Pack Sub-Task
+# Sticker Pack Generation
 
-**Read this when:** the user selected `stickers` from the PetHover skill menu and you are about to generate a global sticker pack.
+**Read this when:** generating a global HoverPet sticker pack.
 
-This sub-task produces a self-contained sticker pack under `$HOME/.pethover/stickers/<sticker-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
+This workflow produces a self-contained decoration/effect sticker pack under `$HOME/.hoverpet/stickers/<sticker-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
 
 ## Input contract
 
@@ -10,19 +10,26 @@ The input is the same validated input accepted by `SKILL.md`:
 
 - PNG or JPEG image, 8 MB or smaller, decodable, not transparent-only.
 - Text, 2,000 characters or fewer, non-empty after trimming whitespace.
-- Image plus caption is allowed; the image is a palette and character reference only.
+- Image plus caption is allowed; the image is a palette, mood, texture, motion, and motif reference only.
 
-Images are never embedded into the SVG and are never traced into vector paths.
+Images are never embedded into the SVG and are never traced into vector paths. The sticker must not reproduce the image subject.
+
+## Subject boundary
+
+Sticker SVGs are decorative overlays for an existing pet. They do not create or replace the pet itself.
+
+Hard rules:
+
+- Do not draw a standalone pet, animal, humanoid, mascot, character body, head, face, or silhouette.
+- Do not use the input subject as the sticker subject.
+- Do not make the sticker's largest visual mass a creature, character, face, or body.
+- For animal or character-themed requests, convert the theme into non-body decoration: paw-print sparkles, tiny symbols, speed lines, aura shapes, weather, speech bubbles, hearts, notes, dust, smoke, glow, confetti, or texture accents.
 
 ## Classification
 
 Classify `kind`, `slot`, and bindings with `sticker-classification.md`.
 
-If the input is ambiguous, ask exactly one clarifying question:
-
-```text
-Should this sticker be a one-shot burst for a specific moment, or a persistent decoration that stays visible across states?
-```
+If the input is ambiguous, ask exactly one clarifying question in the response language. The question must ask whether the sticker should be a one-shot burst for a specific moment or a persistent decoration that stays visible across states. Do not reuse English wording for non-English requests.
 
 Do not guess.
 
@@ -34,17 +41,17 @@ Derive:
 - `displayNameZh`: natural Chinese display name.
 - `id`: kebab-case slug from `displayName`.
 
-If `$HOME/.pethover/stickers/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
+If `$HOME/.hoverpet/stickers/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
 
 ## Staging
 
 Write all in-flight files to:
 
 ```text
-$HOME/.pethover/tmp/stickers-<unix-epoch>-<sticker-id>/
+$HOME/.hoverpet/tmp/stickers-<unix-epoch>-<sticker-id>/
 ```
 
-Create `$HOME/.pethover/tmp/` if needed. The live `$HOME/.pethover/stickers/<sticker-id>/` directory is read-only until validation passes.
+Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/stickers/<sticker-id>/` directory is read-only until validation passes.
 
 ## Generate `animation.svg`
 
@@ -59,11 +66,12 @@ Read `svg-authoring.md` before authoring. The required summary is:
 - No `<script>`, `<foreignObject>`, `<iframe>`, or `<image>`.
 - No external `href` or `xlink:href`.
 - No external fonts.
+- Decoration-only: no standalone pet, animal, humanoid, mascot, head, face, body, or silhouette.
 - File size 64 KB or smaller.
 
 Programmatic SVG assembly is forbidden. Do not write a script that builds paths, timelines, symbols, or shape trees. Raster-to-SVG tracing is forbidden.
 
-If the LLM output fails validation, retry with a corrected prompt. Abort after three non-conforming outputs, leave staging in place, and report the failing validation item.
+If the LLM output fails validation, retry with a corrected prompt. Abort after three non-conforming outputs, leave staging in place, and report the failing validation item in the response language.
 
 ## Compose `sticker.json`
 
@@ -125,18 +133,19 @@ Before promotion, validate:
 - `kind` mutual-exclusion rules.
 - Legal state bindings.
 - `animation.svg` XML and authoring rules.
+- Decoration-only subject boundary.
 - Staging directory cleanliness: exactly `sticker.json` and `animation.svg`.
 
 On success, atomically rename:
 
 ```text
-$HOME/.pethover/tmp/stickers-<unix-epoch>-<sticker-id>/
+$HOME/.hoverpet/tmp/stickers-<unix-epoch>-<sticker-id>/
 ```
 
 to:
 
 ```text
-$HOME/.pethover/stickers/<sticker-id>/
+$HOME/.hoverpet/stickers/<sticker-id>/
 ```
 
-On failure, leave staging in place, report the specific failed checklist item, and do not touch the live directory.
+On failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

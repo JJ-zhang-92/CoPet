@@ -1,14 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, pethover } from "./app-harness";
+import { createAppHarness, hoverpet } from "./app-harness";
 
 test("pet window suppresses agent messages while responsePaused is true", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
+      currentPetId: hoverpet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [pethover],
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: true,
@@ -22,8 +22,8 @@ test("pet window suppresses agent messages while responsePaused is true", async 
 
   // Emit a runtime update while paused — must be ignored.
   await petPage.evaluate(({ event, payload }) => {
-    (window as unknown as { __pethoverTestEmit: (e: string, p: unknown) => void })
-      .__pethoverTestEmit(event, payload);
+    (window as unknown as { __hoverpetTestEmit: (e: string, p: unknown) => void })
+      .__hoverpetTestEmit(event, payload);
   }, {
     event: "pet-state-changed",
     payload: {
@@ -45,15 +45,15 @@ test("pet window suppresses agent messages while responsePaused is true", async 
 
   // Unpause via app-state-changed, then emit another runtime update — must render now.
   await petPage.evaluate(({ event, payload }) => {
-    (window as unknown as { __pethoverTestEmit: (e: string, p: unknown) => void })
-      .__pethoverTestEmit(event, payload);
+    (window as unknown as { __hoverpetTestEmit: (e: string, p: unknown) => void })
+      .__hoverpetTestEmit(event, payload);
   }, {
-    event: "pethover-app-state-changed",
+    event: "hoverpet-app-state-changed",
     payload: {
-      currentPetId: pethover.id,
+      currentPetId: hoverpet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [pethover],
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -61,8 +61,8 @@ test("pet window suppresses agent messages while responsePaused is true", async 
   });
 
   await petPage.evaluate(({ event, payload }) => {
-    (window as unknown as { __pethoverTestEmit: (e: string, p: unknown) => void })
-      .__pethoverTestEmit(event, payload);
+    (window as unknown as { __hoverpetTestEmit: (e: string, p: unknown) => void })
+      .__hoverpetTestEmit(event, payload);
   }, {
     event: "pet-state-changed",
     payload: {
@@ -85,10 +85,10 @@ test("pet window suppresses agent messages while responsePaused is true", async 
 test("pausing messages hides already visible pet message bubbles", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: pethover.id,
+      currentPetId: hoverpet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [pethover],
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -113,15 +113,15 @@ test("pausing messages hides already visible pet message bubbles", async ({ brow
   await expect(petPage.locator('[data-testid="pet-agent-message"]')).toHaveCount(1);
 
   await petPage.evaluate(({ event, payload }) => {
-    (window as unknown as { __pethoverTestEmit: (e: string, p: unknown) => void })
-      .__pethoverTestEmit(event, payload);
+    (window as unknown as { __hoverpetTestEmit: (e: string, p: unknown) => void })
+      .__hoverpetTestEmit(event, payload);
   }, {
-    event: "pethover-app-state-changed",
+    event: "hoverpet-app-state-changed",
     payload: {
-      currentPetId: pethover.id,
+      currentPetId: hoverpet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [pethover],
+      pets: [hoverpet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: true,

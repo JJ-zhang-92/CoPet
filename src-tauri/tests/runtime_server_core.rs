@@ -1,4 +1,4 @@
-use pethover_lib::{
+use hoverpet_lib::{
     diagnostics::RotatingLog,
     runtime_server::{handle_http_request, RuntimeCore, RuntimeServerError, RuntimeToken},
     runtime_state::{PetStateId, RuntimeEvent},

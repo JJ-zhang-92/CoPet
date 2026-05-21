@@ -1,5 +1,5 @@
 use super::helpers::{manager_with_fake_agents, read_json};
-use pethover_lib::agents::AgentManager;
+use hoverpet_lib::agents::AgentManager;
 use std::{
     fs,
     process::{Command, Stdio},
@@ -9,7 +9,7 @@ use std::{
 fn gemini_install_writes_user_settings_hooks() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     let result = manager.install("gemini").unwrap();
@@ -19,7 +19,7 @@ fn gemini_install_writes_user_settings_hooks() {
     assert!(settings.contains("\"BeforeAgent\""));
     assert!(settings.contains("\"BeforeTool\""));
     assert!(settings.contains("\"AfterTool\""));
-    assert!(settings.contains("pethover-hook.sh"));
+    assert!(settings.contains("hoverpet-hook.sh"));
     assert!(settings.contains("gemini"));
     assert!(settings.contains("user.prompt"));
     assert!(settings.contains("tool.before"));
@@ -29,11 +29,11 @@ fn gemini_install_writes_user_settings_hooks() {
 fn gemini_hook_command_exits_successfully_when_helper_is_missing() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let manager = manager_with_fake_agents(&root, &home);
 
     manager.install("gemini").unwrap();
-    fs::remove_file(root.join("hooks/pethover-hook.sh")).unwrap();
+    fs::remove_file(root.join("hooks/hoverpet-hook.sh")).unwrap();
 
     let settings = read_json(home.join(".gemini/settings.json"));
     let command = settings["hooks"]["BeforeAgent"][0]["hooks"][0]["command"]
@@ -66,14 +66,14 @@ fn gemini_legacy_install_without_before_agent_is_not_current() {
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "if [ -f '/tmp/pethover-hook.sh' ]; then '/tmp/pethover-hook.sh' gemini tool.before; else echo \"{}\"; fi"
+        "command": "if [ -f '/tmp/hoverpet-hook.sh' ]; then '/tmp/hoverpet-hook.sh' gemini tool.before; else echo \"{}\"; fi"
       }]
     }],
     "AfterTool": [{
       "matcher": "*",
       "hooks": [{
         "type": "command",
-        "command": "if [ -f '/tmp/pethover-hook.sh' ]; then '/tmp/pethover-hook.sh' gemini tool.after; else echo \"{}\"; fi"
+        "command": "if [ -f '/tmp/hoverpet-hook.sh' ]; then '/tmp/hoverpet-hook.sh' gemini tool.after; else echo \"{}\"; fi"
       }]
     }]
   }
@@ -81,7 +81,7 @@ fn gemini_legacy_install_without_before_agent_is_not_current() {
     )
     .unwrap();
 
-    let manager = AgentManager::new(temp.path().join(".pethover"), home);
+    let manager = AgentManager::new(temp.path().join(".hoverpet"), home);
 
     let summary = manager.inspect("gemini").unwrap();
 

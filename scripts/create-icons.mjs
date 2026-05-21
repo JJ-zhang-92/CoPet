@@ -7,7 +7,7 @@ import { spawnSync } from "node:child_process";
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const sourceIcon = join(repoRoot, "src", "assets", "logo.png");
 const outputDir = join(repoRoot, "src-tauri", "icons");
-const workDir = mkdtempSync(join(tmpdir(), "pethover-icons-"));
+const workDir = mkdtempSync(join(tmpdir(), "hoverpet-icons-"));
 const roundedIcon = join(workDir, "app-icon-rounded.png");
 const trayIcon = join(outputDir, "tray.png");
 

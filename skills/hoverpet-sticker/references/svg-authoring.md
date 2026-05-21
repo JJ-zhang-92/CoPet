@@ -1,8 +1,10 @@
 # Sticker SVG Authoring
 
-**Read this when:** generating, reviewing, or validating `animation.svg` for a PetHover sticker pack.
+**Read this when:** generating, reviewing, or validating `animation.svg` for a HoverPet sticker pack.
 
 Sticker SVGs are authored directly as XML by the LLM in one pass. They are never assembled by a Python, Node, SVG template, raster trace, frame extraction, GIF conversion, canvas renderer, or shape-string generator.
+
+Sticker SVGs are decoration/effect layers. They must not include a standalone pet, animal, humanoid, mascot, character body, head, face, or silhouette. Animal or character references may only influence decorative motifs such as paw-print sparkles, aura shapes, weather, bubbles, notes, hearts, speed lines, dust, smoke, glow, confetti, or texture accents.
 
 ## Required root
 
@@ -77,4 +79,5 @@ External font references are forbidden. Use generic families such as `sans-serif
 - No external `href` or `xlink:href` is present.
 - At least one SMIL animation element or one CSS `@keyframes` rule is present.
 - A `prefers-reduced-motion: reduce` media query is present.
+- No standalone pet, animal, humanoid, mascot, head, face, body, or silhouette is present.
 - File size is 64 KB or smaller.

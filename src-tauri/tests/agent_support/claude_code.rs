@@ -5,7 +5,7 @@ use std::fs;
 fn claude_install_merges_hooks_and_uninstall_preserves_user_hooks() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
-    let root = temp.path().join(".pethover");
+    let root = temp.path().join(".hoverpet");
     let settings = home.join(".claude/settings.json");
     fs::create_dir_all(settings.parent().unwrap()).unwrap();
     fs::write(
@@ -18,7 +18,7 @@ fn claude_install_merges_hooks_and_uninstall_preserves_user_hooks() {
     manager.install("claude-code").unwrap();
     let installed = fs::read_to_string(&settings).unwrap();
     assert!(installed.contains("echo user"));
-    assert!(installed.contains("pethover-hook.sh"));
+    assert!(installed.contains("hoverpet-hook.sh"));
     assert!(installed.contains("claude-code"));
     assert!(installed.contains("tool.before"));
     assert!(root.join("adapters/claude-code.json").exists());
@@ -27,6 +27,6 @@ fn claude_install_merges_hooks_and_uninstall_preserves_user_hooks() {
     manager.uninstall("claude-code").unwrap();
     let uninstalled = fs::read_to_string(&settings).unwrap();
     assert!(uninstalled.contains("echo user"));
-    assert!(!uninstalled.contains("pethover-hook.sh"));
+    assert!(!uninstalled.contains("hoverpet-hook.sh"));
     assert!(!root.join("adapters/claude-code.json").exists());
 }

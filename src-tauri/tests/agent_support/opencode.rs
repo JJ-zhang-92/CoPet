@@ -1,26 +1,26 @@
 use super::helpers::{manager_with_fake_agents, read_json, with_opencode_config_dir};
-use pethover_lib::agents::AgentManager;
+use hoverpet_lib::agents::AgentManager;
 use std::fs;
 
 #[test]
-fn opencode_install_and_uninstall_manage_only_pethover_plugin_file() {
+fn opencode_install_and_uninstall_manage_only_hoverpet_plugin_file() {
     with_opencode_config_dir(|opencode_config_dir| {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path().join("home");
-        let root = temp.path().join(".pethover");
+        let root = temp.path().join(".hoverpet");
         let manager = manager_with_fake_agents(&root, &home);
-        let plugin = opencode_config_dir.join("plugins/pethover.js");
+        let plugin = opencode_config_dir.join("plugins/hoverpet.js");
         let config = opencode_config_dir.join("opencode.json");
 
         manager.install("opencode").unwrap();
         assert!(fs::read_to_string(&plugin)
             .unwrap()
-            .contains("pethover-managed-hook"));
+            .contains("hoverpet-managed-hook"));
         assert!(read_json(&config)["plugin"]
             .as_array()
             .unwrap()
             .iter()
-            .any(|entry| entry.as_str() == Some("./plugins/pethover.js")));
+            .any(|entry| entry.as_str() == Some("./plugins/hoverpet.js")));
 
         manager.uninstall("opencode").unwrap();
         assert!(!plugin.exists());
@@ -28,7 +28,7 @@ fn opencode_install_and_uninstall_manage_only_pethover_plugin_file() {
             .as_array()
             .unwrap()
             .iter()
-            .any(|entry| entry.as_str() == Some("./plugins/pethover.js")));
+            .any(|entry| entry.as_str() == Some("./plugins/hoverpet.js")));
     });
 }
 
@@ -37,11 +37,11 @@ fn opencode_plugin_posts_runtime_events_without_proxy_sensitive_fetch() {
     with_opencode_config_dir(|opencode_config_dir| {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path().join("home");
-        let root = temp.path().join(".pethover");
+        let root = temp.path().join(".hoverpet");
         let manager = manager_with_fake_agents(&root, &home);
 
         manager.install("opencode").unwrap();
-        let plugin = fs::read_to_string(opencode_config_dir.join("plugins/pethover.js")).unwrap();
+        let plugin = fs::read_to_string(opencode_config_dir.join("plugins/hoverpet.js")).unwrap();
 
         assert!(plugin.contains("node:http"));
         assert!(plugin.contains("http.request"));
@@ -59,7 +59,7 @@ fn opencode_install_preserves_existing_config_plugins() {
     with_opencode_config_dir(|opencode_config_dir| {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path().join("home");
-        let root = temp.path().join(".pethover");
+        let root = temp.path().join(".hoverpet");
         let manager = manager_with_fake_agents(&root, &home);
         let config = opencode_config_dir.join("opencode.json");
         fs::create_dir_all(config.parent().unwrap()).unwrap();
@@ -78,7 +78,7 @@ fn opencode_install_preserves_existing_config_plugins() {
             .any(|entry| entry.as_str() == Some("@scope/existing")));
         assert!(plugins
             .iter()
-            .any(|entry| entry.as_str() == Some("./plugins/pethover.js")));
+            .any(|entry| entry.as_str() == Some("./plugins/hoverpet.js")));
     });
 }
 
@@ -87,7 +87,7 @@ fn install_finds_opencode_cli_in_official_user_bin_when_process_path_is_sparse()
     with_opencode_config_dir(|opencode_config_dir| {
         let temp = tempfile::tempdir().unwrap();
         let home = temp.path().join("home");
-        let root = temp.path().join(".pethover");
+        let root = temp.path().join(".hoverpet");
         let opencode_bin = home.join(".opencode/bin");
         fs::create_dir_all(&opencode_bin).unwrap();
         let opencode = opencode_bin.join("opencode");
@@ -104,6 +104,6 @@ fn install_finds_opencode_cli_in_official_user_bin_when_process_path_is_sparse()
         let result = manager.install("opencode").unwrap();
 
         assert!(result.adapter.installed);
-        assert!(opencode_config_dir.join("plugins/pethover.js").exists());
+        assert!(opencode_config_dir.join("plugins/hoverpet.js").exists());
     });
 }

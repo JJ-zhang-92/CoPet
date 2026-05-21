@@ -1,3 +1,3 @@
 fn main() {
-    pethover_lib::run()
+    hoverpet_lib::run()
 }

@@ -7,7 +7,7 @@ import type {
   PetSounds,
   PetStateId,
 } from "../lib/appTypes";
-import { pethoverDevLog } from "../lib/devLogger";
+import { hoverpetDevLog } from "../lib/devLogger";
 
 export type InteractionSoundKey = keyof PetInteractionSounds;
 export type AgentSoundKey = keyof PetAgentSounds;
@@ -66,13 +66,13 @@ export function usePetSounds({
       audio.currentTime = 0;
       try {
         void audio.play().catch((error: unknown) => {
-          pethoverDevLog("frontend.pet-sound.play-failed", {
+          hoverpetDevLog("frontend.pet-sound.play-failed", {
             message: error instanceof Error ? error.message : String(error),
             url,
           });
         });
       } catch (error) {
-        pethoverDevLog("frontend.pet-sound.play-failed", {
+        hoverpetDevLog("frontend.pet-sound.play-failed", {
           message: error instanceof Error ? error.message : String(error),
           url,
         });

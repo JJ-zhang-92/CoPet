@@ -1,9 +1,9 @@
-const pethoverDevLogEnabled = import.meta.env.DEV;
+const hoverpetDevLogEnabled = import.meta.env.DEV;
 
-export function pethoverDevLog(stage: string, payload: unknown) {
-  if (!pethoverDevLogEnabled) {
+export function hoverpetDevLog(stage: string, payload: unknown) {
+  if (!hoverpetDevLogEnabled) {
     return;
   }
 
-  console.debug(`[pethover:${stage}]`, payload);
+  console.debug(`[hoverpet:${stage}]`, payload);
 }

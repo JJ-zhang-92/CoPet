@@ -1,8 +1,8 @@
-# PetHover Architecture
+# HoverPet Architecture
 
 [简体中文](./architecture.zh.md)
 
-PetHover is a Tauri-based desktop pet client for AI Agent CLI workflows including Claude Code, Codex, Gemini, and OpenCode. The app ships with a built-in pet that's available on first launch; enabling any Agent CLI from Settings causes PetHover to write that CLI's hooks and map its lifecycle events into a layered pet state.
+HoverPet is a Tauri-based desktop pet client for AI Agent CLI workflows including Claude Code, Codex, Gemini, and OpenCode. The app ships with a built-in pet that's available on first launch; enabling any Agent CLI from Settings causes HoverPet to write that CLI's hooks and map its lifecycle events into a layered pet state.
 
 ## Overall structure
 
@@ -12,7 +12,7 @@ Tauri Web UI (React 18 + Vite + TypeScript)
   └── settings window resizable, hides on close
         │ Tauri commands / events
         ▼
-Rust Core (pethover_lib)
+Rust Core (hoverpet_lib)
   ├── config & persistence (app_state, config_store)
   ├── pet packages (pet_package, pet_registry)
   ├── Agent adapters (Claude / Codex / Gemini / OpenCode)
@@ -24,7 +24,7 @@ Rust Core (pethover_lib)
 Agent CLI Hooks
 ```
 
-The Tauri app is the only long-running process; Agent CLI hooks are short-lived commands. When PetHover is not running, hooks must exit silently and never block an Agent session.
+The Tauri app is the only long-running process; Agent CLI hooks are short-lived commands. When HoverPet is not running, hooks must exit silently and never block an Agent session.
 
 Top-level layout: `src-tauri/src/` (Rust Core), `src/` (React UI), `docs/` (this document). See [AGENTS.md](../AGENTS.md) for file-naming conventions.
 
@@ -39,22 +39,22 @@ On macOS, `tauri_nspanel` converts `pet` into an accessory NSPanel, and the `win
 
 ## Data layout
 
-All PetHover-owned data lives under `~/.pethover`:
+All HoverPet-owned data lives under `~/.hoverpet`:
 
 ```text
-~/.pethover/
+~/.hoverpet/
   config.json          # prefs: active pet, enabled adapters, window size, locale
   runtime/             # volatile runtime (token, logs, diagnostics) — rebuildable
   pets/                # user-installed pets (incl. copies imported from ~/.codex/pets)
   backups/<adapter>/   # original bytes captured before any CLI config edit
-  adapters/<id>.json   # PetHover-owned hook metadata
+  adapters/<id>.json   # HoverPet-owned hook metadata
 ```
 
-**Built-in pets are not written to `~/.pethover/pets`** — they're loaded from the bundle resource `assets/pets`, so deleting `~/.pethover` cannot break them. The `assetProtocol.scope` in `tauri.conf.json` limits webview-readable paths to `~/.pethover/pets`, `~/.codex/pets`, and the bundle resource dir.
+**Built-in pets are not written to `~/.hoverpet/pets`** — they're loaded from the bundle resource `assets/pets`, so deleting `~/.hoverpet` cannot break them. The `assetProtocol.scope` in `tauri.conf.json` limits webview-readable paths to `~/.hoverpet/pets`, `~/.codex/pets`, and the bundle resource dir.
 
 ## Pet packages
 
-PetHover uses Codex-compatible pet packages: `pet.json` + `spritesheet.webp` (or `.png`), default 8×9 grid. The nine state rows are `idle`, `running-right`, `running-left`, `waving`, `jumping`, `failed`, `waiting`, `running`, `review`.
+HoverPet uses Codex-compatible pet packages: `pet.json` + `spritesheet.webp` (or `.png`), default 8×9 grid. The nine state rows are `idle`, `running-right`, `running-left`, `waving`, `jumping`, `failed`, `waiting`, `running`, `review`.
 
 Validation: `pet.json` must be valid JSON within a size cap; spritesheet capped at 16 MB; corrupted packages are hidden from the list and surfaced in diagnostics — they must not crash startup.
 
@@ -98,7 +98,7 @@ trait AgentAdapter {
 }
 ```
 
-Adapters are responsible for: resolving platform-specific config paths; parsing existing config without dropping user settings; writing only PetHover-owned entries (with a stable id); backing originals up to `~/.pethover/backups/<adapter-id>/` before modification; and recording metadata to `~/.pethover/adapters/<id>.json`. Core is responsible for: generating the hook command, providing the runtime endpoint/token, mapping events to state, and localizing errors.
+Adapters are responsible for: resolving platform-specific config paths; parsing existing config without dropping user settings; writing only HoverPet-owned entries (with a stable id); backing originals up to `~/.hoverpet/backups/<adapter-id>/` before modification; and recording metadata to `~/.hoverpet/adapters/<id>.json`. Core is responsible for: generating the hook command, providing the runtime endpoint/token, mapping events to state, and localizing errors.
 
 Default config locations: Claude Code → `~/.claude/settings.json`; Codex → `~/.codex/hooks.json` + `config.toml`; Gemini → per the official docs; OpenCode honors `OPENCODE_CONFIG_DIR` / `XDG_CONFIG_HOME`.
 
@@ -106,26 +106,26 @@ Default config locations: Claude Code → `~/.claude/settings.json`; Codex → `
 
 Agent CLIs may run for hours. Constraints:
 
-- Hook commands: 500–1000 ms timeout, no UI wait, exit silently when PetHover isn't running, avoid heavy interpreters.
+- Hook commands: 500–1000 ms timeout, no UI wait, exit silently when HoverPet isn't running, avoid heavy interpreters.
 - Runtime: bind only to `127.0.0.1`; generate a fresh `RuntimeToken` per launch; `TokenBucket` rate-limit (30/s sustained, 60 burst); `BoundedEventQueue` capped at 50; coalesce high-frequency thrash; minimum dwell time 200–300 ms; logs rotate by size, memory does not grow with session length.
 - UI: sprite animation driven by CSS/canvas. The UI subscribes to derived layers, not raw event streams. Honors system reduced-motion.
 
 ## Security model
 
 - The event server binds only to `127.0.0.1`, requires a bearer token, caps body at 16 KB, ignores unknown event kinds, and never executes event payloads as commands.
-- Hook config writes only target adapter-known paths, parse before writing, refuse to overwrite malformed files (unless the user explicitly repairs), back up before first write, and on uninstall remove only entries tagged with PetHover metadata. Writes are atomic where possible.
+- Hook config writes only target adapter-known paths, parse before writing, refuse to overwrite malformed files (unless the user explicitly repairs), back up before first write, and on uninstall remove only entries tagged with HoverPet metadata. Writes are atomic where possible.
 - `assetProtocol.scope` strictly whitelists webview-readable resources.
 - `pet.json` is treated as untrusted input; pet packages never execute scripts; images go through the browser or native safe decoders.
 
 ## Internationalization
 
-`Locale::EnUs` / `Locale::ZhCn`, either explicit or system-following. The Rust-side `MessageKey` enum and the frontend `src/lib/i18n.ts` mirror the same key set; locale changes trigger immediate refresh via the `pethover-app-state-changed` event.
+`Locale::EnUs` / `Locale::ZhCn`, either explicit or system-following. The Rust-side `MessageKey` enum and the frontend `src/lib/i18n.ts` mirror the same key set; locale changes trigger immediate refresh via the `hoverpet-app-state-changed` event.
 
 ## Cross-platform
 
 - Paths: use Rust path APIs (no string concatenation); resolve home via the `dirs` crate; OpenCode honors `OPENCODE_CONFIG_DIR` / `XDG_CONFIG_HOME`.
 - Windows: macOS uses `tauri_nspanel` + `macos-private-api`; Windows uses the `windows` crate; on Linux, transparency/always-on-top depend on the compositor — degrade and surface the limitation in diagnostics when unavailable.
-- Packaged hook commands prefer absolute paths to PetHover helpers and handle spaces in install paths correctly.
+- Packaged hook commands prefer absolute paths to HoverPet helpers and handle spaces in install paths correctly.
 
 ## Testing
 

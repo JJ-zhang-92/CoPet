@@ -4,6 +4,8 @@
 
 When input is unambiguous, classify with this table. When input is ambiguous, ask one clarifying question instead of guessing.
 
+Sticker classification chooses behavior for a decoration/effect layer. It never authorizes drawing a standalone pet, animal, mascot, character body, head, face, or silhouette.
+
 ## Legal values
 
 `kind`:
@@ -60,13 +62,17 @@ Do not use `none` as the only binding for a burst trigger. A trigger must identi
 | Aura or power buff: `光环`, `气场`, `燃烧`, `halo`, `aura`, `power` | `persistent` | `behind` | `visibility.states=["idle","waiting","review"]` |
 | Floating particles above the pet: `音符`, `星粒`, `气泡`, `notes`, `sparkles`, `bubbles` | `persistent` | `over` | `visibility.states` contains all nine pet states |
 
+## Subject normalization
+
+If the input names an animal, pet, person, mascot, or character, do not classify it as something to depict. Normalize it into decorative motifs before selecting the row:
+
+- Cat, dog, fox, panda, or other animal -> paw prints, whisker-like swooshes, color accents, sparkles, tiny symbols.
+- Robot, ghost, hero, or humanoid character -> circuit sparks, aura shapes, icons, smoke, glow, punctuation, particles.
+- A reference image -> palette, mood, texture, and motion cues only.
+
 ## Ambiguity rule
 
-If the input could fit multiple rows and the desired behavior is unclear, ask exactly one clarifying question:
-
-```text
-Should this sticker be a one-shot burst for a specific moment, or a persistent decoration that stays visible across states?
-```
+If the input could fit multiple rows and the desired behavior is unclear, ask exactly one clarifying question in the response language. The question must ask whether the sticker should be a one-shot burst for a specific moment or a persistent decoration that stays visible across states. Do not reuse English wording for non-English requests.
 
 After the user answers, classify with the table.
 

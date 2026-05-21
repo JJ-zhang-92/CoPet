@@ -102,13 +102,13 @@ where
 pub fn t(locale: Locale, key: MessageKey) -> &'static str {
     match (locale, key) {
         // Existing
-        (Locale::EnUs, MessageKey::TrayBrand) => "PetHover",
+        (Locale::EnUs, MessageKey::TrayBrand) => "HoverPet",
         (Locale::EnUs, MessageKey::TrayPets) => "Pets…",
         (Locale::EnUs, MessageKey::TrayAgents) => "Agents…",
         (Locale::EnUs, MessageKey::TrayPreferences) => "General…",
         (Locale::EnUs, MessageKey::TrayQuit) => "Quit",
         (Locale::EnUs, MessageKey::SettingsWindowNotFound) => "settings window was not found",
-        (Locale::ZhCn, MessageKey::TrayBrand) => "PetHover",
+        (Locale::ZhCn, MessageKey::TrayBrand) => "HoverPet",
         (Locale::ZhCn, MessageKey::TrayPets) => "宠物…",
         (Locale::ZhCn, MessageKey::TrayAgents) => "Agent…",
         (Locale::ZhCn, MessageKey::TrayPreferences) => "通用…",
@@ -138,21 +138,21 @@ pub fn t(locale: Locale, key: MessageKey) -> &'static str {
         (Locale::EnUs, MessageKey::TrayAbout) => "About…",
         (Locale::ZhCn, MessageKey::TrayAbout) => "关于…",
         // macOS application menu (top-left). These override the default
-        // "<binary_name>" placeholders so labels always read "PetHover".
-        (Locale::EnUs, MessageKey::AppMenuAbout) => "About PetHover",
+        // "<binary_name>" placeholders so labels always read "HoverPet".
+        (Locale::EnUs, MessageKey::AppMenuAbout) => "About HoverPet",
         (Locale::EnUs, MessageKey::AppMenuServices) => "Services",
-        (Locale::EnUs, MessageKey::AppMenuHide) => "Hide PetHover",
+        (Locale::EnUs, MessageKey::AppMenuHide) => "Hide HoverPet",
         (Locale::EnUs, MessageKey::AppMenuHideOthers) => "Hide Others",
         (Locale::EnUs, MessageKey::AppMenuShowAll) => "Show All",
-        (Locale::EnUs, MessageKey::AppMenuQuit) => "Quit PetHover",
+        (Locale::EnUs, MessageKey::AppMenuQuit) => "Quit HoverPet",
         (Locale::EnUs, MessageKey::AppMenuEdit) => "Edit",
         (Locale::EnUs, MessageKey::AppMenuWindow) => "Window",
-        (Locale::ZhCn, MessageKey::AppMenuAbout) => "关于 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuAbout) => "关于 HoverPet",
         (Locale::ZhCn, MessageKey::AppMenuServices) => "服务",
-        (Locale::ZhCn, MessageKey::AppMenuHide) => "隐藏 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuHide) => "隐藏 HoverPet",
         (Locale::ZhCn, MessageKey::AppMenuHideOthers) => "隐藏其他",
         (Locale::ZhCn, MessageKey::AppMenuShowAll) => "全部显示",
-        (Locale::ZhCn, MessageKey::AppMenuQuit) => "退出 PetHover",
+        (Locale::ZhCn, MessageKey::AppMenuQuit) => "退出 HoverPet",
         (Locale::ZhCn, MessageKey::AppMenuEdit) => "编辑",
         (Locale::ZhCn, MessageKey::AppMenuWindow) => "窗口",
     }

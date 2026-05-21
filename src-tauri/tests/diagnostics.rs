@@ -1,4 +1,4 @@
-use pethover_lib::diagnostics::RotatingLog;
+use hoverpet_lib::diagnostics::RotatingLog;
 use std::fs;
 
 #[test]

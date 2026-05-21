@@ -31,14 +31,14 @@ pub struct PetManifest {
     #[serde(default)]
     pub built_in: bool,
     #[serde(default)]
-    pub pethover: Option<PetHoverMetadata>,
+    pub hoverpet: Option<HoverPetMetadata>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct PetHoverMetadata {
+pub struct HoverPetMetadata {
     #[serde(default)]
     pub audio: Option<PetSounds>,
     #[serde(flatten)]
@@ -173,7 +173,7 @@ pub fn find_sprite_path(dir: &Path) -> Option<PathBuf> {
 }
 
 pub fn collect_pet_sounds(manifest: &PetManifest, package_dir: &Path) -> Option<PetSounds> {
-    let raw_sounds = manifest.pethover.as_ref()?.audio.as_ref()?;
+    let raw_sounds = manifest.hoverpet.as_ref()?.audio.as_ref()?;
     let sounds = PetSounds {
         interaction_sounds: PetInteractionSounds {
             click: valid_sound_path(raw_sounds.interaction_sounds.click.as_deref(), package_dir),
@@ -229,7 +229,7 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
             .extension()
             .and_then(|extension| extension.to_str())
             != Some("mp3")
-        || !relative_path.starts_with(Path::new("pethover/audio"))
+        || !relative_path.starts_with(Path::new("hoverpet/audio"))
         || relative_path.components().any(|component| {
             matches!(
                 component,
@@ -250,7 +250,7 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
     }
 
     let canonical_sound_path = fs::canonicalize(&sound_path).ok()?;
-    if !canonical_sound_path.starts_with(package_root.join("pethover/audio")) {
+    if !canonical_sound_path.starts_with(package_root.join("hoverpet/audio")) {
         return None;
     }
 
