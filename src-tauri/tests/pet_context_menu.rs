@@ -1,4 +1,4 @@
-use hoverpet_lib::pet_context_menu::{
+use copet_lib::pet_context_menu::{
     action_for_menu_id, PetContextMenuAction, PET_CONTEXT_MENU_HIDE_ID, PET_CONTEXT_MENU_PAUSE_ID,
     PET_CONTEXT_MENU_SETTINGS_ID,
 };

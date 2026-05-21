@@ -1,6 +1,6 @@
 # Sticker SVG Authoring
 
-**Read this when:** generating, reviewing, or validating `animation.svg` for a HoverPet sticker pack.
+**Read this when:** generating, reviewing, or validating `animation.svg` for a CoPet sticker pack.
 
 Sticker SVGs are authored directly as XML by the LLM in one pass. They are never assembled by a Python, Node, SVG template, raster trace, frame extraction, GIF conversion, canvas renderer, or shape-string generator.
 

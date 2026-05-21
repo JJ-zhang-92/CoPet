@@ -1,3 +1,3 @@
 fn main() {
-    hoverpet_lib::run()
+    copet_lib::run()
 }

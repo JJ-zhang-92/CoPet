@@ -7,19 +7,19 @@ use serde_json::{json, Value};
 
 use super::super::{
     ensure_parent, read_json_object_optional, read_json_object_required, write_atomic,
-    write_json_atomic, AdapterError, AgentManager, CliAdapter, HOVERPET_MARKER,
+    write_json_atomic, AdapterError, AgentManager, CliAdapter, COPET_MARKER,
 };
 
 pub(super) static ADAPTER: OpenCodeAdapter = OpenCodeAdapter;
-const PLUGIN_ENTRY: &str = "./plugins/hoverpet.js";
+const PLUGIN_ENTRY: &str = "./plugins/copet.js";
 
 /// OpenCode 适配器
 ///
 /// 该适配器采用插件注入的方式与 OpenCode 集成：
-/// - 修改文件: `~/.config/opencode/plugins/hoverpet.js` (路径受环境变量影响)
+/// - 修改文件: `~/.config/opencode/plugins/copet.js` (路径受环境变量影响)
 /// - 改动内容: 创建一个独立的 JavaScript 插件文件。
-///   该插件通过 OpenCode 的插件系统导出 `HoverPetPlugin`，监听 TUI 提示、工具执行、
-///   权限询问及会话状态等事件，并通过 `fetch` 直接将事件发送到 HoverPet 的运行时服务器。
+///   该插件通过 OpenCode 的插件系统导出 `CoPetPlugin`，监听 TUI 提示、工具执行、
+///   权限询问及会话状态等事件，并通过 `fetch` 直接将事件发送到 CoPet 的运行时服务器。
 pub(super) struct OpenCodeAdapter;
 
 impl CliAdapter for OpenCodeAdapter {
@@ -32,9 +32,7 @@ impl CliAdapter for OpenCodeAdapter {
     }
 
     fn config_path(&self, home: &Path) -> PathBuf {
-        opencode_config_dir(home)
-            .join("plugins")
-            .join("hoverpet.js")
+        opencode_config_dir(home).join("plugins").join("copet.js")
     }
 
     fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
@@ -42,7 +40,7 @@ impl CliAdapter for OpenCodeAdapter {
             .is_file()
             .then(|| fs::read_to_string(config_path).ok())
             .flatten()
-            .is_some_and(|content| content.contains(HOVERPET_MARKER));
+            .is_some_and(|content| content.contains(COPET_MARKER));
         Ok(plugin_installed
             && opencode_config_has_plugin(&opencode_json_path_for_plugin(config_path))?)
     }
@@ -65,7 +63,7 @@ impl CliAdapter for OpenCodeAdapter {
         }
 
         let content = fs::read_to_string(&path)?;
-        if content.contains(HOVERPET_MARKER) {
+        if content.contains(COPET_MARKER) {
             manager.backup_file(self.id(), &path)?;
             fs::remove_file(&path)?;
         }
@@ -109,7 +107,7 @@ fn opencode_config_has_plugin(path: &Path) -> Result<bool, AdapterError> {
         value
             .get("plugin")
             .and_then(Value::as_array)
-            .is_some_and(|plugins| plugins.iter().any(is_hoverpet_plugin_entry))
+            .is_some_and(|plugins| plugins.iter().any(is_copet_plugin_entry))
     }))
 }
 
@@ -121,7 +119,7 @@ fn install_opencode_plugin_entry(path: &Path) -> Result<(), AdapterError> {
         *plugins = json!([]);
     }
     let plugins = plugins.as_array_mut().expect("plugins must be array");
-    if !plugins.iter().any(is_hoverpet_plugin_entry) {
+    if !plugins.iter().any(is_copet_plugin_entry) {
         plugins.push(json!(PLUGIN_ENTRY));
     }
     write_json_atomic(path, &value)
@@ -130,17 +128,17 @@ fn install_opencode_plugin_entry(path: &Path) -> Result<(), AdapterError> {
 fn remove_opencode_plugin_entry(path: &Path) -> Result<(), AdapterError> {
     let mut value = read_json_object_required(path)?;
     if let Some(plugins) = value.get_mut("plugin").and_then(Value::as_array_mut) {
-        plugins.retain(|entry| !is_hoverpet_plugin_entry(entry));
+        plugins.retain(|entry| !is_copet_plugin_entry(entry));
     }
     write_json_atomic(path, &value)
 }
 
-fn is_hoverpet_plugin_entry(value: &Value) -> bool {
+fn is_copet_plugin_entry(value: &Value) -> bool {
     value.as_str() == Some(PLUGIN_ENTRY)
 }
 
 fn plugin_source() -> &'static str {
-    r#"// hoverpet-managed-hook
+    r#"// copet-managed-hook
 import fs from "node:fs";
 import http from "node:http";
 import os from "node:os";
@@ -186,7 +184,7 @@ function postJson(endpoint, token, payload) {
 }
 
 async function post(kind, tool, toolInput) {
-  const runtime = process.env.HOVERPET_RUNTIME_DIR || path.join(os.homedir(), ".hoverpet", "runtime");
+  const runtime = process.env.COPET_RUNTIME_DIR || path.join(os.homedir(), ".copet", "runtime");
   let endpoint = "";
   let token = "";
   try {
@@ -199,7 +197,7 @@ async function post(kind, tool, toolInput) {
   await postJson(endpoint, token, { agent: "opencode", kind, tool: tool || "", toolInput: toolInput || undefined });
 }
 
-export const HoverPetPlugin = async () => ({
+export const CoPetPlugin = async () => ({
   event: async (event) => {
     const type = event.event.type;
     if (type === "tui.prompt.append") await post("user.prompt", "");

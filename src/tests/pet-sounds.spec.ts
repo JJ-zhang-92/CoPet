@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpetWithSounds } from "./app-harness";
+import { createAppHarness, copetWithSounds } from "./app-harness";
 
 function soundState({
   responsePaused = false,
@@ -10,8 +10,8 @@ function soundState({
   enableClickSounds?: boolean;
 } = {}) {
   return {
-    currentPetId: hoverpetWithSounds.id,
-    pets: [hoverpetWithSounds],
+    currentPetId: copetWithSounds.id,
+    pets: [copetWithSounds],
     onboardingComplete: false,
     responsePaused,
     petInteractions: { enableClickSounds, cooldownStyle: "normal" as const },
@@ -27,7 +27,7 @@ test("enabled interaction sound plays on successful click", async ({ browser }) 
   await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
 
   await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/pets/hoverpet/hoverpet/audio/click.mp3",
+    "/pets/copet/copet/audio/click.mp3",
   ]);
 });
 
@@ -55,7 +55,7 @@ test("cooldown-suppressed gesture does not replay interaction sound", async ({ b
 
   await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
   await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/pets/hoverpet/hoverpet/audio/click.mp3",
+    "/pets/copet/copet/audio/click.mp3",
   ]);
 
   await harness.clearPlayedAudioUrls(page);
@@ -77,7 +77,7 @@ test("agent state transition plays mapped agent sound once", async ({ browser })
     messages: [{ agent: "codex", displayName: "Codex", text: "editing", updatedAtMs: 1 }],
   });
   await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/pets/hoverpet/hoverpet/audio/tap.mp3",
+    "/pets/copet/copet/audio/tap.mp3",
   ]);
 
   await harness.clearPlayedAudioUrls(page);
@@ -146,7 +146,7 @@ test("enabling sounds while already non-silent waits for next state transition",
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "running");
 
   await page.evaluate(() =>
-    window.__hoverpetInvoke("set_pet_interactions", {
+    window.__copetInvoke("set_pet_interactions", {
       prefs: { enableClickSounds: true, cooldownStyle: "normal" },
     }),
   );
@@ -160,7 +160,7 @@ test("enabling sounds while already non-silent waits for next state transition",
   });
 
   await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/pets/hoverpet/hoverpet/audio/peek.mp3",
+    "/pets/copet/copet/audio/peek.mp3",
   ]);
 });
 

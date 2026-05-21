@@ -1,20 +1,20 @@
 ---
-name: hoverpet-audio
-description: Use when generating HoverPet global 11-clip MP3 audio packs from a user image or text description for $HOME/.hoverpet/audios.
+name: copet-audio
+description: Use when generating CoPet global 11-clip MP3 audio packs from a user image or text description for $HOME/.copet/audios.
 ---
 
-# HoverPet Audio
+# CoPet Audio
 
 ## Overview
 
-Create one self-contained HoverPet global audio pack under `$HOME/.hoverpet/audios/<audio-pack-id>/`. This skill never creates sticker packs, sprite atlases, omni directional body atlases, pet packages, or `pet.json`.
+Create one self-contained CoPet global audio pack under `$HOME/.copet/audios/<audio-pack-id>/`. This skill never creates sticker packs, sprite atlases, omni directional body atlases, pet packages, or `pet.json`.
 
 Every shipped MP3 must come from a real audio-generation backend, text-to-speech backend, sound-effect generation backend, field recording library, curated sample library, or another authored audio source selected to match the inferred character. Procedural substitutes are failed runs even when structural validation passes.
 
 ## Package Layout
 
 ```text
-$HOME/.hoverpet/
+$HOME/.copet/
 └── audios/
     └── <audio-pack-id>/
         ├── audio-pack.json
@@ -31,7 +31,7 @@ $HOME/.hoverpet/
         └── oof.mp3
 ```
 
-Pack ids are kebab-case slugs derived from `displayName`. If a slug collides under `$HOME/.hoverpet/audios/`, append `-2`, `-3`, and continue until the destination is unique.
+Pack ids are kebab-case slugs derived from `displayName`. If a slug collides under `$HOME/.copet/audios/`, append `-2`, `-3`, and continue until the destination is unique.
 
 ## Inputs
 
@@ -63,10 +63,10 @@ Render validation rejections, clarifying questions, failure reports, and success
 4. Create one empty staging directory:
 
 ```text
-$HOME/.hoverpet/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.copet/tmp/audios-<unix-epoch>-<audio-pack-id>/
 ```
 
-Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/audios/<audio-pack-id>/` directory is read-only until validation passes.
+Create `$HOME/.copet/tmp/` if needed. The live `$HOME/.copet/audios/<audio-pack-id>/` directory is read-only until validation passes.
 
 5. Generate exactly 11 authored MP3 clips:
 
@@ -89,7 +89,7 @@ Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/audios/<audio
 8. On success, atomically rename staging to:
 
 ```text
-$HOME/.hoverpet/audios/<audio-pack-id>/
+$HOME/.copet/audios/<audio-pack-id>/
 ```
 
 On validation failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

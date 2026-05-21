@@ -8,8 +8,8 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
-pub(crate) const HOVERPET_MARKER: &str = "hoverpet-managed-hook";
-pub(crate) const HELPER_NAME: &str = "hoverpet-hook.sh";
+pub(crate) const COPET_MARKER: &str = "copet-managed-hook";
+pub(crate) const HELPER_NAME: &str = "copet-hook.sh";
 
 static ADAPTERS: [&dyn CliAdapter; 4] = [
     adapters::CLAUDE_CODE,
@@ -61,22 +61,22 @@ pub(crate) trait CliAdapter: Sync {
 
 #[derive(Debug, Clone)]
 pub struct AgentManager {
-    hoverpet_root: PathBuf,
+    copet_root: PathBuf,
     home: PathBuf,
     executable_search_paths: Vec<PathBuf>,
 }
 
 impl AgentManager {
-    pub fn from_home(hoverpet_root: impl Into<PathBuf>) -> Result<Self, AdapterError> {
+    pub fn from_home(copet_root: impl Into<PathBuf>) -> Result<Self, AdapterError> {
         let home = dirs::home_dir().ok_or_else(|| {
             io::Error::new(io::ErrorKind::NotFound, "home directory was not found")
         })?;
-        Ok(Self::new(hoverpet_root, home))
+        Ok(Self::new(copet_root, home))
     }
 
-    pub fn new(hoverpet_root: impl Into<PathBuf>, home: impl Into<PathBuf>) -> Self {
+    pub fn new(copet_root: impl Into<PathBuf>, home: impl Into<PathBuf>) -> Self {
         Self::new_with_executable_search_paths(
-            hoverpet_root,
+            copet_root,
             home,
             env::var_os("PATH")
                 .map(|path| env::split_paths(&path).collect())
@@ -85,13 +85,13 @@ impl AgentManager {
     }
 
     pub fn new_with_executable_search_paths(
-        hoverpet_root: impl Into<PathBuf>,
+        copet_root: impl Into<PathBuf>,
         home: impl Into<PathBuf>,
         executable_search_paths: Vec<PathBuf>,
     ) -> Self {
         let home = home.into();
         Self {
-            hoverpet_root: hoverpet_root.into(),
+            copet_root: copet_root.into(),
             executable_search_paths: executable_search_paths_with_defaults(
                 &home,
                 executable_search_paths,
@@ -119,9 +119,9 @@ impl AgentManager {
             installed,
             healthy: installed,
             message: if installed {
-                "HoverPet hook installed".to_string()
+                "CoPet hook installed".to_string()
             } else if config_path.exists() {
-                "Configuration found; HoverPet hook not installed".to_string()
+                "Configuration found; CoPet hook not installed".to_string()
             } else {
                 "Configuration path not created yet".to_string()
             },
@@ -158,7 +158,7 @@ impl AgentManager {
     }
 
     pub(crate) fn helper_path(&self) -> PathBuf {
-        self.hoverpet_root.join("hooks").join(HELPER_NAME)
+        self.copet_root.join("hooks").join(HELPER_NAME)
     }
 
     fn ensure_agent_executable(&self, adapter: &dyn CliAdapter) -> Result<(), AdapterError> {
@@ -197,7 +197,7 @@ impl AgentManager {
             .and_then(|name| name.to_str())
             .unwrap_or("config");
         let path = self
-            .hoverpet_root
+            .copet_root
             .join("backups")
             .join(adapter_id)
             .join(format!("{}-{file_name}.bak", now_ms()));
@@ -247,7 +247,7 @@ impl AgentManager {
     }
 
     fn metadata_path(&self, adapter_id: &str) -> PathBuf {
-        self.hoverpet_root
+        self.copet_root
             .join("adapters")
             .join(format!("{adapter_id}.json"))
     }
@@ -277,7 +277,7 @@ pub(crate) fn install_json_hooks(
 ) -> Result<(), AdapterError> {
     manager.backup_file(adapter_id, path)?;
     let mut value = read_json_object_optional(path)?.unwrap_or_else(|| json!({}));
-    remove_hoverpet_hooks(&mut value, adapter_id);
+    remove_copet_hooks(&mut value, adapter_id);
     merge_hook_entries(
         &mut value,
         adapter_id,
@@ -300,12 +300,12 @@ pub(crate) fn remove_json_hooks(
 
     manager.backup_file(adapter_id, path)?;
     let mut value = read_json_object_required(path)?;
-    remove_hoverpet_hooks(&mut value, adapter_id);
+    remove_copet_hooks(&mut value, adapter_id);
     write_json_atomic(path, &value)?;
     Ok(())
 }
 
-pub(crate) fn json_config_has_hoverpet_hook(
+pub(crate) fn json_config_has_copet_hook(
     path: &Path,
     adapter_id: &str,
 ) -> Result<bool, AdapterError> {
@@ -313,11 +313,11 @@ pub(crate) fn json_config_has_hoverpet_hook(
         value
             .to_string()
             .split("\\\"")
-            .any(|part| is_hoverpet_command(part, adapter_id))
+            .any(|part| is_copet_command(part, adapter_id))
     }))
 }
 
-pub(crate) fn json_config_has_hoverpet_hooks(
+pub(crate) fn json_config_has_copet_hooks(
     path: &Path,
     adapter_id: &str,
     events: &[HookEvent],
@@ -358,7 +358,7 @@ fn hook_group_matches_event(group: &Value, adapter_id: &str, event: &HookEvent) 
                     .get("command")
                     .and_then(Value::as_str)
                     .is_some_and(|command| {
-                        is_hoverpet_command(command, adapter_id)
+                        is_copet_command(command, adapter_id)
                             && command.contains(&format!(" {}", event.kind))
                     })
             })
@@ -382,7 +382,7 @@ fn merge_hook_entries(
                 "type": "command",
                 "command": hook_command(adapter_id, helper_path, event.kind),
                 "timeout": timeout,
-                "statusMessage": "Updating HoverPet"
+                "statusMessage": "Updating CoPet"
             }]
         });
         if let Some(matcher) = event.matcher {
@@ -397,7 +397,7 @@ fn merge_hook_entries(
     }
 }
 
-fn remove_hoverpet_hooks(value: &mut Value, adapter_id: &str) {
+fn remove_copet_hooks(value: &mut Value, adapter_id: &str) {
     let Some(hooks) = value.get_mut("hooks").and_then(Value::as_object_mut) else {
         return;
     };
@@ -411,7 +411,7 @@ fn remove_hoverpet_hooks(value: &mut Value, adapter_id: &str) {
                     !handler
                         .get("command")
                         .and_then(Value::as_str)
-                        .is_some_and(|command| is_hoverpet_command(command, adapter_id))
+                        .is_some_and(|command| is_copet_command(command, adapter_id))
                 });
             }
         }
@@ -424,7 +424,7 @@ fn remove_hoverpet_hooks(value: &mut Value, adapter_id: &str) {
     }
 }
 
-fn is_hoverpet_command(command: &str, adapter_id: &str) -> bool {
+fn is_copet_command(command: &str, adapter_id: &str) -> bool {
     command.contains(HELPER_NAME) && command.contains(&format!(" {adapter_id} "))
 }
 
@@ -435,7 +435,7 @@ fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
 
 fn helper_script() -> &'static str {
     r#"#!/bin/sh
-# hoverpet-managed-hook
+# copet-managed-hook
 agent="${1:-unknown}"
 kind="${2:-unknown}"
 input="$(cat)"
@@ -459,7 +459,7 @@ for key in file_path filePath path command pattern url description subject; do
     break
   fi
 done
-runtime="${HOVERPET_RUNTIME_DIR:-$HOME/.hoverpet/runtime}"
+runtime="${COPET_RUNTIME_DIR:-$HOME/.copet/runtime}"
 endpoint="$(cat "$runtime/event-endpoint" 2>/dev/null)" || { echo "{}" ; exit 0; }
 token="$(cat "$runtime/event-token" 2>/dev/null)" || { echo "{}" ; exit 0; }
 [ -n "$endpoint" ] && [ -n "$token" ] || { echo "{}" ; exit 0; }

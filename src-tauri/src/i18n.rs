@@ -102,13 +102,13 @@ where
 pub fn t(locale: Locale, key: MessageKey) -> &'static str {
     match (locale, key) {
         // Existing
-        (Locale::EnUs, MessageKey::TrayBrand) => "HoverPet",
+        (Locale::EnUs, MessageKey::TrayBrand) => "CoPet",
         (Locale::EnUs, MessageKey::TrayPets) => "Pets…",
         (Locale::EnUs, MessageKey::TrayAgents) => "Agents…",
         (Locale::EnUs, MessageKey::TrayPreferences) => "General…",
         (Locale::EnUs, MessageKey::TrayQuit) => "Quit",
         (Locale::EnUs, MessageKey::SettingsWindowNotFound) => "settings window was not found",
-        (Locale::ZhCn, MessageKey::TrayBrand) => "HoverPet",
+        (Locale::ZhCn, MessageKey::TrayBrand) => "CoPet",
         (Locale::ZhCn, MessageKey::TrayPets) => "宠物…",
         (Locale::ZhCn, MessageKey::TrayAgents) => "Agent…",
         (Locale::ZhCn, MessageKey::TrayPreferences) => "通用…",
@@ -138,21 +138,21 @@ pub fn t(locale: Locale, key: MessageKey) -> &'static str {
         (Locale::EnUs, MessageKey::TrayAbout) => "About…",
         (Locale::ZhCn, MessageKey::TrayAbout) => "关于…",
         // macOS application menu (top-left). These override the default
-        // "<binary_name>" placeholders so labels always read "HoverPet".
-        (Locale::EnUs, MessageKey::AppMenuAbout) => "About HoverPet",
+        // "<binary_name>" placeholders so labels always read "CoPet".
+        (Locale::EnUs, MessageKey::AppMenuAbout) => "About CoPet",
         (Locale::EnUs, MessageKey::AppMenuServices) => "Services",
-        (Locale::EnUs, MessageKey::AppMenuHide) => "Hide HoverPet",
+        (Locale::EnUs, MessageKey::AppMenuHide) => "Hide CoPet",
         (Locale::EnUs, MessageKey::AppMenuHideOthers) => "Hide Others",
         (Locale::EnUs, MessageKey::AppMenuShowAll) => "Show All",
-        (Locale::EnUs, MessageKey::AppMenuQuit) => "Quit HoverPet",
+        (Locale::EnUs, MessageKey::AppMenuQuit) => "Quit CoPet",
         (Locale::EnUs, MessageKey::AppMenuEdit) => "Edit",
         (Locale::EnUs, MessageKey::AppMenuWindow) => "Window",
-        (Locale::ZhCn, MessageKey::AppMenuAbout) => "关于 HoverPet",
+        (Locale::ZhCn, MessageKey::AppMenuAbout) => "关于 CoPet",
         (Locale::ZhCn, MessageKey::AppMenuServices) => "服务",
-        (Locale::ZhCn, MessageKey::AppMenuHide) => "隐藏 HoverPet",
+        (Locale::ZhCn, MessageKey::AppMenuHide) => "隐藏 CoPet",
         (Locale::ZhCn, MessageKey::AppMenuHideOthers) => "隐藏其他",
         (Locale::ZhCn, MessageKey::AppMenuShowAll) => "全部显示",
-        (Locale::ZhCn, MessageKey::AppMenuQuit) => "退出 HoverPet",
+        (Locale::ZhCn, MessageKey::AppMenuQuit) => "退出 CoPet",
         (Locale::ZhCn, MessageKey::AppMenuEdit) => "编辑",
         (Locale::ZhCn, MessageKey::AppMenuWindow) => "窗口",
     }

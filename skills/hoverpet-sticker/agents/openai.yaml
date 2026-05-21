@@ -1,4 +1,0 @@
-interface:
-  display_name: "HoverPet Sticker"
-  short_description: "Create HoverPet sticker packs"
-  default_prompt: "Use $hoverpet-sticker to create a HoverPet decorative animated sticker pack."

@@ -1,7 +1,7 @@
 {
-  "id": "hoverpet",
-  "slug": "hoverpet",
-  "displayName": "HoverPet",
+  "id": "copet",
+  "slug": "copet",
+  "displayName": "CoPet",
   "description": "A cheerful blue-purple gradient fox pet inspired by the provided rounded 3D toy reference.",
   "spritesheetPath": "spritesheet.webp",
   "frameWidth": 192,
@@ -9,25 +9,25 @@
   "gridColumns": 8,
   "gridRows": 9,
   "builtIn": true,
-  "hoverpet": {
+  "copet": {
     "schemaVersion": 1,
-    "displayNameZh": "HoverPet",
+    "displayNameZh": "CoPet",
     "descriptionZh": "一只受圆润 3D 玩具参考启发的蓝紫渐变快乐狐狸宠物。",
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3",
-        "doubleClick": "hoverpet/audio/surprised.mp3",
-        "petted": "hoverpet/audio/purr.mp3",
-        "pettedSlow": "hoverpet/audio/sigh.mp3",
-        "dragLand": "hoverpet/audio/wheee.mp3"
+        "click": "copet/audio/click.mp3",
+        "doubleClick": "copet/audio/surprised.mp3",
+        "petted": "copet/audio/purr.mp3",
+        "pettedSlow": "copet/audio/sigh.mp3",
+        "dragLand": "copet/audio/wheee.mp3"
       },
       "agentSounds": {
-        "thinking": "hoverpet/audio/hmm.mp3",
-        "editing": "hoverpet/audio/tap.mp3",
-        "inspecting": "hoverpet/audio/peek.mp3",
-        "awaitingApproval": "hoverpet/audio/wait.mp3",
-        "celebrating": "hoverpet/audio/yay.mp3",
-        "failed": "hoverpet/audio/oof.mp3"
+        "thinking": "copet/audio/hmm.mp3",
+        "editing": "copet/audio/tap.mp3",
+        "inspecting": "copet/audio/peek.mp3",
+        "awaitingApproval": "copet/audio/wait.mp3",
+        "celebrating": "copet/audio/yay.mp3",
+        "failed": "copet/audio/oof.mp3"
       }
     },
     "behaviors": {

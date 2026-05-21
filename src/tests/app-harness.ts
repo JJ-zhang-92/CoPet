@@ -111,38 +111,38 @@ type HarnessMonitor = {
   };
 };
 
-const appStateChangedEvent = "hoverpet-app-state-changed";
+const appStateChangedEvent = "copet-app-state-changed";
 
-export const hoverpet: PetSummary = {
-  id: "hoverpet",
-  slug: "hoverpet",
-  displayName: "HoverPet",
-  description: "Default HoverPet pet",
+export const copet: PetSummary = {
+  id: "copet",
+  slug: "copet",
+  displayName: "CoPet",
+  description: "Default CoPet pet",
   frameWidth: 192,
   frameHeight: 208,
   gridColumns: 8,
   gridRows: 9,
   builtIn: true,
-  spritePath: "/pets/hoverpet/spritesheet.webp",
+  spritePath: "/pets/copet/spritesheet.webp",
 };
 
-export const hoverpetWithSounds: PetSummary = {
-  ...hoverpet,
+export const copetWithSounds: PetSummary = {
+  ...copet,
   sounds: {
     interactionSounds: {
-      click: "/pets/hoverpet/hoverpet/audio/click.mp3",
-      doubleClick: "/pets/hoverpet/hoverpet/audio/surprised.mp3",
-      petted: "/pets/hoverpet/hoverpet/audio/purr.mp3",
-      pettedSlow: "/pets/hoverpet/hoverpet/audio/sigh.mp3",
-      dragLand: "/pets/hoverpet/hoverpet/audio/wheee.mp3",
+      click: "/pets/copet/copet/audio/click.mp3",
+      doubleClick: "/pets/copet/copet/audio/surprised.mp3",
+      petted: "/pets/copet/copet/audio/purr.mp3",
+      pettedSlow: "/pets/copet/copet/audio/sigh.mp3",
+      dragLand: "/pets/copet/copet/audio/wheee.mp3",
     },
     agentSounds: {
-      thinking: "/pets/hoverpet/hoverpet/audio/hmm.mp3",
-      editing: "/pets/hoverpet/hoverpet/audio/tap.mp3",
-      inspecting: "/pets/hoverpet/hoverpet/audio/peek.mp3",
-      awaitingApproval: "/pets/hoverpet/hoverpet/audio/wait.mp3",
-      celebrating: "/pets/hoverpet/hoverpet/audio/yay.mp3",
-      failed: "/pets/hoverpet/hoverpet/audio/oof.mp3",
+      thinking: "/pets/copet/copet/audio/hmm.mp3",
+      editing: "/pets/copet/copet/audio/tap.mp3",
+      inspecting: "/pets/copet/copet/audio/peek.mp3",
+      awaitingApproval: "/pets/copet/copet/audio/wait.mp3",
+      celebrating: "/pets/copet/copet/audio/yay.mp3",
+      failed: "/pets/copet/copet/audio/oof.mp3",
     },
   },
 };
@@ -187,10 +187,10 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
   const pages: Page[] = [];
   const calls: CommandCall[] = [];
   let state: AppState = options.state ?? {
-    currentPetId: hoverpet.id,
+    currentPetId: copet.id,
     locale: "en-US",
     localePreference: "system",
-    pets: [hoverpet],
+    pets: [copet],
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "all",
@@ -240,7 +240,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     await Promise.all(
       pages.map((targetPage) =>
         targetPage.evaluate(
-          ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
+          ({ event, payload }) => window.__copetTestEmit(event, payload),
           { event: appStateChangedEvent, payload: state },
         ),
       ),
@@ -259,7 +259,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
     );
 
     await page.exposeBinding(
-      "__hoverpetInvoke",
+      "__copetInvoke",
       async (source, command: string, args: Record<string, unknown> = {}) => {
         calls.push({ command, args });
         const delayMs = options.commandDelayMs?.[command] ?? 0;
@@ -298,7 +298,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
           await Promise.all(
             pages.map((targetPage) =>
               targetPage.evaluate(
-                ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
+                ({ event, payload }) => window.__copetTestEmit(event, payload),
                 { event: args.event as string, payload: args.payload },
               ),
             ),
@@ -397,9 +397,9 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
           await Promise.all(
             pages.map((targetPage) =>
               targetPage.evaluate(
-                ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
+                ({ event, payload }) => window.__copetTestEmit(event, payload),
                 {
-                  event: "hoverpet-pet-window-visibility-changed",
+                  event: "copet-pet-window-visibility-changed",
                   payload: petVisible,
                 },
               ),
@@ -440,7 +440,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
         if (command === "remove_pet") {
           state = {
             ...state,
-            currentPetId: state.currentPetId === args.petId ? hoverpet.id : state.currentPetId,
+            currentPetId: state.currentPetId === args.petId ? copet.id : state.currentPetId,
             pets: state.pets.filter((pet) => pet.id !== args.petId),
           };
           await emitAppState();
@@ -498,7 +498,7 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
                   installed,
                   healthy: installed,
                   message: installed
-                    ? "HoverPet hook installed"
+                    ? "CoPet hook installed"
                     : "Configuration path not created yet",
                 }
               : adapter,
@@ -520,10 +520,10 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       const callbacks = new Map<number, (payload: unknown) => void>();
       const listeners: Listener[] = [];
 
-      window.__hoverpetPlayedAudioUrls = [];
+      window.__copetPlayedAudioUrls = [];
       HTMLMediaElement.prototype.play = function () {
         const rawSrc = (this as HTMLAudioElement).getAttribute("src");
-        window.__hoverpetPlayedAudioUrls.push(
+        window.__copetPlayedAudioUrls.push(
           rawSrc || (this as HTMLAudioElement).currentSrc || (this as HTMLAudioElement).src,
         );
         return Promise.resolve();
@@ -572,15 +572,15 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
             return null;
           }
           if (command === "plugin:event|emit" || command === "plugin:event|emit_to") {
-            return window.__hoverpetInvoke(command, args);
+            return window.__copetInvoke(command, args);
           }
           if (command === "plugin:window|get_all_windows") {
             return ["pet", "settings"];
           }
-          return window.__hoverpetInvoke(command, args);
+          return window.__copetInvoke(command, args);
         },
       };
-      window.__hoverpetTestEmit = (event: string, payload: unknown) => {
+      window.__copetTestEmit = (event: string, payload: unknown) => {
         for (const listener of listeners) {
           if (listener.event !== event) {
             continue;
@@ -622,18 +622,18 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       messages: update.messages ?? [],
     };
     await page.evaluate(
-      ({ event, payload: data }) => window.__hoverpetTestEmit(event, data),
+      ({ event, payload: data }) => window.__copetTestEmit(event, data),
       { event: "pet-state-changed", payload },
     );
   }
 
   async function playedAudioUrls(page: Page) {
-    return page.evaluate(() => window.__hoverpetPlayedAudioUrls);
+    return page.evaluate(() => window.__copetPlayedAudioUrls);
   }
 
   async function clearPlayedAudioUrls(page: Page) {
     await page.evaluate(() => {
-      window.__hoverpetPlayedAudioUrls = [];
+      window.__copetPlayedAudioUrls = [];
     });
   }
 
@@ -647,8 +647,8 @@ export async function createAppHarness(browser: Browser, options: HarnessOptions
       await Promise.all(
         pages.map((targetPage) =>
           targetPage.evaluate(
-            ({ event, payload }) => window.__hoverpetTestEmit(event, payload),
-            { event: "hoverpet-pet-context-menu-action", payload: action },
+            ({ event, payload }) => window.__copetTestEmit(event, payload),
+            { event: "copet-pet-context-menu-action", payload: action },
           ),
         ),
       );
@@ -676,9 +676,9 @@ declare global {
       convertFileSrc: (filePath: string) => string;
       invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
     };
-    __hoverpetInvoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-    __hoverpetPlayedAudioUrls: string[];
-    __hoverpetScrolledPetIds: string[];
-    __hoverpetTestEmit: (event: string, payload: unknown) => void;
+    __copetInvoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
+    __copetPlayedAudioUrls: string[];
+    __copetScrolledPetIds: string[];
+    __copetTestEmit: (event: string, payload: unknown) => void;
   }
 }

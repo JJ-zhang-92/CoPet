@@ -7,25 +7,25 @@
   "frameHeight": 208,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "schemaVersion": 1,
     "displayNameZh": "摇摇小鸭",
     "descriptionZh": "一只开朗的小黄鸭，有明亮的喙和友好的摇摆步。",
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3",
-        "doubleClick": "hoverpet/audio/surprised.mp3",
-        "petted": "hoverpet/audio/giggle.mp3",
-        "pettedSlow": "hoverpet/audio/sigh.mp3",
-        "dragLand": "hoverpet/audio/land.mp3"
+        "click": "copet/audio/click.mp3",
+        "doubleClick": "copet/audio/surprised.mp3",
+        "petted": "copet/audio/giggle.mp3",
+        "pettedSlow": "copet/audio/sigh.mp3",
+        "dragLand": "copet/audio/land.mp3"
       },
       "agentSounds": {
-        "celebrating": "hoverpet/audio/yay.mp3",
-        "failed": "hoverpet/audio/oof.mp3",
-        "thinking": "hoverpet/audio/hmm.mp3",
-        "editing": "hoverpet/audio/tap.mp3",
-        "inspecting": "hoverpet/audio/peek.mp3",
-        "awaitingApproval": "hoverpet/audio/wait.mp3"
+        "celebrating": "copet/audio/yay.mp3",
+        "failed": "copet/audio/oof.mp3",
+        "thinking": "copet/audio/hmm.mp3",
+        "editing": "copet/audio/tap.mp3",
+        "inspecting": "copet/audio/peek.mp3",
+        "awaitingApproval": "copet/audio/wait.mp3"
       }
     },
     "behaviors": {

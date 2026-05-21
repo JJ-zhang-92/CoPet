@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 import {
   codexAdapter,
   createAppHarness,
-  hoverpet,
+  copet,
 } from "./app-harness";
 
 test("default section is Pets on first open", async ({ browser }) => {
@@ -107,9 +107,9 @@ test("reopening settings returns to Pets section (non-persistent)", async ({
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });

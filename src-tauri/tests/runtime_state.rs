@@ -1,4 +1,4 @@
-use hoverpet_lib::runtime_state::{
+use copet_lib::runtime_state::{
     BoundedEventQueue, EventStateEngine, PetStateId, RuntimeEvent, TokenBucket,
 };
 

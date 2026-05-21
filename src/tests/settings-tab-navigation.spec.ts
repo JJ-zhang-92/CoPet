@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpet } from "./app-harness";
+import { createAppHarness, copet } from "./app-harness";
 
 const sectionCases = [
   { section: "agents", heading: "Agent integrations" },
@@ -12,10 +12,10 @@ const sectionCases = [
 test("navigate-to-section event activates each settings tab", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -31,11 +31,11 @@ test("navigate-to-section event activates each settings tab", async ({ browser }
       ({ event, payload }) => {
         (
           window as unknown as {
-            __hoverpetTestEmit: (e: string, p: unknown) => void;
+            __copetTestEmit: (e: string, p: unknown) => void;
           }
-        ).__hoverpetTestEmit(event, payload);
+        ).__copetTestEmit(event, payload);
       },
-      { event: "hoverpet-navigate-to-section", payload: section },
+      { event: "copet-navigate-to-section", payload: section },
     );
 
     await expect(page.getByRole("heading", { name: heading })).toBeVisible();

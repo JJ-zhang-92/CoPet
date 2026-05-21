@@ -1,20 +1,20 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpet } from "./app-harness";
+import { createAppHarness, copet } from "./app-harness";
 
 test("PetWindow bootstrap issues exactly one logical fetch (no dual-instance)", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
 
   const page = await harness.openPage("pet");
-  await expect(page.getByRole("img", { name: "HoverPet" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "CoPet" })).toBeVisible();
 
   // React Strict Mode double-mounts the bootstrap effect, so each invoke runs
   // exactly twice. The dual-instance bug (PetWindow + useLayeredPetState both
@@ -32,14 +32,14 @@ test("dismissed agent message stays dismissed across pet-state events", async ({
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
 
   const page = await harness.openPage("pet");
-  await expect(page.getByRole("img", { name: "HoverPet" })).toBeVisible();
+  await expect(page.getByRole("img", { name: "CoPet" })).toBeVisible();
 
   const agentMessage = {
     agent: "codex",

@@ -1,18 +1,18 @@
-# HoverPet Skills
+# CoPet Skills
 
-HoverPet-specific skill packages. Each skill documents one global HoverPet pack type and is installable on its own.
+CoPet-specific skill packages. Each skill documents one global CoPet pack type and is installable on its own.
 
-Today there are two HoverPet skills:
+Today there are two CoPet skills:
 
-- [`hoverpet-audio`](./hoverpet-audio/SKILL.md) creates global 11-clip MP3 audio packs.
-- [`hoverpet-sticker`](./hoverpet-sticker/SKILL.md) creates decorative animated SVG sticker packs.
+- [`copet-audio`](./copet-audio/SKILL.md) creates global 11-clip MP3 audio packs.
+- [`copet-sticker`](./copet-sticker/SKILL.md) creates decorative animated SVG sticker packs.
 
 These skills do not generate pet spritesheets, omni directional body atlases, pet packages, or `pet.json`. For a fresh Codex-compatible pet spritesheet, use the upstream `$hatch-pet` skill instead.
 
 ## Global Package Layout
 
 ```text
-$HOME/.hoverpet/
+$HOME/.copet/
 ├── audios/
 │   └── <audio-pack-id>/
 │       ├── audio-pack.json
@@ -39,8 +39,8 @@ Pack ids are kebab-case slugs derived from `displayName`. If a slug collides in 
 
 | Folder | `name` | `displayName` | Owns |
 |---|---|---|---|
-| [`hoverpet-audio/`](./hoverpet-audio/SKILL.md) | `hoverpet-audio` | HoverPet Audio | `$HOME/.hoverpet/audios/<audio-pack-id>/`, `audio-pack.json`, and the 11 required MP3 clips. |
-| [`hoverpet-sticker/`](./hoverpet-sticker/SKILL.md) | `hoverpet-sticker` | HoverPet Sticker | `$HOME/.hoverpet/stickers/<sticker-id>/`, `sticker.json`, and `animation.svg`. |
+| [`copet-audio/`](./copet-audio/SKILL.md) | `copet-audio` | CoPet Audio | `$HOME/.copet/audios/<audio-pack-id>/`, `audio-pack.json`, and the 11 required MP3 clips. |
+| [`copet-sticker/`](./copet-sticker/SKILL.md) | `copet-sticker` | CoPet Sticker | `$HOME/.copet/stickers/<sticker-id>/`, `sticker.json`, and `animation.svg`. |
 
 ## Single-Responsibility Policy
 

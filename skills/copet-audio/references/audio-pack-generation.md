@@ -1,8 +1,8 @@
 # Audio Pack Generation
 
-**Read this when:** generating a global HoverPet audio pack.
+**Read this when:** generating a global CoPet audio pack.
 
-This workflow produces a self-contained audio pack under `$HOME/.hoverpet/audios/<audio-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
+This workflow produces a self-contained audio pack under `$HOME/.copet/audios/<audio-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
 
 ## Input contract
 
@@ -35,17 +35,17 @@ Derive:
 - `displayNameZh`: natural Chinese display name.
 - `id`: kebab-case slug from `displayName`.
 
-If `$HOME/.hoverpet/audios/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
+If `$HOME/.copet/audios/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
 
 ## Staging
 
 Write all in-flight files to:
 
 ```text
-$HOME/.hoverpet/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.copet/tmp/audios-<unix-epoch>-<audio-pack-id>/
 ```
 
-Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/audios/<audio-pack-id>/` directory is read-only until validation passes.
+Create `$HOME/.copet/tmp/` if needed. The live `$HOME/.copet/audios/<audio-pack-id>/` directory is read-only until validation passes.
 
 ## Audio target inference
 
@@ -118,13 +118,13 @@ Before promotion, validate the staging directory with `audio-pack-schema.md`.
 On success, atomically rename:
 
 ```text
-$HOME/.hoverpet/tmp/audios-<unix-epoch>-<audio-pack-id>/
+$HOME/.copet/tmp/audios-<unix-epoch>-<audio-pack-id>/
 ```
 
 to:
 
 ```text
-$HOME/.hoverpet/audios/<audio-pack-id>/
+$HOME/.copet/audios/<audio-pack-id>/
 ```
 
 On failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

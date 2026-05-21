@@ -1,5 +1,5 @@
 mod app_state {
-    pub use hoverpet_lib::app_state::*;
+    pub use copet_lib::app_state::*;
 }
 
 mod subject {

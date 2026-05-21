@@ -1,2 +1,2 @@
-export const HOVERPET_REPO_URL = "https://github.com/ChanceYu/HoverPet";
-export const HOVERPET_ISSUES_URL = `${HOVERPET_REPO_URL}/issues/new`;
+export const COPET_REPO_URL = "https://github.com/ChanceYu/CoPet";
+export const COPET_ISSUES_URL = `${COPET_REPO_URL}/issues/new`;

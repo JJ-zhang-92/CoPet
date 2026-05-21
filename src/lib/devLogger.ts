@@ -1,9 +1,9 @@
-const hoverpetDevLogEnabled = import.meta.env.DEV;
+const copetDevLogEnabled = import.meta.env.DEV;
 
-export function hoverpetDevLog(stage: string, payload: unknown) {
-  if (!hoverpetDevLogEnabled) {
+export function copetDevLog(stage: string, payload: unknown) {
+  if (!copetDevLogEnabled) {
     return;
   }
 
-  console.debug(`[hoverpet:${stage}]`, payload);
+  console.debug(`[copet:${stage}]`, payload);
 }

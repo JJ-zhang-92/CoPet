@@ -1,4 +1,4 @@
-use hoverpet_lib::{runtime_server::RuntimeManager, runtime_state::PetStateId};
+use copet_lib::{runtime_server::RuntimeManager, runtime_state::PetStateId};
 use std::{
     fs,
     io::{Read, Write},

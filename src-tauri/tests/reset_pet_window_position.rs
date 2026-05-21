@@ -1,7 +1,7 @@
-// Compile-time check that the public symbol `hoverpet_lib::commands::reset_pet_window_position`
+// Compile-time check that the public symbol `copet_lib::commands::reset_pet_window_position`
 // exists at the expected module path. Renaming or moving the command will fail this test.
 
-use hoverpet_lib::commands::reset_pet_window_position;
+use copet_lib::commands::reset_pet_window_position;
 
 #[test]
 fn reset_pet_window_position_command_symbol_exists() {

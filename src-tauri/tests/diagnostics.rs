@@ -1,4 +1,4 @@
-use hoverpet_lib::diagnostics::RotatingLog;
+use copet_lib::diagnostics::RotatingLog;
 use std::fs;
 
 #[test]

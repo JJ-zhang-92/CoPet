@@ -1,4 +1,4 @@
-# HoverPet
+# CoPet
 
 [简体中文](./README.zh.md)
 
@@ -11,7 +11,7 @@ Built with Tauri, Rust, and React. Lightweight, local-first, no cloud.
 - Real-time pet reactions to Agent events: thinking, tool use, waiting, completion, errors.
 - Adapters for Claude Code, Codex, Gemini, and OpenCode.
 - Customizable pixel-art pet packages (Codex-compatible format).
-- All data stays in `~/.hoverpet` — no telemetry, no cloud.
+- All data stays in `~/.copet` — no telemetry, no cloud.
 - Safe CLI config edits: automatic backup, atomic writes, easy uninstall/repair.
 - Bilingual UI (English / 简体中文).
 
@@ -22,15 +22,15 @@ Built with Tauri, Rust, and React. Lightweight, local-first, no cloud.
 | Claude Code | JSON hooks | `~/.claude/settings.json` |
 | Codex | JSON hooks | `~/.codex/hooks.json` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
-| OpenCode | JS plugin | `~/.config/opencode/plugins/hoverpet.js` |
+| OpenCode | JS plugin | `~/.config/opencode/plugins/copet.js` |
 
 ## Getting started
 
 Prerequisites: [Rust](https://www.rust-lang.org/tools/install), [Node.js](https://nodejs.org/) with pnpm. Runs on macOS (primary), Windows, and Linux.
 
 ```bash
-git clone https://github.com/ChanceYu/HoverPet.git
-cd HoverPet
+git clone https://github.com/ChanceYu/CoPet.git
+cd CoPet
 pnpm install
 pnpm tauri dev          # development
 pnpm tauri build        # production bundle

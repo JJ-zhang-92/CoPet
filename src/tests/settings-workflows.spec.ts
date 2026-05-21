@@ -8,7 +8,7 @@ import {
   createAppHarness,
   goku,
   nebula,
-  hoverpet,
+  copet,
 } from "./app-harness";
 
 test("agent integration switch installs and uninstalls an adapter", async ({ browser }) => {
@@ -65,9 +65,9 @@ test("agent integration switch stays off and shows a toast when install fails", 
 test("settings page uses Chinese copy from app locale", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "zh-CN",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -85,9 +85,9 @@ test("settings page uses Chinese copy from app locale", async ({ browser }) => {
 test("settings page uses English copy from app locale", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -110,10 +110,10 @@ test("settings page uses English copy from app locale", async ({ browser }) => {
 test("language switch persists preference and updates settings copy", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -127,14 +127,14 @@ test("language switch persists preference and updates settings copy", async ({ b
     "aria-checked",
     "true",
   );
-  await expect(page.getByText("Choose the display language for HoverPet.")).toHaveCount(0);
+  await expect(page.getByText("Choose the display language for CoPet.")).toHaveCount(0);
 
   await languageGroup.getByRole("radio", { name: "中文" }).click();
 
   await expect(
     page.getByRole("radiogroup", { name: "语言" }).getByRole("radio", { name: "中文" }),
   ).toHaveAttribute("aria-checked", "true");
-  await expect(page.getByText("选择 HoverPet 的显示语言。")).toHaveCount(0);
+  await expect(page.getByText("选择 CoPet 的显示语言。")).toHaveCount(0);
   expect(harness.calls).toContainEqual({
     command: "set_locale_preference",
     args: { localePreference: "zh-CN" },
@@ -144,10 +144,10 @@ test("language switch persists preference and updates settings copy", async ({ b
 test("display count preference toggles between latest and all", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
       agentMessageDisplay: "latest",
     },
@@ -176,10 +176,10 @@ test("display count preference toggles between latest and all", async ({ browser
 test("display count defaults to all agents", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -201,9 +201,9 @@ test("refresh list reloads settings data", async ({ browser }) => {
       list_codex_pets: 1_000,
     },
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -234,8 +234,8 @@ test("removing an installed non-current pet refreshes the installed list", async
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet, goku],
+      currentPetId: copet.id,
+      pets: [copet, goku],
       onboardingComplete: false,
     },
   });
@@ -256,7 +256,7 @@ test("the current installed pet is marked active and cannot be removed", async (
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: goku.id,
-      pets: [hoverpet, goku],
+      pets: [copet, goku],
       onboardingComplete: false,
     },
   });
@@ -270,8 +270,8 @@ test("the current installed pet is marked active and cannot be removed", async (
 test("pet package cards render animated sprite previews", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet, goku],
+      currentPetId: copet.id,
+      pets: [copet, goku],
       onboardingComplete: false,
     },
   });
@@ -289,8 +289,8 @@ test("pet window size setting uses a slider and updates the pet window", async (
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       petWindowSize: 70,
     },
@@ -331,7 +331,7 @@ test("importing a local pet folder calls the import command", async ({
 }) => {
   const harness = await createAppHarness(browser);
   const page = await harness.openPage("settings");
-  const petDir = await mkdtemp(join(tmpdir(), "hoverpet-local-pet-"));
+  const petDir = await mkdtemp(join(tmpdir(), "copet-local-pet-"));
   const manifest = JSON.stringify({
     id: "local-fox",
     slug: "local-fox",
@@ -368,11 +368,11 @@ test("import local button opens a native directory dialog", async ({ browser }) 
   });
   const page = await harness.openPage("settings");
   await page.evaluate(() => {
-    window.__hoverpetScrolledPetIds = [];
+    window.__copetScrolledPetIds = [];
     Element.prototype.scrollIntoView = function () {
       const petId = (this as HTMLElement).dataset.petId;
       if (petId) {
-        window.__hoverpetScrolledPetIds.push(petId);
+        window.__copetScrolledPetIds.push(petId);
       }
     };
   });
@@ -400,7 +400,7 @@ test("import local button opens a native directory dialog", async ({ browser }) 
 test("invalid local pet folder shows a toast and skips import", async ({ browser }) => {
   const harness = await createAppHarness(browser);
   const page = await harness.openPage("settings");
-  const petDir = await mkdtemp(join(tmpdir(), "hoverpet-invalid-pet-"));
+  const petDir = await mkdtemp(join(tmpdir(), "copet-invalid-pet-"));
   await writeFile(join(petDir, "pet.json"), "{}");
 
   await page.locator('input[type="file"]').setInputFiles(petDir);
@@ -417,8 +417,8 @@ test("invalid local pet folder shows a toast and skips import", async ({ browser
 test("pet interactions settings sub-section renders all controls", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       locale: "en-US",
       petInteractions: { enableClickSounds: false, cooldownStyle: "normal" },
@@ -441,8 +441,8 @@ test("pet interactions settings sub-section renders all controls", async ({ brow
 test("pet interactions cooldown radio calls set_pet_interactions", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       locale: "en-US",
       petInteractions: { enableClickSounds: false, cooldownStyle: "normal" },
@@ -465,8 +465,8 @@ test("pet interactions cooldown radio calls set_pet_interactions", async ({ brow
 test("pet sounds switch calls set_pet_interactions", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       locale: "en-US",
       petInteractions: { enableClickSounds: false, cooldownStyle: "lazy" },
@@ -513,7 +513,7 @@ test("importing a local pet folder accepts png spritesheet fallback", async ({
 }) => {
   const harness = await createAppHarness(browser);
   const page = await harness.openPage("settings");
-  const petDir = await mkdtemp(join(tmpdir(), "hoverpet-local-png-pet-"));
+  const petDir = await mkdtemp(join(tmpdir(), "copet-local-png-pet-"));
   const manifest = JSON.stringify({
     id: "local-png-fox",
     slug: "local-png-fox",

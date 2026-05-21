@@ -1,13 +1,13 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpet } from "./app-harness";
+import { createAppHarness, copet } from "./app-harness";
 import { composeLayers } from "../lib/petAnimation";
 
 test("idle backend state renders idle sprite row and no emotion overlay", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   const sprite = page.locator(".pet-sprite");
@@ -19,7 +19,7 @@ test("idle backend state renders idle sprite row and no emotion overlay", async 
 
 test("user.prompt → waiting row + loading-bubble overlay", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -41,7 +41,7 @@ test("user.prompt → waiting row + loading-bubble overlay", async ({ browser })
 
 test("tool.before with Edit → running row", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -56,7 +56,7 @@ test("review/inspecting state (e.g. cargo test resolved server-side) renders rev
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -71,7 +71,7 @@ test("review/inspecting state (e.g. cargo test resolved server-side) renders rev
 
 test("session.stop → waving + sparkle overlay, sparkle clears", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -89,7 +89,7 @@ test("session.stop → waving + sparkle overlay, sparkle clears", async ({ brows
 
 test("session.error → failed + smoke overlay, smoke clears", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -107,7 +107,7 @@ test("session.error → failed + smoke overlay, smoke clears", async ({ browser 
 
 test("permission.waiting → waiting row, no overlay", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -123,7 +123,7 @@ test("permission.waiting → waiting row, no overlay", async ({ browser }) => {
 
 test("hover overrides agent editing with looking sprite", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -149,7 +149,7 @@ test("hover overrides agent editing with looking sprite", async ({ browser }) =>
 
 test("drag suppresses emotion overlay even during agent thinking", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -188,7 +188,7 @@ test("drag suppresses emotion overlay even during agent thinking", async ({ brow
 
 test("reduced motion still renders emotion overlay element", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: { currentPetId: hoverpet.id, pets: [hoverpet], onboardingComplete: false },
+    state: { currentPetId: copet.id, pets: [copet], onboardingComplete: false },
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");

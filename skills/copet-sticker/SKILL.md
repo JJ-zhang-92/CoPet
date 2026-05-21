@@ -1,27 +1,27 @@
 ---
-name: hoverpet-sticker
-description: Use when generating HoverPet decoration/effect animated SVG sticker packs from a user image or text description for $HOME/.hoverpet/stickers.
+name: copet-sticker
+description: Use when generating CoPet decoration/effect animated SVG sticker packs from a user image or text description for $HOME/.copet/stickers.
 ---
 
-# HoverPet Sticker
+# CoPet Sticker
 
 ## Overview
 
-Create one self-contained HoverPet decorative animated sticker pack under `$HOME/.hoverpet/stickers/<sticker-id>/`. This skill never creates audio packs, sprite atlases, omni directional body atlases, pet packages, pet body art, or `pet.json`.
+Create one self-contained CoPet decorative animated sticker pack under `$HOME/.copet/stickers/<sticker-id>/`. This skill never creates audio packs, sprite atlases, omni directional body atlases, pet packages, pet body art, or `pet.json`.
 
 Sticker SVGs are overlays for an existing pet. They must be decoration/effect layers, not standalone pets, animals, humanoids, mascots, character bodies, heads, faces, or silhouettes.
 
 ## Package Layout
 
 ```text
-$HOME/.hoverpet/
+$HOME/.copet/
 └── stickers/
     └── <sticker-id>/
         ├── sticker.json
         └── animation.svg
 ```
 
-Pack ids are kebab-case slugs derived from `displayName`. If a slug collides under `$HOME/.hoverpet/stickers/`, append `-2`, `-3`, and continue until the destination is unique.
+Pack ids are kebab-case slugs derived from `displayName`. If a slug collides under `$HOME/.copet/stickers/`, append `-2`, `-3`, and continue until the destination is unique.
 
 ## Inputs
 
@@ -54,10 +54,10 @@ Render validation rejections, clarifying questions, failure reports, and success
 5. Create one empty staging directory:
 
 ```text
-$HOME/.hoverpet/tmp/stickers-<unix-epoch>-<sticker-id>/
+$HOME/.copet/tmp/stickers-<unix-epoch>-<sticker-id>/
 ```
 
-Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/stickers/<sticker-id>/` directory is read-only until validation passes.
+Create `$HOME/.copet/tmp/` if needed. The live `$HOME/.copet/stickers/<sticker-id>/` directory is read-only until validation passes.
 
 6. Emit `animation.svg` directly as SVG XML in one authoring pass. Read `references/svg-authoring.md` before authoring. Programmatic SVG assembly is forbidden.
 7. Compose `sticker.json` in the staging root. `kind="burst"` requires `trigger` and forbids `visibility`; `kind="persistent"` requires `visibility` and forbids `trigger`.
@@ -65,7 +65,7 @@ Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/stickers/<sti
 9. On success, atomically rename staging to:
 
 ```text
-$HOME/.hoverpet/stickers/<sticker-id>/
+$HOME/.copet/stickers/<sticker-id>/
 ```
 
 On validation failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

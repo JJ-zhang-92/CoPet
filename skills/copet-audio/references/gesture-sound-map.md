@@ -11,6 +11,6 @@ Suggested sound roles per gesture. **Advisory, not binding** — audio packs may
 | Drag-land | drop after sustained movement | "wheee!" / landing thud | One-shot. |
 | Right-click context-menu open | contextmenu event on pet sprite | none (UI sound, optional) | Default: silent. |
 
-Gesture detection signatures, cooldowns, and binding sprite mappings are owned by the HoverPet runtime, not by this map. This file only suggests sound roles, never restates cooldown values or sprite-row identifiers.
+Gesture detection signatures, cooldowns, and binding sprite mappings are owned by the CoPet runtime, not by this map. This file only suggests sound roles, never restates cooldown values or sprite-row identifiers.
 
 For agent-state sounds (e.g., `thinking`, `failed`), no suggested mapping exists yet. When agent sounds become a feature, they get their own table here.

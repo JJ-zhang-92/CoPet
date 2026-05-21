@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { toast } from "sonner";
 
-import hoverpetLogoUrl from "./assets/logo-transparent.png";
+import copetLogoUrl from "./assets/logo-transparent.png";
 import { ErrorView, LoadingView } from "./components/AppShell";
 import { SettingsAboutSection } from "./components/SettingsAboutSection";
 import { SettingsAgentsSection } from "./components/SettingsAgentsSection";
@@ -122,7 +122,7 @@ export function SettingsWindow() {
 
   useEffect(() => {
     let dispose: (() => void) | undefined;
-    void listen<SettingsSectionId>("hoverpet-navigate-to-section", (event) => {
+    void listen<SettingsSectionId>("copet-navigate-to-section", (event) => {
       setActiveSection(event.payload);
     }).then((cleanup) => {
       dispose = cleanup;
@@ -184,9 +184,9 @@ export function SettingsWindow() {
               aria-hidden="true"
               className="settings-logo-image"
               draggable={false}
-              src={hoverpetLogoUrl}
+              src={copetLogoUrl}
             />
-            <span className="settings-brand-name">HoverPet</span>
+            <span className="settings-brand-name">CoPet</span>
           </div>
           <SettingsNav
             active={activeSection}

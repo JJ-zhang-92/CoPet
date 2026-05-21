@@ -20,10 +20,10 @@ import type {
 } from "../lib/appTypes";
 import { defaultPetInteractionPrefs } from "../lib/appTypes";
 import { defaultPetWindowSize } from "../lib/petWindowUi";
-import { hoverpetDevLog } from "../lib/devLogger";
+import { copetDevLog } from "../lib/devLogger";
 
-const APP_STATE_CHANGED_EVENT = "hoverpet-app-state-changed";
-const PET_WINDOW_VISIBILITY_CHANGED_EVENT = "hoverpet-pet-window-visibility-changed";
+const APP_STATE_CHANGED_EVENT = "copet-app-state-changed";
+const PET_WINDOW_VISIBILITY_CHANGED_EVENT = "copet-pet-window-visibility-changed";
 
 export function useAppSlice<T>(selector: (s: AppStoreSnapshot) => T): T {
   return useSyncExternalStore(
@@ -58,7 +58,7 @@ export function useBootstrapAppStore(): void {
           codexPets: codex,
           petVisible: visible,
         });
-        hoverpetDevLog("frontend.snapshot.loaded", {
+        copetDevLog("frontend.snapshot.loaded", {
           currentState: runtime.currentState,
           messages: runtime.messages,
         });
@@ -93,7 +93,7 @@ export function useBootstrapAppStore(): void {
     };
 
     subscribe<RuntimeUpdate>("pet-state-changed", (payload) => {
-      hoverpetDevLog("frontend.event.pet-state-changed", {
+      copetDevLog("frontend.event.pet-state-changed", {
         currentState: payload.currentState,
         messages: payload.messages,
         paused: appStore.get().appState?.responsePaused ?? false,

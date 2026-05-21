@@ -1,14 +1,14 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpet } from "./app-harness";
+import { createAppHarness, copet } from "./app-harness";
 
 test("pause toggle calls set_response_paused and syncs across windows", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -43,10 +43,10 @@ test("pause toggle calls set_response_paused and syncs across windows", async ({
 test("pet visibility switch toggles the pet window", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -78,10 +78,10 @@ test("pet visibility switch toggles the pet window", async ({ browser }) => {
 test("pet visibility switch follows system menu visibility changes", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
+      currentPetId: copet.id,
       locale: "en-US",
       localePreference: "en-US",
-      pets: [hoverpet],
+      pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
       responsePaused: false,
@@ -95,12 +95,12 @@ test("pet visibility switch follows system menu visibility changes", async ({ br
   await expect(visibilityToggle).toHaveAttribute("aria-checked", "true");
 
   await settingsPage.evaluate(() => {
-    window.__hoverpetTestEmit("hoverpet-pet-window-visibility-changed", false);
+    window.__copetTestEmit("copet-pet-window-visibility-changed", false);
   });
   await expect(visibilityToggle).toHaveAttribute("aria-checked", "false");
 
   await settingsPage.evaluate(() => {
-    window.__hoverpetTestEmit("hoverpet-pet-window-visibility-changed", true);
+    window.__copetTestEmit("copet-pet-window-visibility-changed", true);
   });
   await expect(visibilityToggle).toHaveAttribute("aria-checked", "true");
 });

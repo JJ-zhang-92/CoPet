@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use hoverpet_lib::agents::AgentManager;
+use copet_lib::agents::AgentManager;
 use serde_json::Value;
 use std::{env, ffi::OsString, fs, path::PathBuf, sync::Mutex};
 

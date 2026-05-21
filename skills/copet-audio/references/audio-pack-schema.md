@@ -1,13 +1,13 @@
 # Audio Pack Schema
 
-**Read this when:** composing or validating `audio-pack.json` for a global HoverPet audio pack.
+**Read this when:** composing or validating `audio-pack.json` for a global CoPet audio pack.
 
-Audio packs live under `$HOME/.hoverpet/audios/<audio-pack-id>/`. They are self-contained and never merge into a pet package.
+Audio packs live under `$HOME/.copet/audios/<audio-pack-id>/`. They are self-contained and never merge into a pet package.
 
 ## Layout
 
 ```text
-$HOME/.hoverpet/audios/<audio-pack-id>/
+$HOME/.copet/audios/<audio-pack-id>/
 ├── audio-pack.json
 ├── click.mp3
 ├── surprised.mp3
@@ -22,7 +22,7 @@ $HOME/.hoverpet/audios/<audio-pack-id>/
 └── oof.mp3
 ```
 
-`<audio-pack-id>` is a kebab-case slug derived from `displayName`. If the slug already exists under `$HOME/.hoverpet/audios/`, append `-2`, `-3`, and continue until the destination is unique.
+`<audio-pack-id>` is a kebab-case slug derived from `displayName`. If the slug already exists under `$HOME/.copet/audios/`, append `-2`, `-3`, and continue until the destination is unique.
 
 ## Manifest
 

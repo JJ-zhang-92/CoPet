@@ -1,0 +1,4 @@
+interface:
+  display_name: "CoPet Audio"
+  short_description: "Create CoPet audio packs"
+  default_prompt: "Use $copet-audio to create a CoPet global audio pack."

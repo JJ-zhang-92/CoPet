@@ -67,7 +67,7 @@ impl ConfigStore {
     pub fn from_home() -> Result<Self, StoreError> {
         let home = dirs::home_dir().ok_or(StoreError::MissingHome)?;
         Ok(Self {
-            root: home.join(".hoverpet"),
+            root: home.join(".copet"),
             builtin_pets_dir: builtin_pets_dir(),
         })
     }

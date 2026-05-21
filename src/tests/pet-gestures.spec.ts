@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, hoverpet } from "./app-harness";
+import { createAppHarness, copet } from "./app-harness";
 
 test("clicking the pet sprite triggers jumping state", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -23,8 +23,8 @@ test("clicking the pet sprite triggers jumping state", async ({ browser }) => {
 test("click auto-restores after duration", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -44,8 +44,8 @@ test("hover triggers directional looking and frame data-dragging stays false", a
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -73,8 +73,8 @@ test("dragging the pet sprite triggers directional running and dragging flag", a
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -120,8 +120,8 @@ test("dragging the pet sprite triggers directional running and dragging flag", a
 test("double-clicking the pet triggers surprised + questionMark overlay", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -139,8 +139,8 @@ test("double-click while agent is thinking does not dismiss the loading bubble",
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -171,8 +171,8 @@ test("double-click while agent is thinking does not dismiss the loading bubble",
 test("double-click no longer opens settings window", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -189,8 +189,8 @@ test("double-click no longer opens settings window", async ({ browser }) => {
 test("long-press (>800ms hold without movement) triggers pettedSlow + heart", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -220,8 +220,8 @@ test("long-press (>800ms hold without movement) triggers pettedSlow + heart", as
 test("3 clicks within 1.5s escalate to petted + heart", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -240,8 +240,8 @@ test("3 clicks within 1.5s escalate to petted + heart", async ({ browser }) => {
 test("double-click does not contaminate rapid-click history", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -266,8 +266,8 @@ test("double-click does not contaminate rapid-click history", async ({ browser }
 test("drag-land after ≥200px movement triggers surprised + sparkle", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -292,8 +292,8 @@ test("drag-land after ≥200px movement triggers surprised + sparkle", async ({ 
 test("double-click surprised yields question-mark; drag-land surprised yields sparkle", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -321,8 +321,8 @@ test("double-click surprised yields question-mark; drag-land surprised yields sp
 test("a second double-click within cooldown is a no-op", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -347,8 +347,8 @@ test("a second double-click within cooldown is a no-op", async ({ browser }) => 
 test("interaction counters increment after successful gestures", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -372,8 +372,8 @@ test("interaction counters increment after successful gestures", async ({ browse
 test("right-click opens the native pet context menu command", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       locale: "en-US",
     },
@@ -430,8 +430,8 @@ test("native pet context menu failure plays failed animation without fallback UI
   const harness = await createAppHarness(browser, {
     nativePetContextMenuError: "popup failed",
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
     },
   });
@@ -453,8 +453,8 @@ test("native pet context menu failure plays failed animation without fallback UI
 test("native pet context menu action events run pet commands", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
-      currentPetId: hoverpet.id,
-      pets: [hoverpet],
+      currentPetId: copet.id,
+      pets: [copet],
       onboardingComplete: false,
       responsePaused: false,
     },

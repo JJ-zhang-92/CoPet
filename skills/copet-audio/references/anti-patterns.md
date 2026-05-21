@@ -10,8 +10,8 @@ Each "Don't" is a hard rule. Violating it is a failed run.
 - Don't show validation errors, clarifying questions, failure reports, or success summaries in a language that conflicts with the user's input language.
 - Don't ask for a target pet. Audio packs are global.
 - Don't generate sticker packs, sprite atlases, omni directional body atlases, pet packages, pet body art, or `pet.json`.
-- Don't read or write `$HOME/.hoverpet/pets/`.
-- Don't write into the live `$HOME/.hoverpet/audios/` directory before validation passes.
+- Don't read or write `$HOME/.copet/pets/`.
+- Don't write into the live `$HOME/.copet/audios/` directory before validation passes.
 - Don't promote staging via copy-and-delete. Promotion is a directory rename.
 - Don't delete staging on failure. Leave it available for debugging.
 

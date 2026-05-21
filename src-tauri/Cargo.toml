@@ -1,19 +1,19 @@
 [package]
-name = "hoverpet"
+name = "copet"
 version = "0.1.0"
 description = "Local desktop pet companion for Agent CLI workflows"
-authors = ["HoverPet contributors"]
+authors = ["CoPet contributors"]
 edition = "2021"
 
 [lib]
-name = "hoverpet_lib"
+name = "copet_lib"
 path = "src/lib.rs"
 
 [[bin]]
 # macOS uses the executable filename for the Dock label when no .app bundle
-# is present (i.e. `pnpm tauri dev`). Capitalize so the Dock shows "HoverPet"
+# is present (i.e. `pnpm tauri dev`). Capitalize so the Dock shows "CoPet"
 # in dev as it already does in the bundled .app via CFBundleName.
-name = "HoverPet"
+name = "CoPet"
 path = "src/main.rs"
 
 [build-dependencies]

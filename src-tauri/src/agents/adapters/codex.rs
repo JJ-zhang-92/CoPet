@@ -5,8 +5,8 @@ use sha2::{Digest, Sha256};
 use toml_edit::{value, DocumentMut, Item, Table};
 
 use super::super::{
-    install_json_hooks, json_config_has_hoverpet_hook, remove_json_hooks, write_atomic,
-    AdapterError, AgentManager, CliAdapter, HookEvent,
+    install_json_hooks, json_config_has_copet_hook, remove_json_hooks, write_atomic, AdapterError,
+    AgentManager, CliAdapter, HookEvent,
 };
 
 pub(super) static ADAPTER: CodexCliAdapter = CodexCliAdapter;
@@ -16,8 +16,8 @@ pub(super) static ADAPTER: CodexCliAdapter = CodexCliAdapter;
 /// 该适配器负责与 Codex 集成：
 /// - 修改文件: `~/.codex/hooks.json`
 /// - 改动内容: 在该 JSON 文件中管理 `hooks` 列表。
-///   HoverPet 会向其中添加自定义钩子，以便在 Codex 执行任务（如提示提交、工具调用前后等）时，
-///   触发 HoverPet 的事件上报逻辑。
+///   CoPet 会向其中添加自定义钩子，以便在 Codex 执行任务（如提示提交、工具调用前后等）时，
+///   触发 CoPet 的事件上报逻辑。
 pub(super) struct CodexCliAdapter;
 
 const EVENTS: &[HookEvent] = &[
@@ -62,7 +62,7 @@ impl CliAdapter for CodexCliAdapter {
     }
 
     fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
-        json_config_has_hoverpet_hook(config_path, self.id())
+        json_config_has_copet_hook(config_path, self.id())
     }
 
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError> {
@@ -78,7 +78,7 @@ impl CliAdapter for CodexCliAdapter {
         let hooks_path = self.config_path(manager.home());
         remove_json_hooks(manager, self.id(), &hooks_path)?;
         update_codex_config_toml(manager.home(), |document| {
-            remove_hoverpet_trusted_hashes(document, &hooks_path);
+            remove_copet_trusted_hashes(document, &hooks_path);
             Ok(())
         })
     }
@@ -131,15 +131,15 @@ fn set_features_hooks_true(document: &mut DocumentMut) {
     features.remove("codex_hooks");
 }
 
-/// Compact description of a single HoverPet-owned Codex hook handler.
+/// Compact description of a single CoPet-owned Codex hook handler.
 /// Mirrors the inputs Codex feeds into command_hook_hash.
-struct HoverPetCodexHandler<'a> {
+struct CoPetCodexHandler<'a> {
     event_label: &'a str, // "pre_tool_use" / "user_prompt_submit" / ...
     matcher: Option<&'a str>,
     command: &'a str,
     timeout_sec: u64, // already .max(1)
     status_message: Option<&'a str>,
-    // r#async stays false (HoverPet never writes async)
+    // r#async stays false (CoPet never writes async)
 }
 
 /// Vendored from openai/codex-rs/hooks/src/engine/discovery.rs:538 (NormalizedHookIdentity)
@@ -177,7 +177,7 @@ enum VendoredHookHandlerConfig<'a> {
 }
 
 /// Replicates command_hook_hash → version_for_toml from openai/codex-rs.
-fn compute_trusted_hash(handler: &HoverPetCodexHandler) -> String {
+fn compute_trusted_hash(handler: &CoPetCodexHandler) -> String {
     let identity = NormalizedHookIdentity {
         event_name: handler.event_label,
         group: VendoredMatcherGroup {
@@ -227,12 +227,12 @@ fn canonical_json(value: &serde_json::Value) -> serde_json::Value {
 }
 
 /// Mirrors hook_key from openai/codex-rs/hooks/src/lib.rs:91.
-/// HoverPet always writes one group / one handler per event, so indexes are 0:0.
+/// CoPet always writes one group / one handler per event, so indexes are 0:0.
 fn hook_state_key(hooks_file_abs_path: &Path, event_label: &str) -> String {
     format!("{}:{event_label}:0:0", hooks_file_abs_path.display())
 }
 
-/// Codex hook_event_key_label snake-case label for each Codex `cli_event` HoverPet uses.
+/// Codex hook_event_key_label snake-case label for each Codex `cli_event` CoPet uses.
 fn cli_event_to_label(cli_event: &str) -> Option<&'static str> {
     match cli_event {
         "PreToolUse" => Some("pre_tool_use"),
@@ -286,7 +286,7 @@ fn apply_trusted_hashes(
         let Some(groups) = groups.as_array() else {
             continue;
         };
-        // Iterate every group/handler HoverPet wrote (today: exactly 1 group, 1 handler each).
+        // Iterate every group/handler CoPet wrote (today: exactly 1 group, 1 handler each).
         for (_group_index, group) in groups.iter().enumerate() {
             let matcher = group.get("matcher").and_then(serde_json::Value::as_str);
             let Some(handlers) = group.get("hooks").and_then(serde_json::Value::as_array) else {
@@ -297,7 +297,7 @@ fn apply_trusted_hashes(
                 else {
                     continue;
                 };
-                // Only own hooks HoverPet authored (defensive: helper name in command).
+                // Only own hooks CoPet authored (defensive: helper name in command).
                 if !command.contains(crate::agents::HELPER_NAME) {
                     continue;
                 }
@@ -308,7 +308,7 @@ fn apply_trusted_hashes(
                 let status_message = handler
                     .get("statusMessage")
                     .and_then(serde_json::Value::as_str);
-                let descriptor = HoverPetCodexHandler {
+                let descriptor = CoPetCodexHandler {
                     event_label,
                     matcher,
                     command,
@@ -331,7 +331,7 @@ fn apply_trusted_hashes(
 
 /// Drop every [hooks.state."<key>"] entry whose key starts with our hooks.json
 /// absolute path followed by `:`. Leaves unrelated user-owned state alone.
-fn remove_hoverpet_trusted_hashes(document: &mut DocumentMut, hooks_file_abs_path: &Path) {
+fn remove_copet_trusted_hashes(document: &mut DocumentMut, hooks_file_abs_path: &Path) {
     let prefix = format!("{}:", hooks_file_abs_path.display());
     let Some(hooks_item) = document.get_mut("hooks") else {
         return;

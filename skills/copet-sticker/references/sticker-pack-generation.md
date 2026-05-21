@@ -1,8 +1,8 @@
 # Sticker Pack Generation
 
-**Read this when:** generating a global HoverPet sticker pack.
+**Read this when:** generating a global CoPet sticker pack.
 
-This workflow produces a self-contained decoration/effect sticker pack under `$HOME/.hoverpet/stickers/<sticker-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
+This workflow produces a self-contained decoration/effect sticker pack under `$HOME/.copet/stickers/<sticker-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
 
 ## Input contract
 
@@ -41,17 +41,17 @@ Derive:
 - `displayNameZh`: natural Chinese display name.
 - `id`: kebab-case slug from `displayName`.
 
-If `$HOME/.hoverpet/stickers/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
+If `$HOME/.copet/stickers/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
 
 ## Staging
 
 Write all in-flight files to:
 
 ```text
-$HOME/.hoverpet/tmp/stickers-<unix-epoch>-<sticker-id>/
+$HOME/.copet/tmp/stickers-<unix-epoch>-<sticker-id>/
 ```
 
-Create `$HOME/.hoverpet/tmp/` if needed. The live `$HOME/.hoverpet/stickers/<sticker-id>/` directory is read-only until validation passes.
+Create `$HOME/.copet/tmp/` if needed. The live `$HOME/.copet/stickers/<sticker-id>/` directory is read-only until validation passes.
 
 ## Generate `animation.svg`
 
@@ -139,13 +139,13 @@ Before promotion, validate:
 On success, atomically rename:
 
 ```text
-$HOME/.hoverpet/tmp/stickers-<unix-epoch>-<sticker-id>/
+$HOME/.copet/tmp/stickers-<unix-epoch>-<sticker-id>/
 ```
 
 to:
 
 ```text
-$HOME/.hoverpet/stickers/<sticker-id>/
+$HOME/.copet/stickers/<sticker-id>/
 ```
 
 On failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

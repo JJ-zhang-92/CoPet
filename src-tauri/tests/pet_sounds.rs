@@ -1,4 +1,4 @@
-use hoverpet_lib::config_store::ConfigStore;
+use copet_lib::config_store::ConfigStore;
 use std::{
     env, fs,
     path::{Path, PathBuf},
@@ -11,16 +11,16 @@ fn builtin_pets_dir() -> PathBuf {
 }
 
 fn make_store(temp: &tempfile::TempDir) -> ConfigStore {
-    ConfigStore::with_builtin_dir(temp.path().join(".hoverpet"), builtin_pets_dir())
+    ConfigStore::with_builtin_dir(temp.path().join(".copet"), builtin_pets_dir())
 }
 
 #[test]
-fn builtin_hoverpet_exposes_valid_interaction_and_agent_sounds() {
+fn builtin_copet_exposes_valid_interaction_and_agent_sounds() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
 
     let state = store.ensure_ready().unwrap();
-    let pet = state.pets.iter().find(|pet| pet.id == "hoverpet").unwrap();
+    let pet = state.pets.iter().find(|pet| pet.id == "copet").unwrap();
     let sounds = pet.sounds.as_ref().unwrap();
 
     assert!(sounds
@@ -28,67 +28,67 @@ fn builtin_hoverpet_exposes_valid_interaction_and_agent_sounds() {
         .click
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/click.mp3"));
+        .ends_with("copet/audio/click.mp3"));
     assert!(sounds
         .interaction_sounds
         .double_click
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/surprised.mp3"));
+        .ends_with("copet/audio/surprised.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/purr.mp3"));
+        .ends_with("copet/audio/purr.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted_slow
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/sigh.mp3"));
+        .ends_with("copet/audio/sigh.mp3"));
     assert!(sounds
         .interaction_sounds
         .drag_land
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/wheee.mp3"));
+        .ends_with("copet/audio/wheee.mp3"));
     assert!(sounds
         .agent_sounds
         .thinking
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/hmm.mp3"));
+        .ends_with("copet/audio/hmm.mp3"));
     assert!(sounds
         .agent_sounds
         .editing
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/tap.mp3"));
+        .ends_with("copet/audio/tap.mp3"));
     assert!(sounds
         .agent_sounds
         .inspecting
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/peek.mp3"));
+        .ends_with("copet/audio/peek.mp3"));
     assert!(sounds
         .agent_sounds
         .awaiting_approval
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/wait.mp3"));
+        .ends_with("copet/audio/wait.mp3"));
     assert!(sounds
         .agent_sounds
         .celebrating
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/yay.mp3"));
+        .ends_with("copet/audio/yay.mp3"));
     assert!(sounds
         .agent_sounds
         .failed
         .as_ref()
         .unwrap()
-        .ends_with("hoverpet/audio/oof.mp3"));
+        .ends_with("copet/audio/oof.mp3"));
 }
 
 #[test]
@@ -107,29 +107,29 @@ fn invalid_sound_entries_are_filtered_without_hiding_pet() {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3",
+        "click": "copet/audio/click.mp3",
         "doubleClick": "/tmp/outside.mp3",
         "petted": "../escape.mp3",
-        "pettedSlow": "hoverpet/audio/sigh.ogg",
-        "dragLand": "hoverpet/other/wheee.mp3"
+        "pettedSlow": "copet/audio/sigh.ogg",
+        "dragLand": "copet/other/wheee.mp3"
       },
       "agentSounds": {
-        "thinking": "hoverpet/audio/hmm.mp3",
-        "failed": "hoverpet/audio/missing.mp3"
+        "thinking": "copet/audio/hmm.mp3",
+        "failed": "copet/audio/missing.mp3"
       }
     }
   }
 }"#,
     );
-    fs::create_dir_all(pet_dir.join("hoverpet/audio")).unwrap();
-    fs::write(pet_dir.join("hoverpet/audio/click.mp3"), b"click").unwrap();
-    fs::write(pet_dir.join("hoverpet/audio/hmm.mp3"), b"hmm").unwrap();
-    fs::write(pet_dir.join("hoverpet/audio/sigh.ogg"), b"ogg").unwrap();
-    fs::create_dir_all(pet_dir.join("hoverpet/other")).unwrap();
-    fs::write(pet_dir.join("hoverpet/other/wheee.mp3"), b"outside").unwrap();
+    fs::create_dir_all(pet_dir.join("copet/audio")).unwrap();
+    fs::write(pet_dir.join("copet/audio/click.mp3"), b"click").unwrap();
+    fs::write(pet_dir.join("copet/audio/hmm.mp3"), b"hmm").unwrap();
+    fs::write(pet_dir.join("copet/audio/sigh.ogg"), b"ogg").unwrap();
+    fs::create_dir_all(pet_dir.join("copet/other")).unwrap();
+    fs::write(pet_dir.join("copet/other/wheee.mp3"), b"outside").unwrap();
 
     let state = store.app_state().unwrap();
     let pet = state
@@ -164,16 +164,16 @@ fn oversized_sound_entries_are_filtered() {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3"
+        "click": "copet/audio/click.mp3"
       }
     }
   }
 }"#,
     );
-    let audio_dir = pet_dir.join("hoverpet/audio");
+    let audio_dir = pet_dir.join("copet/audio");
     fs::create_dir_all(&audio_dir).unwrap();
     let large = fs::File::create(audio_dir.join("click.mp3")).unwrap();
     large.set_len(SOUND_LIMIT_BYTES + 1).unwrap();
@@ -207,10 +207,10 @@ fn symlinked_sound_entries_are_filtered() {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3"
+        "click": "copet/audio/click.mp3"
       }
     }
   }
@@ -218,7 +218,7 @@ fn symlinked_sound_entries_are_filtered() {
     );
     let outside_sound = temp.path().join("outside.mp3");
     fs::write(&outside_sound, b"outside").unwrap();
-    let audio_dir = pet_dir.join("hoverpet/audio");
+    let audio_dir = pet_dir.join("copet/audio");
     fs::create_dir_all(&audio_dir).unwrap();
     symlink(&outside_sound, audio_dir.join("click.mp3")).unwrap();
 
@@ -251,10 +251,10 @@ fn sound_entries_through_symlinked_audio_directory_are_filtered() {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3"
+        "click": "copet/audio/click.mp3"
       }
     }
   }
@@ -263,8 +263,8 @@ fn sound_entries_through_symlinked_audio_directory_are_filtered() {
     let outside_audio_dir = temp.path().join("outside-audio");
     fs::create_dir_all(&outside_audio_dir).unwrap();
     fs::write(outside_audio_dir.join("click.mp3"), b"outside").unwrap();
-    fs::create_dir_all(pet_dir.join("hoverpet")).unwrap();
-    symlink(&outside_audio_dir, pet_dir.join("hoverpet/audio")).unwrap();
+    fs::create_dir_all(pet_dir.join("copet")).unwrap();
+    symlink(&outside_audio_dir, pet_dir.join("copet/audio")).unwrap();
 
     let state = store.app_state().unwrap();
     let pet = state
@@ -293,7 +293,7 @@ fn import_pet_folder_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/folder-sound-pet/hoverpet/audio/click.mp3")
+        .join("pets/folder-sound-pet/copet/audio/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -303,7 +303,7 @@ fn import_pet_folder_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("folder-sound-pet/hoverpet/audio/click.mp3"));
+        .contains("folder-sound-pet/copet/audio/click.mp3"));
 }
 
 #[test]
@@ -325,7 +325,7 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/relative-sound-pet/hoverpet/audio/click.mp3")
+        .join("pets/relative-sound-pet/copet/audio/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -335,7 +335,7 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("relative-sound-pet/hoverpet/audio/click.mp3"));
+        .contains("relative-sound-pet/copet/audio/click.mp3"));
 }
 
 #[test]
@@ -356,7 +356,7 @@ fn import_pet_folder_from_installed_package_preserves_package() {
         .unwrap();
 
     assert!(installed_dir.exists());
-    assert!(installed_dir.join("hoverpet/audio/click.mp3").exists());
+    assert!(installed_dir.join("copet/audio/click.mp3").exists());
     assert!(pet
         .sounds
         .as_ref()
@@ -365,7 +365,7 @@ fn import_pet_folder_from_installed_package_preserves_package() {
         .click
         .as_ref()
         .unwrap()
-        .contains("reimport-sound-pet/hoverpet/audio/click.mp3"));
+        .contains("reimport-sound-pet/copet/audio/click.mp3"));
 }
 
 #[test]
@@ -391,7 +391,7 @@ fn install_codex_pet_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/codex-sound-pet/hoverpet/audio/click.mp3")
+        .join("pets/codex-sound-pet/copet/audio/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -401,7 +401,7 @@ fn install_codex_pet_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("codex-sound-pet/hoverpet/audio/click.mp3"));
+        .contains("codex-sound-pet/copet/audio/click.mp3"));
 }
 
 #[test]
@@ -422,10 +422,10 @@ fn import_pet_folder_preserves_manifest_metadata() {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {
+  "copet": {
     "schemaVersion": 1,
     "displayNameZh": "元数据音效宠物",
-    "descriptionZh": "保留 hoverpet 元数据",
+    "descriptionZh": "保留 copet 元数据",
     "behaviors": {
       "idle": {
         "row": 0
@@ -433,14 +433,14 @@ fn import_pet_folder_preserves_manifest_metadata() {
     },
     "audio": {
       "interactionSounds": {
-        "click": "hoverpet/audio/click.mp3"
+        "click": "copet/audio/click.mp3"
       }
     }
   }
 }"#,
     );
-    fs::create_dir_all(source_dir.join("hoverpet/audio")).unwrap();
-    fs::write(source_dir.join("hoverpet/audio/click.mp3"), b"click").unwrap();
+    fs::create_dir_all(source_dir.join("copet/audio")).unwrap();
+    fs::write(source_dir.join("copet/audio/click.mp3"), b"click").unwrap();
 
     store.import_pet_folder(&source_dir).unwrap();
 
@@ -452,15 +452,12 @@ fn import_pet_folder_preserves_manifest_metadata() {
     assert_eq!(installed_manifest["displayNameZh"], "元数据音效宠物");
     assert_eq!(installed_manifest["descriptionZh"], "保留导入元数据");
     assert_eq!(installed_manifest["spritesheetPath"], "spritesheet.png");
-    assert_eq!(installed_manifest["hoverpet"]["schemaVersion"], 1);
+    assert_eq!(installed_manifest["copet"]["schemaVersion"], 1);
     assert_eq!(
-        installed_manifest["hoverpet"]["descriptionZh"],
-        "保留 hoverpet 元数据"
+        installed_manifest["copet"]["descriptionZh"],
+        "保留 copet 元数据"
     );
-    assert_eq!(
-        installed_manifest["hoverpet"]["behaviors"]["idle"]["row"],
-        0
-    );
+    assert_eq!(installed_manifest["copet"]["behaviors"]["idle"]["row"], 0);
 }
 
 fn create_pet_with_manifest(dir: &Path, manifest: &str) {
@@ -470,7 +467,7 @@ fn create_pet_with_manifest(dir: &Path, manifest: &str) {
 }
 
 fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
-    fs::create_dir_all(dir.join("hoverpet/audio")).unwrap();
+    fs::create_dir_all(dir.join("copet/audio")).unwrap();
     fs::write(
         dir.join("pet.json"),
         format!(
@@ -482,10 +479,10 @@ fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
-  "hoverpet": {{
+  "copet": {{
     "audio": {{
       "interactionSounds": {{
-        "click": "hoverpet/audio/click.mp3"
+        "click": "copet/audio/click.mp3"
       }}
     }}
   }}
@@ -494,5 +491,5 @@ fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
     )
     .unwrap();
     fs::write(dir.join("spritesheet.png"), b"sprite").unwrap();
-    fs::write(dir.join("hoverpet/audio/click.mp3"), b"click").unwrap();
+    fs::write(dir.join("copet/audio/click.mp3"), b"click").unwrap();
 }

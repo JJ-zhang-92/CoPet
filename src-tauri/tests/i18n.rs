@@ -1,4 +1,4 @@
-use hoverpet_lib::i18n::{detect_locale_from_env, t, Locale, MessageKey};
+use copet_lib::i18n::{detect_locale_from_env, t, Locale, MessageKey};
 
 #[test]
 fn detects_chinese_locale_from_environment() {
@@ -27,9 +27,9 @@ fn defaults_to_english_for_unknown_environment() {
 #[test]
 fn localizes_tray_menu_labels() {
     // Unchanged keys
-    assert_eq!(t(Locale::EnUs, MessageKey::TrayBrand), "HoverPet");
+    assert_eq!(t(Locale::EnUs, MessageKey::TrayBrand), "CoPet");
     assert_eq!(t(Locale::EnUs, MessageKey::TrayQuit), "Quit");
-    assert_eq!(t(Locale::ZhCn, MessageKey::TrayBrand), "HoverPet");
+    assert_eq!(t(Locale::ZhCn, MessageKey::TrayBrand), "CoPet");
     assert_eq!(t(Locale::ZhCn, MessageKey::TrayQuit), "退出应用");
 
     // Settings sub-tab labels (each opens the settings window on that tab)
@@ -81,14 +81,14 @@ fn localizes_tray_menu_labels() {
 #[test]
 fn localizes_app_menu_labels() {
     // The macOS app menu (top-left of the screen) needs every label that
-    // embeds the app name to use the capitalized "HoverPet" — the binary
+    // embeds the app name to use the capitalized "CoPet" — the binary
     // name fallback is lowercase and unacceptable in either locale.
-    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuAbout), "About HoverPet");
-    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuHide), "Hide HoverPet");
-    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuQuit), "Quit HoverPet");
-    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuAbout), "关于 HoverPet");
-    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuHide), "隐藏 HoverPet");
-    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuQuit), "退出 HoverPet");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuAbout), "About CoPet");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuHide), "Hide CoPet");
+    assert_eq!(t(Locale::EnUs, MessageKey::AppMenuQuit), "Quit CoPet");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuAbout), "关于 CoPet");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuHide), "隐藏 CoPet");
+    assert_eq!(t(Locale::ZhCn, MessageKey::AppMenuQuit), "退出 CoPet");
 
     assert_eq!(t(Locale::EnUs, MessageKey::AppMenuServices), "Services");
     assert_eq!(
