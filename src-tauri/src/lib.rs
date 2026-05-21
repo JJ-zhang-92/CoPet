@@ -738,6 +738,38 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
     Ok(())
 }
 
+pub fn run_agent_auto_install_once(
+    store: &ConfigStore,
+    manager: &AgentManager,
+) -> Result<agents::AutoInstallSummary, config_store::StoreError> {
+    if store.agent_auto_install_complete()? {
+        return Ok(agents::AutoInstallSummary::default());
+    }
+
+    let summary = manager.auto_install_detected_agents();
+    #[cfg(debug_assertions)]
+    dev_log_agent_auto_install(&summary);
+    store.set_agent_auto_install_complete(true)?;
+    Ok(summary)
+}
+
+#[cfg(debug_assertions)]
+fn dev_log_agent_auto_install(summary: &agents::AutoInstallSummary) {
+    dev_log_app(
+        "agent.auto-install",
+        serde_json::json!({
+            "installed": &summary.installed,
+            "skipped": &summary.skipped,
+            "failed": summary.failed.iter().map(|failure| {
+                serde_json::json!({
+                    "adapterId": &failure.adapter_id,
+                    "error": &failure.error,
+                })
+            }).collect::<Vec<_>>(),
+        }),
+    );
+}
+
 #[tauri::command]
 fn list_agent_adapters() -> Result<Vec<AdapterSummary>, String> {
     let store = ConfigStore::from_home().map_err(localize_store_error)?;
@@ -791,6 +823,8 @@ pub fn run() {
             }
             let store = ConfigStore::from_home()?;
             store.ensure_ready()?;
+            let manager = AgentManager::from_home(store.root())?;
+            let _ = run_agent_auto_install_once(&store, &manager)?;
             install_tray_menu(app)?;
             install_app_menu(app, current_locale())?;
             let handle = app.handle().clone();
