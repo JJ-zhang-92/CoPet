@@ -48,7 +48,8 @@
         "scope": [
           "$HOME/.copet/pets/**",
           "$HOME/.codex/pets/**",
-          "$RESOURCE/assets/pets/**"
+          "$RESOURCE/assets/pets/**",
+          "$RESOURCE/assets/audios/**"
         ]
       }
     }
@@ -57,7 +58,8 @@
     "active": true,
     "targets": "all",
     "resources": {
-      "assets/pets": "assets/pets"
+      "assets/pets": "assets/pets",
+      "assets/audios": "assets/audios"
     },
     "icon": [
       "icons/32x32.png",

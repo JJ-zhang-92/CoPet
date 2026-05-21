@@ -28,67 +28,67 @@ fn builtin_copet_exposes_valid_interaction_and_agent_sounds() {
         .click
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/click.mp3"));
+        .ends_with("audios/copet/click.mp3"));
     assert!(sounds
         .interaction_sounds
         .double_click
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/surprised.mp3"));
+        .ends_with("audios/copet/surprised.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/purr.mp3"));
+        .ends_with("audios/copet/purr.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted_slow
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/sigh.mp3"));
+        .ends_with("audios/copet/sigh.mp3"));
     assert!(sounds
         .interaction_sounds
         .drag_land
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/wheee.mp3"));
+        .ends_with("audios/copet/wheee.mp3"));
     assert!(sounds
         .agent_sounds
         .thinking
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/hmm.mp3"));
+        .ends_with("audios/copet/hmm.mp3"));
     assert!(sounds
         .agent_sounds
         .editing
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/tap.mp3"));
+        .ends_with("audios/copet/tap.mp3"));
     assert!(sounds
         .agent_sounds
         .inspecting
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/peek.mp3"));
+        .ends_with("audios/copet/peek.mp3"));
     assert!(sounds
         .agent_sounds
         .awaiting_approval
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/wait.mp3"));
+        .ends_with("audios/copet/wait.mp3"));
     assert!(sounds
         .agent_sounds
         .celebrating
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/yay.mp3"));
+        .ends_with("audios/copet/yay.mp3"));
     assert!(sounds
         .agent_sounds
         .failed
         .as_ref()
         .unwrap()
-        .ends_with("copet/audio/oof.mp3"));
+        .ends_with("audios/copet/oof.mp3"));
 }
 
 #[test]
