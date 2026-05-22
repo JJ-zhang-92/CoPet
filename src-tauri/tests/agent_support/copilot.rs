@@ -332,6 +332,60 @@ fn mismatched_guard_and_invocation_paths_are_not_current_install() {
 }
 
 #[test]
+fn stale_copet_helper_paths_are_not_current_install() {
+    with_cleared_copilot_home(|| {
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("home");
+        let hooks = home.join(".copilot/hooks/copet.json");
+        fs::create_dir_all(hooks.parent().unwrap()).unwrap();
+
+        let mut events = serde_json::Map::new();
+        for (event, kind) in EVENTS {
+            events.insert(
+                event.to_string(),
+                serde_json::json!([{
+                    "type": "command",
+                    "bash": format!("if [ -f '/tmp/copet-hook.sh' ]; then '/tmp/copet-hook.sh' copilot {kind}; else echo \"{{}}\"; fi"),
+                    "timeoutSec": 1
+                }]),
+            );
+        }
+        fs::write(
+            &hooks,
+            serde_json::to_vec_pretty(&serde_json::json!({
+                "version": 1,
+                "hooks": events
+            }))
+            .unwrap(),
+        )
+        .unwrap();
+        let manager = AgentManager::new(temp.path().join(".copet"), home);
+
+        let summary = manager.inspect("copilot").unwrap();
+
+        assert!(!summary.installed);
+    });
+}
+
+#[cfg(windows)]
+#[test]
+fn copilot_install_is_unsupported_on_windows() {
+    with_cleared_copilot_home(|| {
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("home");
+        let root = temp.path().join(".copet");
+        let manager = manager_with_fake_agents(&root, &home);
+
+        let error = manager.install("copilot").unwrap_err().to_string();
+
+        assert!(error.contains("Copilot CLI"));
+        assert!(error.contains("Windows"));
+        assert!(!home.join(".copilot/hooks/copet.json").exists());
+        assert!(!root.join("hooks/copet-hook.sh").exists());
+    });
+}
+
+#[test]
 fn copilot_install_detection_tolerates_semicolon_in_helper_path() {
     assert_copilot_install_detection_for_root_dir_name("co;pet");
 }

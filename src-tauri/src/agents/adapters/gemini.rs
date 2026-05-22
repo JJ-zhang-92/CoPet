@@ -51,7 +51,11 @@ impl CliAdapter for GeminiAdapter {
         home.join(".gemini").join("settings.json")
     }
 
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
+    fn is_installed(
+        &self,
+        _manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError> {
         json_config_has_copet_hooks(config_path, self.id(), EVENTS)
     }
 

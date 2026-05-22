@@ -115,6 +115,12 @@ fn localize_adapter_error(error: AdapterError) -> String {
             AdapterError::AgentExecutableMissing { display_name } => {
                 format!("{display_name} 未安装或不在 PATH 中")
             }
+            AdapterError::UnsupportedPlatform {
+                display_name,
+                platform,
+            } => {
+                format!("{display_name} 钩子暂不支持 {platform}")
+            }
         },
     }
 }

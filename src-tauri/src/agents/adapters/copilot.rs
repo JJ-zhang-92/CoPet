@@ -59,8 +59,37 @@ impl CliAdapter for CopilotCliAdapter {
         copilot_home(home).join("hooks").join("copet.json")
     }
 
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
-        copilot_config_has_copet_hooks(config_path, self.id())
+    fn ensure_supported(&self) -> Result<(), AdapterError> {
+        #[cfg(windows)]
+        {
+            return Err(AdapterError::UnsupportedPlatform {
+                display_name: self.display_name().to_string(),
+                platform: "Windows",
+            });
+        }
+
+        #[cfg(not(windows))]
+        {
+            Ok(())
+        }
+    }
+
+    fn is_installed(
+        &self,
+        manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError> {
+        #[cfg(windows)]
+        {
+            let _ = manager;
+            let _ = config_path;
+            Ok(false)
+        }
+
+        #[cfg(not(windows))]
+        {
+            copilot_config_has_copet_hooks(config_path, self.id(), &manager.helper_path())
+        }
     }
 
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError> {
@@ -116,7 +145,11 @@ fn copilot_hooks_file(adapter_id: &str, helper_path: &Path) -> Value {
     })
 }
 
-fn copilot_config_has_copet_hooks(path: &Path, adapter_id: &str) -> Result<bool, AdapterError> {
+fn copilot_config_has_copet_hooks(
+    path: &Path,
+    adapter_id: &str,
+    expected_helper_path: &Path,
+) -> Result<bool, AdapterError> {
     let Some(value) = read_json_object_optional(path)? else {
         return Ok(false);
     };
@@ -132,23 +165,35 @@ fn copilot_config_has_copet_hooks(path: &Path, adapter_id: &str) -> Result<bool,
             .get(event.cli_event)
             .and_then(Value::as_array)
             .is_some_and(|entries| {
-                entries
-                    .iter()
-                    .any(|entry| hook_entry_matches_event(entry, adapter_id, event.kind))
+                entries.iter().any(|entry| {
+                    hook_entry_matches_event(entry, adapter_id, event.kind, expected_helper_path)
+                })
             })
     }))
 }
 
-fn hook_entry_matches_event(entry: &Value, adapter_id: &str, kind: &str) -> bool {
+fn hook_entry_matches_event(
+    entry: &Value,
+    adapter_id: &str,
+    kind: &str,
+    expected_helper_path: &Path,
+) -> bool {
     entry.get("type").and_then(Value::as_str) == Some("command")
         && entry.get("timeoutSec").and_then(Value::as_u64) == Some(1)
         && entry
             .get("bash")
             .and_then(Value::as_str)
-            .is_some_and(|command| is_copilot_copet_command(command, adapter_id, kind))
+            .is_some_and(|command| {
+                is_copilot_copet_command(command, adapter_id, kind, expected_helper_path)
+            })
 }
 
-fn is_copilot_copet_command(command: &str, adapter_id: &str, kind: &str) -> bool {
+fn is_copilot_copet_command(
+    command: &str,
+    adapter_id: &str,
+    kind: &str,
+    expected_helper_path: &Path,
+) -> bool {
     let Some(rest) = command.strip_prefix("if [ -f ") else {
         return false;
     };
@@ -163,7 +208,13 @@ fn is_copilot_copet_command(command: &str, adapter_id: &str, kind: &str) -> bool
     };
 
     let then_invocation = then_invocation.trim();
-    invocation_matches_copet_helper(then_invocation, adapter_id, kind, &guard_path)
+    invocation_matches_copet_helper(
+        then_invocation,
+        adapter_id,
+        kind,
+        &guard_path,
+        expected_helper_path,
+    )
 }
 
 fn parse_guard_path(segment: &str) -> Option<String> {
@@ -180,11 +231,15 @@ fn invocation_matches_copet_helper(
     adapter_id: &str,
     kind: &str,
     guard_path: &str,
+    expected_helper_path: &Path,
 ) -> bool {
     let Some((helper_path, args)) = parse_shell_quoted_word(invocation) else {
         return false;
     };
     if helper_path != guard_path {
+        return false;
+    }
+    if helper_path != expected_helper_path.to_string_lossy() {
         return false;
     }
 

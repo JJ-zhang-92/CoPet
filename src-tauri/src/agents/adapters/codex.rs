@@ -61,7 +61,11 @@ impl CliAdapter for CodexCliAdapter {
         home.join(".codex").join("hooks.json")
     }
 
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
+    fn is_installed(
+        &self,
+        _manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError> {
         json_config_has_copet_hook(config_path, self.id())
     }
 

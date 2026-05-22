@@ -35,7 +35,11 @@ impl CliAdapter for OpenCodeAdapter {
         opencode_config_dir(home).join("plugins").join("copet.js")
     }
 
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
+    fn is_installed(
+        &self,
+        _manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError> {
         let plugin_installed = config_path
             .is_file()
             .then(|| fs::read_to_string(config_path).ok())

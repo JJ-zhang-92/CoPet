@@ -55,7 +55,11 @@ impl CliAdapter for AntigravityAdapter {
         home.join(".gemini").join("config").join("hooks.json")
     }
 
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError> {
+    fn is_installed(
+        &self,
+        _manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError> {
         antigravity_config_has_copet_hooks(config_path, self.id())
     }
 

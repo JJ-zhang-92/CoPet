@@ -62,13 +62,25 @@ pub enum AdapterError {
     InvalidJson(PathBuf),
     #[error("{display_name} is not installed or not available on PATH")]
     AgentExecutableMissing { display_name: String },
+    #[error("{display_name} hooks are not supported on {platform}")]
+    UnsupportedPlatform {
+        display_name: String,
+        platform: &'static str,
+    },
 }
 
 pub(crate) trait CliAdapter: Sync {
     fn id(&self) -> &'static str;
     fn display_name(&self) -> &'static str;
     fn config_path(&self, home: &Path) -> PathBuf;
-    fn is_installed(&self, config_path: &Path) -> Result<bool, AdapterError>;
+    fn ensure_supported(&self) -> Result<(), AdapterError> {
+        Ok(())
+    }
+    fn is_installed(
+        &self,
+        manager: &AgentManager,
+        config_path: &Path,
+    ) -> Result<bool, AdapterError>;
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError>;
     fn uninstall(&self, manager: &AgentManager) -> Result<(), AdapterError>;
     fn executable_names(&self) -> &'static [&'static str];
@@ -137,7 +149,7 @@ impl AgentManager {
     pub fn inspect(&self, id: &str) -> Result<AdapterSummary, AdapterError> {
         let adapter = adapter_by_id(id)?;
         let config_path = adapter.config_path(&self.home);
-        let installed = adapter.is_installed(&config_path)?;
+        let installed = adapter.is_installed(self, &config_path)?;
 
         Ok(AdapterSummary {
             id: adapter.id().to_string(),
@@ -157,6 +169,7 @@ impl AgentManager {
 
     pub fn install(&self, id: &str) -> Result<AdapterOperationResult, AdapterError> {
         let adapter = adapter_by_id(id)?;
+        adapter.ensure_supported()?;
         self.ensure_agent_executable(adapter)?;
         self.ensure_helper()?;
         adapter.install(self)?;
