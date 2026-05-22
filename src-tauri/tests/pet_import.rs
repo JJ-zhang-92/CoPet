@@ -677,6 +677,10 @@ fn commit_import_previews_allocates_third_suffix_without_rewriting_manifest() {
     let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox-3/pet.json")).unwrap();
     assert!(raw_manifest.contains(r#""id": "desk-cat""#));
     assert!(!raw_manifest.contains("user:"));
+    let existing_manifest =
+        fs::read_to_string(store.root().join("pets/local-fox-2/pet.json")).unwrap();
+    assert!(existing_manifest.contains(r#""id": "local-fox""#));
+    assert!(existing_manifest.contains(r#""displayName": "Local Fox Copy""#));
 }
 
 #[test]
@@ -716,6 +720,135 @@ fn commit_import_previews_reports_missing_selected_preview_and_continues() {
         .error_message
         .contains("preview package is no longer available"));
     assert!(store.root().join("pets/alpha/pet.json").exists());
+}
+
+#[test]
+fn commit_import_previews_reports_unsafe_preview_id_without_installing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("alpha");
+    create_pet_package(temp.path(), "alpha", "alpha", "Alpha");
+
+    let session = create_import_session(&store).unwrap();
+    preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    let result =
+        commit_import_previews(&store, &session.session_id, &["../alpha".to_string()]).unwrap();
+
+    assert!(result.imported.is_empty());
+    assert_eq!(result.failed.len(), 1);
+    assert_eq!(result.failed[0].preview_id, "../alpha");
+    assert!(result.failed[0].error_message.contains("preview id"));
+    assert!(!store.root().join("pets/alpha").exists());
+}
+
+#[test]
+fn commit_import_previews_rejects_unsafe_metadata_storage_id_without_installing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat");
+    create_pet_package(temp.path(), "desk-cat", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+    let preview = &batch.previews[0];
+    fs::write(
+        store
+            .import_previews_dir()
+            .join(&session.session_id)
+            .join(&preview.preview_id)
+            .join(".copet-import-preview.json"),
+        format!(
+            r#"{{
+  "previewId": "{}",
+  "intendedStorageId": "bad:id",
+  "intendedPetId": "user:bad:id",
+  "sourceLabel": "desk-cat"
+}}"#,
+            preview.preview_id
+        ),
+    )
+    .unwrap();
+
+    let result =
+        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+
+    assert!(result.imported.is_empty());
+    assert_eq!(result.failed.len(), 1);
+    assert!(result.failed[0].error_message.contains("invalid pet id"));
+    assert!(!store.root().join("pets/desk-cat").exists());
+    assert!(!store.root().join("pets/bad:id").exists());
+}
+
+#[test]
+fn commit_import_previews_rejects_mismatched_preview_metadata_without_installing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat");
+    create_pet_package(temp.path(), "desk-cat", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+    let preview = &batch.previews[0];
+    fs::write(
+        store
+            .import_previews_dir()
+            .join(&session.session_id)
+            .join(&preview.preview_id)
+            .join(".copet-import-preview.json"),
+        r#"{
+  "previewId": "other-preview",
+  "intendedStorageId": "desk-cat",
+  "intendedPetId": "user:desk-cat",
+  "sourceLabel": "desk-cat"
+}"#,
+    )
+    .unwrap();
+
+    let result =
+        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+
+    assert!(result.imported.is_empty());
+    assert_eq!(result.failed.len(), 1);
+    assert!(result.failed[0].error_message.contains("preview metadata"));
+    assert!(!store.root().join("pets/desk-cat").exists());
+}
+
+#[test]
+fn commit_import_previews_rejects_mismatched_intended_pet_id_metadata_without_installing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat");
+    create_pet_package(temp.path(), "desk-cat", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+    let preview = &batch.previews[0];
+    fs::write(
+        store
+            .import_previews_dir()
+            .join(&session.session_id)
+            .join(&preview.preview_id)
+            .join(".copet-import-preview.json"),
+        format!(
+            r#"{{
+  "previewId": "{}",
+  "intendedStorageId": "desk-cat",
+  "intendedPetId": "user:other",
+  "sourceLabel": "desk-cat"
+}}"#,
+            preview.preview_id
+        ),
+    )
+    .unwrap();
+
+    let result =
+        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+
+    assert!(result.imported.is_empty());
+    assert_eq!(result.failed.len(), 1);
+    assert!(result.failed[0].error_message.contains("preview metadata"));
+    assert!(!store.root().join("pets/desk-cat").exists());
 }
 
 #[test]

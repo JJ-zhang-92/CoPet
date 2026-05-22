@@ -270,7 +270,8 @@ pub fn commit_import_previews(
             continue;
         }
 
-        let base_storage_id = match preview_intended_storage_id(&preview_dir, &package) {
+        let base_storage_id = match preview_intended_storage_id(preview_id, &preview_dir, &package)
+        {
             Ok(storage_id) => storage_id,
             Err(error) => {
                 failed.push(PetImportFailure {
@@ -281,8 +282,8 @@ pub fn commit_import_previews(
             }
         };
 
-        let storage_id = match store.next_available_user_pet_storage_id(&base_storage_id) {
-            Ok(storage_id) => storage_id,
+        let (storage_id, target_dir) = match reserve_user_pet_target(store, &base_storage_id) {
+            Ok(reserved) => reserved,
             Err(error) => {
                 failed.push(PetImportFailure {
                     preview_id: preview_id.clone(),
@@ -291,8 +292,10 @@ pub fn commit_import_previews(
                 continue;
             }
         };
-        let target_dir = store.pets_dir().join(&storage_id);
-        if let Err(error) = copy_pet_package_for_import(&preview_dir, &target_dir, &package) {
+        if let Err(error) =
+            copy_reserved_pet_package_for_import(&preview_dir, &target_dir, &package)
+        {
+            let _ = fs::remove_dir_all(&target_dir);
             failed.push(PetImportFailure {
                 preview_id: preview_id.clone(),
                 error_message: error.to_string(),
@@ -300,7 +303,12 @@ pub fn commit_import_previews(
             continue;
         }
 
-        fs::remove_dir_all(&preview_dir)?;
+        if let Err(error) = fs::remove_dir_all(&preview_dir) {
+            failed.push(PetImportFailure {
+                preview_id: preview_id.clone(),
+                error_message: format!("imported pet but could not remove preview: {error}"),
+            });
+        }
         let sprite_path = package
             .sprite_path
             .file_name()
@@ -371,7 +379,65 @@ fn write_preview_metadata(
     Ok(())
 }
 
+fn reserve_user_pet_target(
+    store: &ConfigStore,
+    base_id: &str,
+) -> Result<(String, PathBuf), StoreError> {
+    if !safe_pet_storage_id(base_id) {
+        return Err(StoreError::InvalidPetPackage(
+            "pet id must be a safe storage id".to_string(),
+        ));
+    }
+
+    let pets_dir = store.pets_dir();
+    for suffix in 1.. {
+        let storage_id = if suffix == 1 {
+            base_id.to_string()
+        } else {
+            format!("{base_id}-{suffix}")
+        };
+        let target_dir = pets_dir.join(&storage_id);
+        match fs::create_dir(&target_dir) {
+            Ok(()) => return Ok((storage_id, target_dir)),
+            Err(error) if error.kind() == io::ErrorKind::AlreadyExists => continue,
+            Err(error) => return Err(error.into()),
+        }
+    }
+
+    unreachable!("exhausted numeric pet storage id suffixes")
+}
+
+fn copy_reserved_pet_package_for_import(
+    source_dir: &Path,
+    target_dir: &Path,
+    package: &PetPackage,
+) -> Result<(), StoreError> {
+    let source_root = fs::canonicalize(source_dir)?;
+    fs::copy(source_root.join("pet.json"), target_dir.join("pet.json"))?;
+    if let Some(sprite_name) = package.sprite_path.file_name() {
+        fs::copy(&package.sprite_path, target_dir.join(sprite_name))?;
+    }
+    for sound_path in package.sound_file_paths() {
+        let canonical_sound_path = fs::canonicalize(&sound_path)?;
+        let relative_path = canonical_sound_path
+            .strip_prefix(&source_root)
+            .map_err(|_| {
+                StoreError::InvalidPetPackage(format!(
+                    "sound file must be inside package: {}",
+                    sound_path.display()
+                ))
+            })?;
+        let target_path = target_dir.join(relative_path);
+        if let Some(parent) = target_path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        fs::copy(canonical_sound_path, target_path)?;
+    }
+    Ok(())
+}
+
 fn preview_intended_storage_id(
+    requested_preview_id: &str,
     preview_dir: &Path,
     package: &PetPackage,
 ) -> Result<String, StoreError> {
@@ -381,9 +447,19 @@ fn preview_intended_storage_id(
     }
 
     let metadata: PetImportPreviewMetadata = serde_json::from_slice(&fs::read(metadata_path)?)?;
+    if metadata.preview_id != requested_preview_id {
+        return Err(StoreError::InvalidPetPackage(
+            "preview metadata does not match selected preview".to_string(),
+        ));
+    }
     if !safe_pet_storage_id(&metadata.intended_storage_id) {
         return Err(StoreError::InvalidPetPackage(
             "preview metadata has an invalid pet id".to_string(),
+        ));
+    }
+    if metadata.intended_pet_id != user_pet_id(&metadata.intended_storage_id) {
+        return Err(StoreError::InvalidPetPackage(
+            "preview metadata does not match intended pet id".to_string(),
         ));
     }
     Ok(metadata.intended_storage_id)
