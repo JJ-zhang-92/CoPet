@@ -2,6 +2,7 @@ use copet_lib::{
     config_store::ConfigStore,
     pet_import::{
         create_import_session, preview_codex_imports, preview_folder_imports, preview_zip_imports,
+        ZIP_PREVIEW_MAX_FILE_BYTES,
     },
 };
 use std::{
@@ -170,6 +171,93 @@ fn preview_zip_imports_rejects_path_traversal() {
         .errors
         .iter()
         .any(|error| error.contains("unsafe zip path")));
+}
+
+#[test]
+fn preview_zip_imports_continues_after_bad_zip() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let bad_zip_path = temp.path().join("unsafe.zip");
+    let good_zip_path = temp.path().join("good.zip");
+    write_zip(
+        &bad_zip_path,
+        &[
+            ("pet.json", &manifest_bytes("bad-pet", "Bad Pet")),
+            ("spritesheet.png", b"bad"),
+            ("../escape.txt", b"escape"),
+        ],
+    );
+    write_zip(
+        &good_zip_path,
+        &[
+            ("pet.json", &manifest_bytes("good-pet", "Good Pet")),
+            ("spritesheet.png", b"good"),
+        ],
+    );
+
+    let session = create_import_session(&store).unwrap();
+    let batch =
+        preview_zip_imports(&store, &session.session_id, &[bad_zip_path, good_zip_path]).unwrap();
+
+    assert_eq!(batch.previews.len(), 1);
+    assert_eq!(batch.previews[0].summary.id, "user:good-pet");
+    assert!(batch
+        .errors
+        .iter()
+        .any(|error| error.contains("unsafe zip path")));
+    assert!(!temp.path().join("escape.txt").exists());
+    assert!(!store.root().join("pets/good-pet").exists());
+}
+
+#[test]
+fn preview_zip_imports_rejects_duplicate_output_paths() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let zip_path = temp.path().join("duplicate.zip");
+    write_zip(
+        &zip_path,
+        &[
+            ("pet.json", &manifest_bytes("first-pet", "First Pet")),
+            ("./pet.json", &manifest_bytes("second-pet", "Second Pet")),
+            ("spritesheet.png", b"sprite"),
+        ],
+    );
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_zip_imports(&store, &session.session_id, &[zip_path]).unwrap();
+
+    assert!(batch.previews.is_empty());
+    assert!(batch
+        .errors
+        .iter()
+        .any(|error| error.contains("duplicate zip path")));
+    assert!(!store.root().join("pets/first-pet").exists());
+    assert!(!store.root().join("pets/second-pet").exists());
+}
+
+#[test]
+fn preview_zip_imports_rejects_entries_over_file_size_limit() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let zip_path = temp.path().join("large.zip");
+    let oversized_sprite = vec![b'x'; ZIP_PREVIEW_MAX_FILE_BYTES as usize + 1];
+    write_zip(
+        &zip_path,
+        &[
+            ("pet.json", &manifest_bytes("large-pet", "Large Pet")),
+            ("spritesheet.png", &oversized_sprite),
+        ],
+    );
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_zip_imports(&store, &session.session_id, &[zip_path]).unwrap();
+
+    assert!(batch.previews.is_empty());
+    assert!(batch
+        .errors
+        .iter()
+        .any(|error| error.contains("exceeds zip entry size limit")));
+    assert!(!store.root().join("pets/large-pet").exists());
 }
 
 #[test]

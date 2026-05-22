@@ -8,12 +8,15 @@ use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeSet,
     fs, io,
-    path::{Path, PathBuf},
+    path::{Component, Path, PathBuf},
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use zip::ZipArchive;
 
 const STALE_SESSION_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+pub const ZIP_PREVIEW_MAX_ENTRIES: usize = 512;
+pub const ZIP_PREVIEW_MAX_FILE_BYTES: u64 = 32 * 1024 * 1024;
+pub const ZIP_PREVIEW_MAX_TOTAL_BYTES: u64 = 128 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -173,11 +176,11 @@ pub fn preview_zip_imports(
                         errors.push(format!("could not preview {}: {error}", zip_path.display()))
                     }
                 }
-                let _ = fs::remove_dir_all(&scratch_dir);
+                cleanup_scratch_dir(zip_path, &scratch_dir, &mut errors);
             }
             Err(message) => {
                 errors.push(message);
-                let _ = fs::remove_dir_all(&scratch_dir);
+                cleanup_scratch_dir(zip_path, &scratch_dir, &mut errors);
             }
         }
     }
@@ -322,10 +325,21 @@ fn extract_zip_for_preview(zip_path: &Path, scratch_dir: &Path) -> Result<PathBu
         .map_err(|error| format!("could not open {}: {error}", zip_path.display()))?;
     let mut archive = ZipArchive::new(file)
         .map_err(|error| format!("could not read {}: {error}", zip_path.display()))?;
+    if archive.len() > ZIP_PREVIEW_MAX_ENTRIES {
+        return Err(format!(
+            "{} has too many zip entries: {} > {}",
+            zip_path.display(),
+            archive.len(),
+            ZIP_PREVIEW_MAX_ENTRIES
+        ));
+    }
+
     let raw_dir = scratch_dir.join("contents");
     fs::create_dir(&raw_dir)
         .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
 
+    let mut output_paths = BTreeSet::new();
+    let mut total_uncompressed_bytes = 0_u64;
     for index in 0..archive.len() {
         let mut file = archive
             .by_index(index)
@@ -337,12 +351,47 @@ fn extract_zip_for_preview(zip_path: &Path, scratch_dir: &Path) -> Result<PathBu
                 file.name()
             ));
         };
-        let target_path = raw_dir.join(enclosed_name);
+        let output_path = normalized_zip_output_path(&enclosed_name)
+            .ok_or_else(|| format!("unsafe zip path in {}: {}", zip_path.display(), file.name()))?;
+        if !output_paths.insert(output_path.clone()) {
+            return Err(format!(
+                "duplicate zip path in {}: {}",
+                zip_path.display(),
+                output_path.display()
+            ));
+        }
+        let target_path = raw_dir.join(output_path);
 
         if file.is_dir() {
             fs::create_dir_all(&target_path)
                 .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
             continue;
+        }
+
+        let entry_size = file.size();
+        if entry_size > ZIP_PREVIEW_MAX_FILE_BYTES {
+            return Err(format!(
+                "{} exceeds zip entry size limit: {} > {} bytes",
+                file.name(),
+                entry_size,
+                ZIP_PREVIEW_MAX_FILE_BYTES
+            ));
+        }
+        total_uncompressed_bytes = total_uncompressed_bytes
+            .checked_add(entry_size)
+            .ok_or_else(|| {
+                format!(
+                    "{} exceeds zip total size limit: overflow",
+                    zip_path.display()
+                )
+            })?;
+        if total_uncompressed_bytes > ZIP_PREVIEW_MAX_TOTAL_BYTES {
+            return Err(format!(
+                "{} exceeds zip total size limit: {} > {} bytes",
+                zip_path.display(),
+                total_uncompressed_bytes,
+                ZIP_PREVIEW_MAX_TOTAL_BYTES
+            ));
         }
 
         if let Some(parent) = target_path.parent() {
@@ -351,11 +400,73 @@ fn extract_zip_for_preview(zip_path: &Path, scratch_dir: &Path) -> Result<PathBu
         }
         let mut target_file = fs::File::create(&target_path)
             .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
-        io::copy(&mut file, &mut target_file)
-            .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
+        let entry_name = file.name().to_string();
+        copy_zip_file_bounded(
+            zip_path,
+            &entry_name,
+            &mut file,
+            &mut target_file,
+            entry_size,
+        )?;
     }
 
     Ok(normalize_zip_preview_root(&raw_dir))
+}
+
+fn normalized_zip_output_path(path: &Path) -> Option<PathBuf> {
+    let mut normalized = PathBuf::new();
+    for component in path.components() {
+        match component {
+            Component::Normal(segment) => normalized.push(segment),
+            Component::CurDir => {}
+            Component::ParentDir | Component::RootDir | Component::Prefix(_) => return None,
+        }
+    }
+    if normalized.as_os_str().is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
+}
+
+fn copy_zip_file_bounded(
+    zip_path: &Path,
+    entry_name: &str,
+    source: &mut impl io::Read,
+    target: &mut impl io::Write,
+    expected_size: u64,
+) -> Result<(), String> {
+    let mut copied = 0_u64;
+    let mut buffer = [0_u8; 8192];
+    loop {
+        let read = source
+            .read(&mut buffer)
+            .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
+        if read == 0 {
+            return Ok(());
+        }
+        copied = copied
+            .checked_add(read as u64)
+            .ok_or_else(|| format!("{} exceeds zip entry size limit: overflow", entry_name))?;
+        if copied > ZIP_PREVIEW_MAX_FILE_BYTES || copied > expected_size {
+            return Err(format!(
+                "{} exceeds zip entry size limit: {} > {} bytes",
+                entry_name, copied, ZIP_PREVIEW_MAX_FILE_BYTES
+            ));
+        }
+        target
+            .write_all(&buffer[..read])
+            .map_err(|error| format!("could not stage {}: {error}", zip_path.display()))?;
+    }
+}
+
+fn cleanup_scratch_dir(zip_path: &Path, scratch_dir: &Path, errors: &mut Vec<String>) {
+    if let Err(error) = fs::remove_dir_all(scratch_dir) {
+        errors.push(format!(
+            "could not clean up preview scratch for {}: {error}",
+            zip_path.display()
+        ));
+    }
 }
 
 fn normalize_zip_preview_root(raw_dir: &Path) -> PathBuf {
