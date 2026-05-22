@@ -54,7 +54,7 @@ test("selecting a pet in settings updates the visible pet window immediately", a
   await expect(petPage.getByRole("img", { name: "Goku" })).toBeVisible();
 });
 
-test("pet window load failure shows error toast without rendering error details", async ({
+test("pet window load failure renders error details without toast", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
@@ -64,10 +64,8 @@ test("pet window load failure shows error toast without rendering error details"
   });
   const page = await harness.openPage("pet");
 
-  await expect(page.locator("[data-sonner-toast]")).toContainText(
-    "pet bootstrap failed",
-  );
-  await expect(page.locator("main")).not.toContainText("pet bootstrap failed");
+  await expect(page.locator("main")).toContainText("pet bootstrap failed");
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Refresh" })).toBeVisible();
 });
 
