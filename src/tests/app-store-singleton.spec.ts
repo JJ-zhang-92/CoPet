@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-import { createAppHarness, copet } from "./app-harness";
+import { createAppHarness, copet, goku } from "./app-harness";
 
 test("PetWindow bootstrap issues exactly one logical fetch (no dual-instance)", async ({
   browser,
@@ -76,4 +76,51 @@ test("app harness can mock a missing downloads directory", async ({ browser }) =
   );
 
   expect(downloadsDir).toBeNull();
+});
+
+test("app harness commit import preserves selected pet and reports missing previews", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    importPreviews: [
+      {
+        previewId: "preview-goku",
+        summary: goku,
+        sourceLabel: "goku.zip",
+        intendedPetId: goku.id,
+        selectedByDefault: true,
+      },
+    ],
+    state: {
+      currentPetId: copet.id,
+      pets: [copet],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("settings");
+
+  const result = await page.evaluate(() =>
+    window.__TAURI_INTERNALS__.invoke("commit_pet_import_previews", {
+      sessionId: "session-1",
+      previewIds: ["preview-goku", "missing-preview", "../bad"],
+    }),
+  );
+
+  expect(result).toEqual({
+    imported: [goku],
+    failed: [
+      {
+        previewId: "missing-preview",
+        errorMessage: "preview package is no longer available",
+      },
+      {
+        previewId: "../bad",
+        errorMessage: "preview id is invalid",
+      },
+    ],
+    state: expect.objectContaining({
+      currentPetId: copet.id,
+      pets: [copet, goku],
+    }),
+  });
 });

@@ -319,13 +319,43 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
         }
         if (command === "commit_pet_import_previews") {
           const previewIds = (args.previewIds as string[] | undefined) ?? [];
-          const imported = importPreviews
-            .filter((preview) => previewIds.includes(preview.previewId))
-            .map((preview) => preview.summary);
+          const consumedPreviewIds = new Set<string>();
+          const imported: PetSummary[] = [];
+          const failed: Array<{ previewId: string; errorMessage: string }> = [];
+          const safePreviewId = (previewId: string) =>
+            previewId.length > 0 &&
+            previewId !== "." &&
+            previewId !== ".." &&
+            /^[A-Za-z0-9_.-]+$/.test(previewId);
+
+          for (const previewId of previewIds) {
+            if (!safePreviewId(previewId)) {
+              failed.push({
+                previewId,
+                errorMessage: "preview id is invalid",
+              });
+              continue;
+            }
+
+            const preview = importPreviews.find(
+              (candidate) =>
+                candidate.previewId === previewId && !consumedPreviewIds.has(previewId),
+            );
+            if (!preview) {
+              failed.push({
+                previewId,
+                errorMessage: "preview package is no longer available",
+              });
+              continue;
+            }
+
+            consumedPreviewIds.add(previewId);
+            imported.push(preview.summary);
+          }
+
           if (imported.length > 0) {
             state = {
               ...state,
-              currentPetId: imported[0].id,
               pets: [
                 ...state.pets.filter(
                   (pet) => !imported.some((importedPet) => importedPet.id === pet.id),
@@ -335,10 +365,10 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
             };
           }
           importPreviews = importPreviews.filter(
-            (preview) => !previewIds.includes(preview.previewId),
+            (preview) => !consumedPreviewIds.has(preview.previewId),
           );
           await emitAppState();
-          return { imported, failed: [], state };
+          return { imported, failed, state };
         }
         if (command === "discard_pet_import_previews") {
           importPreviews = [];
