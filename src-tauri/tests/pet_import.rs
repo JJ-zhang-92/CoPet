@@ -92,3 +92,77 @@ fn preview_folder_imports_accepts_package_folder_and_child_packages() {
     assert!(!store.root().join("pets/beta").exists());
     assert!(!store.root().join("pets/single-pet").exists());
 }
+
+#[test]
+fn preview_folder_imports_skips_unsafe_manifest_id_without_staging() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("bad-manifest");
+    create_pet_package(temp.path(), "bad-manifest", "bad:id", "Bad Manifest");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    assert!(batch.previews.is_empty());
+    assert_eq!(batch.skipped, 1);
+    assert!(batch.errors.is_empty());
+    assert!(!store
+        .import_previews_dir()
+        .join(&session.session_id)
+        .join("bad-manifest")
+        .exists());
+    assert!(!store.root().join("pets/bad-manifest").exists());
+}
+
+#[test]
+fn preview_folder_imports_skips_unsafe_source_storage_id_without_staging() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("bad:id");
+    create_pet_package(temp.path(), "bad:id", "bad-id", "Bad Source");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    assert!(batch.previews.is_empty());
+    assert_eq!(batch.skipped, 1);
+    assert!(batch.errors.is_empty());
+    assert!(!store
+        .import_previews_dir()
+        .join(&session.session_id)
+        .join("bad-id")
+        .exists());
+    assert!(!store.root().join("pets/bad-id").exists());
+}
+
+#[test]
+fn preview_folder_imports_uses_safe_source_storage_id_without_rewriting_manifest() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat-2");
+    create_pet_package(temp.path(), "desk-cat-2", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    assert_eq!(batch.skipped, 0);
+    assert!(batch.errors.is_empty());
+    assert_eq!(batch.previews.len(), 1);
+    let preview = &batch.previews[0];
+    assert_eq!(preview.summary.id, "user:desk-cat-2");
+    assert_eq!(preview.intended_pet_id, "user:desk-cat-2");
+
+    let staged_manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            store
+                .import_previews_dir()
+                .join(&session.session_id)
+                .join(&preview.preview_id)
+                .join("pet.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    assert_eq!(staged_manifest["id"], "desk-cat");
+    assert!(!store.root().join("pets/desk-cat-2").exists());
+}

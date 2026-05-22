@@ -99,23 +99,19 @@ pub fn preview_folder_imports(
                         continue;
                     }
 
-                    let storage_id = if let Some(label) =
+                    let Some(storage_id) =
                         source_dir_label(&source_dir).filter(|label| safe_storage_id(label))
-                    {
-                        label.to_string()
-                    } else if safe_storage_id(&package.manifest.id) {
-                        package.manifest.id.clone()
-                    } else {
+                    else {
                         skipped += 1;
                         continue;
                     };
-                    let preview_id = preview_id_for(&storage_id, &mut used_preview_ids);
+                    let preview_id = preview_id_for(storage_id, &mut used_preview_ids);
                     let target_dir = target_session_dir.join(&preview_id);
                     copy_pet_package_for_import(&source_dir, &target_dir, &package)?;
 
                     previews.push(build_preview(
                         &preview_id,
-                        &storage_id,
+                        storage_id,
                         &source_dir,
                         &target_dir,
                         package,
