@@ -6,10 +6,30 @@ use copet_lib::{
     },
 };
 use std::{
+    env,
+    ffi::OsString,
     fs,
     io::Write,
     path::{Path, PathBuf},
+    sync::Mutex,
 };
+
+static HOME_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+struct EnvRestore {
+    key: &'static str,
+    value: Option<OsString>,
+}
+
+impl Drop for EnvRestore {
+    fn drop(&mut self) {
+        if let Some(value) = &self.value {
+            env::set_var(self.key, value);
+        } else {
+            env::remove_var(self.key);
+        }
+    }
+}
 
 fn builtin_pets_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets")
@@ -70,14 +90,19 @@ fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
 
 #[test]
 fn preview_session_directory_is_under_copet_root() {
+    let _guard = HOME_ENV_LOCK.lock().unwrap();
     let temp = tempfile::tempdir().unwrap();
-    let store = make_store(&temp);
-    store.ensure_ready().unwrap();
+    let home = temp.path().join("home");
+    let _restore_home = EnvRestore {
+        key: "HOME",
+        value: env::var_os("HOME"),
+    };
+    env::set_var("HOME", &home);
 
-    let session = create_import_session(&store).unwrap();
+    let session = copet_lib::create_pet_import_session().unwrap();
 
-    assert!(store
-        .root()
+    assert!(home
+        .join(".copet")
         .join("import-previews")
         .join(session.session_id)
         .exists());

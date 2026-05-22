@@ -449,11 +449,19 @@ fn import_codex_pets() -> Result<PetImportResult, String> {
         .map_err(localize_store_error)
 }
 
-#[tauri::command]
-fn create_pet_import_session() -> Result<PetImportSession, String> {
+pub fn create_pet_import_session() -> Result<PetImportSession, String> {
     ConfigStore::from_home()
         .and_then(|store| pet_import::create_import_session(&store))
         .map_err(localize_store_error)
+}
+
+mod pet_import_commands {
+    use super::*;
+
+    #[tauri::command]
+    pub(super) fn create_pet_import_session() -> Result<PetImportSession, String> {
+        super::create_pet_import_session()
+    }
 }
 
 #[tauri::command]
@@ -962,7 +970,7 @@ pub fn run() {
             list_codex_pets,
             install_codex_pet,
             import_codex_pets,
-            create_pet_import_session,
+            pet_import_commands::create_pet_import_session,
             preview_codex_pet_imports,
             preview_pet_import_folders,
             preview_pet_import_zips,
