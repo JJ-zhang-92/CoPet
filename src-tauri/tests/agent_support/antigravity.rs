@@ -539,7 +539,10 @@ fn antigravity_helper_extracts_tool_call_details_from_official_payload() {
         .unwrap();
     let output = child.wait_with_output().unwrap();
     assert!(output.status.success());
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "{}\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{\"decision\":\"allow\"}\n"
+    );
 
     let request = receiver
         .recv_timeout(Duration::from_secs(3))
@@ -553,6 +556,36 @@ fn antigravity_helper_extracts_tool_call_details_from_official_payload() {
     assert!(request.contains(
         r#""toolInput":{"command":"pnpm test:frontend src/tests/settings-workflows.spec.ts"}"#
     ));
+}
+
+#[test]
+fn antigravity_pre_tool_command_allows_tool_when_helper_is_missing() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("antigravity").unwrap();
+    fs::remove_file(root.join("hooks/copet-hook.sh")).unwrap();
+
+    let hooks = read_json(home.join(".gemini/config/hooks.json"));
+    let command = hooks["copet-antigravity"]["PreToolUse"][0]["hooks"][0]["command"]
+        .as_str()
+        .unwrap();
+    let output = Command::new("sh")
+        .args(["-c", command])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{\"decision\":\"allow\"}\n"
+    );
 }
 
 #[test]

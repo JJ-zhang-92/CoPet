@@ -496,7 +496,23 @@ fn is_copet_command(command: &str, adapter_id: &str) -> bool {
 
 fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
     let path = shell_quote(&helper_path.to_string_lossy());
-    format!("if [ -f {path} ]; then {path} {adapter_id} {kind}; else echo \"{{}}\"; fi")
+    let fallback_output = hook_default_output(adapter_id, kind);
+    if fallback_output == "{}" {
+        format!("if [ -f {path} ]; then {path} {adapter_id} {kind}; else echo \"{{}}\"; fi")
+    } else {
+        let fallback = shell_quote(fallback_output);
+        format!(
+            "if [ -f {path} ]; then {path} {adapter_id} {kind}; else printf '%s\\n' {fallback}; fi"
+        )
+    }
+}
+
+fn hook_default_output(adapter_id: &str, kind: &str) -> &'static str {
+    if adapter_id == "antigravity" && kind == "tool.before" {
+        r#"{"decision":"allow"}"#
+    } else {
+        "{}"
+    }
 }
 
 fn helper_script() -> &'static str {
@@ -512,6 +528,13 @@ json_escape() {
 json_string_field() {
   key="$1"
   printf '%s' "$compact_input" | sed -n 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
+}
+hook_output() {
+  if [ "$agent" = "antigravity" ] && [ "$kind" = "tool.before" ]; then
+    printf '{"decision":"allow"}\n'
+  else
+    printf '{}\n'
+  fi
 }
 tool="$(json_string_field tool_name)"
 if [ -z "$tool" ]; then
@@ -532,12 +555,12 @@ for field in file_path:file_path filePath:filePath path:path command:command pat
   fi
 done
 runtime="${COPET_RUNTIME_DIR:-$HOME/.copet/runtime}"
-endpoint="$(cat "$runtime/event-endpoint" 2>/dev/null)" || { echo "{}" ; exit 0; }
-token="$(cat "$runtime/event-token" 2>/dev/null)" || { echo "{}" ; exit 0; }
-[ -n "$endpoint" ] && [ -n "$token" ] || { echo "{}" ; exit 0; }
+endpoint="$(cat "$runtime/event-endpoint" 2>/dev/null)" || { hook_output ; exit 0; }
+token="$(cat "$runtime/event-token" 2>/dev/null)" || { hook_output ; exit 0; }
+[ -n "$endpoint" ] && [ -n "$token" ] || { hook_output ; exit 0; }
 payload="$(printf '{"agent":"%s","kind":"%s","tool":"%s"%s}' "$(json_escape "$agent")" "$(json_escape "$kind")" "$(json_escape "$tool")" "$tool_input")"
 curl -fsS --noproxy '*' --max-time 0.8 -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d "$payload" "$endpoint" >/dev/null 2>&1 || true
-echo "{}"
+hook_output
 exit 0
 "#
 }
