@@ -20,7 +20,11 @@ fn builtin_copet_exposes_valid_interaction_and_agent_sounds() {
     let store = make_store(&temp);
 
     let state = store.ensure_ready().unwrap();
-    let pet = state.pets.iter().find(|pet| pet.id == "copet").unwrap();
+    let pet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "system:copet")
+        .unwrap();
     let sounds = pet.sounds.as_ref().unwrap();
 
     assert!(sounds
@@ -135,7 +139,7 @@ fn invalid_sound_entries_are_filtered_without_hiding_pet() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "sound-filter-pet")
+        .find(|pet| pet.id == "user:sound-filter-pet")
         .unwrap();
     let sounds = pet.sounds.as_ref().unwrap();
 
@@ -182,7 +186,7 @@ fn oversized_sound_entries_are_filtered() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "oversized-sound-pet")
+        .find(|pet| pet.id == "user:oversized-sound-pet")
         .unwrap();
 
     assert!(pet.sounds.is_none());
@@ -226,7 +230,7 @@ fn symlinked_sound_entries_are_filtered() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "symlink-sound-pet")
+        .find(|pet| pet.id == "user:symlink-sound-pet")
         .unwrap();
 
     assert!(pet.sounds.is_none());
@@ -270,7 +274,7 @@ fn sound_entries_through_symlinked_audio_directory_are_filtered() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "symlink-audio-dir-pet")
+        .find(|pet| pet.id == "user:symlink-audio-dir-pet")
         .unwrap();
 
     assert!(pet.sounds.is_none());
@@ -288,7 +292,7 @@ fn import_pet_folder_preserves_valid_audio_resources() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "folder-sound-pet")
+        .find(|pet| pet.id == "user:folder-sound-pet")
         .unwrap();
 
     assert!(store
@@ -320,7 +324,7 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "relative-sound-pet")
+        .find(|pet| pet.id == "user:relative-sound-pet")
         .unwrap();
 
     assert!(store
@@ -352,7 +356,7 @@ fn import_pet_folder_from_installed_package_preserves_package() {
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "reimport-sound-pet")
+        .find(|pet| pet.id == "user:reimport-sound-pet")
         .unwrap();
 
     assert!(installed_dir.exists());
@@ -381,12 +385,12 @@ fn install_codex_pet_preserves_valid_audio_resources() {
     );
 
     let state = store
-        .install_codex_pet(&codex_pets, "codex-sound-pet")
+        .install_codex_pet(&codex_pets, "user:codex-sound-pet")
         .unwrap();
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "codex-sound-pet")
+        .find(|pet| pet.id == "user:codex-sound-pet")
         .unwrap();
 
     assert!(store
@@ -447,8 +451,9 @@ fn import_pet_folder_preserves_manifest_metadata() {
     let manifest_path = store.root().join("pets/metadata-sound-pet/pet.json");
     let installed_manifest: serde_json::Value =
         serde_json::from_slice(&fs::read(manifest_path).unwrap()).unwrap();
-    assert_eq!(installed_manifest["slug"], "metadata-sound-pet");
-    assert_eq!(installed_manifest["builtIn"], false);
+    assert_eq!(installed_manifest["id"], "metadata-sound-pet");
+    assert!(installed_manifest.get("slug").is_none());
+    assert!(installed_manifest.get("builtIn").is_none());
     assert_eq!(installed_manifest["displayNameZh"], "元数据音效宠物");
     assert_eq!(installed_manifest["descriptionZh"], "保留导入元数据");
     assert_eq!(installed_manifest["spritesheetPath"], "spritesheet.png");
