@@ -1,9 +1,11 @@
+import antigravityIconUrl from "../assets/agents/antigravity.svg";
 import claudeCodeIconUrl from "../assets/agents/claude-code.svg";
 import codexIconUrl from "../assets/agents/codex.svg";
 import geminiIconUrl from "../assets/agents/gemini.svg";
 import openCodeIconUrl from "../assets/agents/opencode.svg";
 
 export const agentIconUrls: Record<string, string> = {
+  antigravity: antigravityIconUrl,
   "claude-code": claudeCodeIconUrl,
   codex: codexIconUrl,
   gemini: geminiIconUrl,
