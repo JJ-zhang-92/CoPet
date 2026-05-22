@@ -162,5 +162,13 @@ fn handlers_have_copet_kind(handlers: &[Value], adapter_id: &str, kind: &str) ->
 }
 
 fn is_antigravity_copet_command(command: &str, adapter_id: &str, kind: &str) -> bool {
-    command.contains(HELPER_NAME) && command.contains(&format!(" {adapter_id} {kind};"))
+    command.split(';').any(|segment| {
+        segment
+            .trim()
+            .strip_prefix("then ")
+            .is_some_and(|invocation| {
+                invocation.contains(HELPER_NAME)
+                    && invocation.ends_with(&format!(" {adapter_id} {kind}"))
+            })
+    })
 }
