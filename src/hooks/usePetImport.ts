@@ -32,6 +32,11 @@ type PetImportOperation = {
   id: number;
 };
 
+type PetImportOperationHooks = {
+  after?: (operation: PetImportOperation) => void;
+  before?: (operation: PetImportOperation) => void;
+};
+
 type PetImportSessionPromise = {
   generation: number;
   promise: Promise<PetImportSessionResult>;
@@ -97,6 +102,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
   }));
   const [errors, setErrors] = useState<string[]>([]);
   const [isBusy, setIsBusy] = useState(false);
+  const [isCommitting, setIsCommitting] = useState(false);
   const sessionRef = useRef<PetImportSession | null>(null);
   const sessionPromiseRef = useRef<PetImportSessionPromise | null>(null);
   const previewStateRef = useRef<PreviewState>({
@@ -106,6 +112,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
   const generationRef = useRef(0);
   const nextOperationIdRef = useRef(0);
   const activeOperationIdsRef = useRef(new Set<number>());
+  const commitOperationIdsRef = useRef(new Set<number>());
   const discardedSessionIdsRef = useRef(new Set<string>());
 
   const { previews, selectedPreviewIds } = previewState;
@@ -225,12 +232,14 @@ export function usePetImport(options: UsePetImportOptions = {}) {
   const runOperation = useCallback(
     async (
       action: (operation: PetImportOperation) => Promise<string | null | void>,
+      hooks: PetImportOperationHooks = {},
     ): Promise<PetImportActionResult> => {
       const operation = beginOperation();
       if (!operation) {
         return { errorMessage: strings.busy };
       }
 
+      hooks.before?.(operation);
       try {
         const errorMessage = await action(operation);
         return { errorMessage: errorMessage ?? null };
@@ -241,6 +250,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
         }
         return { errorMessage: message };
       } finally {
+        hooks.after?.(operation);
         finishOperation(operation);
       }
     },
@@ -498,6 +508,15 @@ export function usePetImport(options: UsePetImportOptions = {}) {
           ),
         );
         return null;
+      }, {
+        before: (operation) => {
+          commitOperationIdsRef.current.add(operation.id);
+          setIsCommitting(true);
+        },
+        after: (operation) => {
+          commitOperationIdsRef.current.delete(operation.id);
+          setIsCommitting(commitOperationIdsRef.current.size > 0);
+        },
       });
     },
     [
@@ -564,9 +583,15 @@ export function usePetImport(options: UsePetImportOptions = {}) {
   }, []);
 
   const closeSession = useCallback(async () => {
+    if (commitOperationIdsRef.current.size > 0) {
+      return;
+    }
+
     generationRef.current += 1;
     activeOperationIdsRef.current.clear();
+    commitOperationIdsRef.current.clear();
     setIsBusy(false);
+    setIsCommitting(false);
 
     const activeSession = sessionRef.current;
     const pendingSession = sessionPromiseRef.current;
@@ -597,6 +622,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
       errors,
       importAll,
       importSelected,
+      isCommitting,
       isBusy,
       previewCodex,
       previewFolders,
@@ -615,6 +641,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
       errors,
       importAll,
       importSelected,
+      isCommitting,
       isBusy,
       previewCodex,
       previewFolders,

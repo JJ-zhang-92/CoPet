@@ -39,10 +39,10 @@ export function SettingsPetImportDrawer({
     },
   });
 
-  const previewByPetId = useMemo(
+  const previewByPreviewId = useMemo(
     () =>
       new Map(
-        petImport.previews.map((preview) => [preview.summary.id, preview]),
+        petImport.previews.map((preview) => [preview.previewId, preview]),
       ),
     [petImport.previews],
   );
@@ -73,19 +73,27 @@ export function SettingsPetImportDrawer({
       return;
     }
 
+    if (petImport.isCommitting) {
+      return;
+    }
+
     void petImport.closeSession().then(() => {
       setShowLocalChoices(false);
       onOpenChange(false);
     });
   };
 
-  const previewPets = petImport.previews.map((preview) => preview.summary);
+  const previewPets = petImport.previews.map((preview) => ({
+    ...preview.summary,
+    id: preview.previewId,
+  }));
   const hasPreviews = previewPets.length > 0;
 
   return (
     <Drawer
       aria-describedby={descriptionId}
       aria-labelledby={titleId}
+      closeDisabled={petImport.isCommitting}
       closeLabel={t("close")}
       onOpenChange={handleOpenChange}
       open={open}
@@ -154,7 +162,12 @@ export function SettingsPetImportDrawer({
               >
                 {t("selectAll")}
               </Button>
-              <span aria-live="polite">{petImport.selectedCount} selected</span>
+              <span aria-live="polite">
+                {t("selectedPreviewCount").replace(
+                  "{count}",
+                  String(petImport.selectedCount),
+                )}
+              </span>
             </div>
             <div className="pet-import-toolbar-actions">
               <Button
@@ -179,7 +192,7 @@ export function SettingsPetImportDrawer({
         ) : null}
 
         {petImport.errors.length > 0 ? (
-          <ul className="pet-import-errors">
+          <ul className="pet-import-errors" role="alert">
             {petImport.errors.map((error, index) => (
               <li key={`${error}-${index}`}>{error}</li>
             ))}
@@ -199,14 +212,14 @@ export function SettingsPetImportDrawer({
             emptyTitle={t("previewImportsEmpty")}
             pets={previewPets}
             renderSecondaryText={(pet) => {
-              const preview = previewByPetId.get(pet.id);
+              const preview = previewByPreviewId.get(pet.id);
               return preview
                 ? `${preview.sourceLabel} · ${preview.intendedPetId}`
                 : pet.description;
             }}
             strings={petCardStrings}
             cardProps={(pet: PetSummary) => {
-              const preview = previewByPetId.get(pet.id);
+              const preview = previewByPreviewId.get(pet.id);
               return {
                 busy: petImport.isBusy,
                 checked: preview

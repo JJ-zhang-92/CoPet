@@ -7,6 +7,7 @@ import { Button } from "./button";
 
 type DrawerProps = HTMLAttributes<HTMLDivElement> & {
   children: ReactNode;
+  closeDisabled?: boolean;
   closeLabel?: string;
   onOpenChange: (open: boolean) => void;
   open: boolean;
@@ -16,6 +17,7 @@ type DrawerProps = HTMLAttributes<HTMLDivElement> & {
 export function Drawer({
   children,
   className,
+  closeDisabled = false,
   closeLabel = "Close drawer",
   onOpenChange,
   onKeyDown,
@@ -59,6 +61,9 @@ export function Drawer({
 
     if (event.key === "Escape") {
       event.preventDefault();
+      if (closeDisabled) {
+        return;
+      }
       onOpenChange(false);
       return;
     }
@@ -94,7 +99,11 @@ export function Drawer({
       <div
         aria-hidden="true"
         className="ui-drawer-overlay"
-        onClick={() => onOpenChange(false)}
+        onClick={() => {
+          if (!closeDisabled) {
+            onOpenChange(false);
+          }
+        }}
         tabIndex={-1}
       />
       <div
@@ -109,6 +118,7 @@ export function Drawer({
         <Button
           aria-label={closeLabel}
           className="ui-drawer-close"
+          disabled={closeDisabled}
           onClick={() => onOpenChange(false)}
           size="icon"
           type="button"

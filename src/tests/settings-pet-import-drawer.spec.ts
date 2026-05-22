@@ -80,10 +80,13 @@ test("codex preview failure shows inline error and toast", async ({ browser }) =
   await page.getByRole("button", { name: "Import pets" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "From Codex" }).click();
 
-  await expect(page.locator(".pet-import-errors")).toContainText(
+  const inlineErrors = page.getByRole("alert");
+  await expect(inlineErrors).toContainText(
     "Codex preview failed",
   );
-  await expect(page.getByText("Codex preview failed")).toHaveCount(2);
+  await expect(page.locator("[data-sonner-toast]")).toContainText(
+    "Codex preview failed",
+  );
 });
 
 test("preview rows can be unselected removed and imported", async ({ browser }) => {
@@ -104,6 +107,64 @@ test("preview rows can be unselected removed and imported", async ({ browser }) 
   });
 });
 
+test("duplicate preview summary ids render and act independently", async ({ browser }) => {
+  const firstSharedPreview: PetImportPreview = {
+    ...previewFox,
+    previewId: "shared-preview-first",
+    sourceLabel: "Folder A",
+    intendedPetId: "user:shared-fox",
+    summary: {
+      ...previewFox.summary,
+      id: "user:shared-fox",
+      slug: "shared-fox",
+      displayName: "Shared Fox",
+      spritePath: "/preview/shared-fox-first/spritesheet.webp",
+    },
+  };
+  const secondSharedPreview: PetImportPreview = {
+    ...previewFox,
+    previewId: "shared-preview-second",
+    sourceLabel: "Folder B",
+    intendedPetId: "user:shared-fox",
+    summary: {
+      ...previewFox.summary,
+      id: "user:shared-fox",
+      slug: "shared-fox",
+      displayName: "Shared Fox",
+      spritePath: "/preview/shared-fox-second/spritesheet.webp",
+    },
+  };
+  const harness = await createAppHarness(browser, {
+    importPreviews: [firstSharedPreview, secondSharedPreview],
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import pets" }).click();
+  const drawer = page.getByRole("dialog", { name: "Import pets" });
+  await drawer.getByRole("button", { name: "From Codex" }).click();
+
+  const firstCard = drawer.locator(".pet-card").filter({ hasText: "Folder A" });
+  const secondCard = drawer.locator(".pet-card").filter({ hasText: "Folder B" });
+  await expect(firstCard).toHaveCount(1);
+  await expect(secondCard).toHaveCount(1);
+  await expect(firstCard).toContainText("user:shared-fox");
+  await expect(secondCard).toContainText("user:shared-fox");
+
+  await firstCard.hover();
+  await firstCard.getByTitle("Remove from preview").click();
+
+  await expect(firstCard).toHaveCount(0);
+  await expect(secondCard).toHaveCount(1);
+  await secondCard.getByRole("checkbox", { name: "Select preview pet Shared Fox" }).uncheck();
+  await drawer.getByRole("button", { name: "Select all" }).click();
+  await drawer.getByRole("button", { name: "Import selected" }).click();
+
+  expect(harness.calls).toContainEqual({
+    command: "commit_pet_import_previews",
+    args: { sessionId: "session-1", previewIds: ["shared-preview-second"] },
+  });
+});
+
 test("all previews can be imported together", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     importPreviews: [previewFox, previewPanda],
@@ -120,6 +181,43 @@ test("all previews can be imported together", async ({ browser }) => {
       sessionId: "session-1",
       previewIds: ["preview-fox", "preview-panda"],
     },
+  });
+});
+
+test("closing the drawer is ignored while preview commit is active", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    commandDelayMs: {
+      commit_pet_import_previews: 250,
+    },
+    importPreviews: [previewFox],
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import pets" }).click();
+  const drawer = page.getByRole("dialog", { name: "Import pets" });
+  await drawer.getByRole("button", { name: "From Codex" }).click();
+  await drawer.getByRole("button", { name: "Import selected" }).click();
+  await expect
+    .poll(
+      () =>
+        harness.calls.filter(
+          (call) => call.command === "commit_pet_import_previews",
+        ).length,
+    )
+    .toBe(1);
+
+  await page.keyboard.press("Escape");
+  await expect(drawer).toBeVisible();
+  expect(
+    harness.calls.some((call) => call.command === "discard_pet_import_previews"),
+  ).toBe(false);
+
+  await expect(drawer.getByRole("button", { name: "Local Fox" })).toHaveCount(0);
+  await drawer.getByRole("button", { name: "Close" }).click();
+  await expect(drawer).toHaveCount(0);
+  expect(harness.calls).toContainEqual({
+    command: "discard_pet_import_previews",
+    args: { sessionId: "session-1" },
   });
 });
 
