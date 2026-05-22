@@ -69,6 +69,21 @@ fn write_zip(path: &Path, entries: &[(&str, &[u8])]) {
 }
 
 #[test]
+fn preview_session_directory_is_under_copet_root() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+
+    let session = create_import_session(&store).unwrap();
+
+    assert!(store
+        .root()
+        .join("import-previews")
+        .join(session.session_id)
+        .exists());
+}
+
+#[test]
 fn preview_codex_imports_stages_valid_packages_without_installing() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);

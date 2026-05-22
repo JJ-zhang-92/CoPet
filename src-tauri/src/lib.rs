@@ -16,6 +16,7 @@ use agents::{AdapterError, AdapterOperationResult, AdapterSummary, AgentManager}
 use app_state::{AgentMessageDisplay, AppState, PetInteractionPrefs, PetWindowSize};
 use config_store::{set_builtin_pets_dir, ConfigStore, PetImportResult};
 use i18n::{default_locale, t, Locale, LocalePreference, MessageKey};
+use pet_import::{PetImportCommitResult, PetImportPreviewBatch, PetImportSession};
 use pet_package::PetSummary;
 use runtime_server::{RuntimeManager, RuntimeSnapshot, RuntimeUpdate};
 use std::path::PathBuf;
@@ -446,6 +447,73 @@ fn import_codex_pets() -> Result<PetImportResult, String> {
     ConfigStore::from_home()
         .and_then(|store| store.import_codex_pets_from_home())
         .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn create_pet_import_session() -> Result<PetImportSession, String> {
+    ConfigStore::from_home()
+        .and_then(|store| pet_import::create_import_session(&store))
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn preview_codex_pet_imports(session_id: String) -> Result<PetImportPreviewBatch, String> {
+    ConfigStore::from_home()
+        .and_then(|store| {
+            let home = dirs::home_dir().ok_or(config_store::StoreError::MissingHome)?;
+            pet_import::preview_codex_imports(&store, &session_id, &home.join(".codex/pets"))
+        })
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn preview_pet_import_folders(
+    session_id: String,
+    folder_paths: Vec<String>,
+) -> Result<PetImportPreviewBatch, String> {
+    let paths = folder_paths
+        .into_iter()
+        .map(PathBuf::from)
+        .collect::<Vec<_>>();
+    ConfigStore::from_home()
+        .and_then(|store| pet_import::preview_folder_imports(&store, &session_id, &paths))
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn preview_pet_import_zips(
+    session_id: String,
+    zip_paths: Vec<String>,
+) -> Result<PetImportPreviewBatch, String> {
+    let paths = zip_paths.into_iter().map(PathBuf::from).collect::<Vec<_>>();
+    ConfigStore::from_home()
+        .and_then(|store| pet_import::preview_zip_imports(&store, &session_id, &paths))
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn commit_pet_import_previews(
+    app: tauri::AppHandle,
+    session_id: String,
+    preview_ids: Vec<String>,
+) -> Result<PetImportCommitResult, String> {
+    let result = ConfigStore::from_home()
+        .and_then(|store| pet_import::commit_import_previews(&store, &session_id, &preview_ids))
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(&app, &result.state)?;
+    Ok(result)
+}
+
+#[tauri::command]
+fn discard_pet_import_previews(session_id: String) -> Result<(), String> {
+    ConfigStore::from_home()
+        .and_then(|store| pet_import::discard_import_session(&store, &session_id))
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn get_downloads_dir() -> Option<String> {
+    dirs::download_dir().map(|path| path.to_string_lossy().into_owned())
 }
 
 #[tauri::command]
@@ -894,6 +962,13 @@ pub fn run() {
             list_codex_pets,
             install_codex_pet,
             import_codex_pets,
+            create_pet_import_session,
+            preview_codex_pet_imports,
+            preview_pet_import_folders,
+            preview_pet_import_zips,
+            commit_pet_import_previews,
+            discard_pet_import_previews,
+            get_downloads_dir,
             import_pet_files,
             import_pet_folder,
             remove_pet,

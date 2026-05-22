@@ -47,6 +47,7 @@
         "enable": true,
         "scope": [
           "$HOME/.copet/pets/**",
+          "$HOME/.copet/import-previews/**",
           "$HOME/.codex/pets/**",
           "$RESOURCE/assets/pets/**",
           "$RESOURCE/assets/audios/**"
