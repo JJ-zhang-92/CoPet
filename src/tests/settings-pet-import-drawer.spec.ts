@@ -104,6 +104,25 @@ test("preview rows can be unselected removed and imported", async ({ browser }) 
   });
 });
 
+test("all previews can be imported together", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    importPreviews: [previewFox, previewPanda],
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import pets" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "From Codex" }).click();
+  await page.getByRole("button", { name: "Import all" }).click();
+
+  expect(harness.calls).toContainEqual({
+    command: "commit_pet_import_previews",
+    args: {
+      sessionId: "session-1",
+      previewIds: ["preview-fox", "preview-panda"],
+    },
+  });
+});
+
 test("remove preview only deletes the drawer row", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     importPreviews: [previewFox],
@@ -120,6 +139,26 @@ test("remove preview only deletes the drawer row", async ({ browser }) => {
 
   await expect(page.getByRole("button", { name: "Local Fox" })).toHaveCount(0);
   expect(harness.calls.some((call) => call.command === "remove_pet")).toBe(false);
+});
+
+test("closing the drawer discards the preview session", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    importPreviews: [previewFox],
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import pets" }).click();
+  const drawer = page.getByRole("dialog", { name: "Import pets" });
+  await drawer.getByRole("button", { name: "From Codex" }).click();
+  await expect(page.getByRole("button", { name: "Local Fox" })).toBeVisible();
+
+  await drawer.getByRole("button", { name: "Close" }).click();
+  await expect(drawer).toHaveCount(0);
+
+  expect(harness.calls).toContainEqual({
+    command: "discard_pet_import_previews",
+    args: { sessionId: "session-1" },
+  });
 });
 
 test("local source choice triggers folder and zip dialogs", async ({ browser }) => {
