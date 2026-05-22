@@ -21,6 +21,7 @@ fn list_exposes_each_platform_adapter() {
         [
             ("claude-code".to_string(), "Claude Code".to_string()),
             ("codex".to_string(), "Codex".to_string()),
+            ("antigravity".to_string(), "Antigravity".to_string()),
             ("opencode".to_string(), "OpenCode".to_string()),
             ("gemini".to_string(), "Gemini".to_string()),
         ]
@@ -35,7 +36,7 @@ fn adapters_install_repair_and_uninstall_real_config_files() {
         let home = temp.path().join("home");
         let manager = manager_with_fake_agents(&root, &home);
 
-        for adapter_id in ["codex", "claude-code", "gemini", "opencode"] {
+        for adapter_id in ["codex", "claude-code", "antigravity", "gemini", "opencode"] {
             let installed = manager.install(adapter_id).unwrap();
             assert!(installed.adapter.installed, "{adapter_id} should install");
             assert!(
@@ -94,6 +95,12 @@ fn assert_adapter_config_contains_marker(
             assert!(value.to_string().contains("copet-hook.sh"));
             assert!(value.to_string().contains("gemini"));
         }
+        "antigravity" => {
+            let value = read_json(home.join(".gemini/config/hooks.json"));
+            assert!(value.to_string().contains("copet-hook.sh"));
+            assert!(value.to_string().contains("antigravity"));
+            assert!(value.to_string().contains("copet-antigravity"));
+        }
         "opencode" => {
             let content = fs::read_to_string(opencode_config_dir.join("plugins/copet.js")).unwrap();
             assert!(content.contains("copet-managed-hook"));
@@ -111,6 +118,11 @@ fn assert_adapter_config_does_not_contain_marker(
         "codex" => assert_json_file_lacks_marker(home.join(".codex/hooks.json")),
         "claude-code" => assert_json_file_lacks_marker(home.join(".claude/settings.json")),
         "gemini" => assert_json_file_lacks_marker(home.join(".gemini/settings.json")),
+        "antigravity" => {
+            let content =
+                fs::read_to_string(home.join(".gemini/config/hooks.json")).unwrap_or_default();
+            assert!(!content.contains("copet-antigravity"));
+        }
         "opencode" => assert!(!opencode_config_dir.join("plugins/copet.js").exists()),
         _ => unreachable!("unknown adapter"),
     }
@@ -126,13 +138,17 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join(".copet");
     let home = temp.path().join("home");
-    let manager = manager_with_fake_agent_names(&root, &home, &["codex", "gemini"]);
+    let manager = manager_with_fake_agent_names(&root, &home, &["codex", "antigravity", "gemini"]);
 
     let summary = manager.auto_install_detected_agents();
 
     assert_eq!(
         summary.installed,
-        vec!["codex".to_string(), "gemini".to_string()]
+        vec![
+            "codex".to_string(),
+            "antigravity".to_string(),
+            "gemini".to_string()
+        ]
     );
     assert_eq!(
         summary.skipped,
@@ -140,6 +156,7 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
     );
     assert!(summary.failed.is_empty());
     assert!(home.join(".codex/hooks.json").exists());
+    assert!(home.join(".gemini/config/hooks.json").exists());
     assert!(home.join(".gemini/settings.json").exists());
     assert!(!home.join(".claude/settings.json").exists());
     assert!(!home.join(".config/opencode/plugins/copet.js").exists());
@@ -175,15 +192,19 @@ fn auto_install_detected_agents_continues_after_adapter_failure() {
     let claude_settings = home.join(".claude/settings.json");
     fs::create_dir_all(claude_settings.parent().unwrap()).unwrap();
     fs::write(&claude_settings, "{not valid json").unwrap();
-    let manager = manager_with_fake_agent_names(&root, &home, &["claude", "codex"]);
+    let manager = manager_with_fake_agent_names(&root, &home, &["claude", "codex", "antigravity"]);
 
     let summary = manager.auto_install_detected_agents();
 
-    assert_eq!(summary.installed, vec!["codex".to_string()]);
+    assert_eq!(
+        summary.installed,
+        vec!["codex".to_string(), "antigravity".to_string()]
+    );
     assert_eq!(summary.failed.len(), 1);
     assert_eq!(summary.failed[0].adapter_id, "claude-code");
     assert!(summary.failed[0].error.contains("invalid JSON"));
     assert!(home.join(".codex/hooks.json").exists());
+    assert!(home.join(".gemini/config/hooks.json").exists());
 }
 
 #[test]

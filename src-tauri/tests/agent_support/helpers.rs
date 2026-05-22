@@ -14,7 +14,11 @@ pub fn manager_with_fake_agents(
     root: impl Into<PathBuf>,
     home: impl Into<PathBuf>,
 ) -> AgentManager {
-    manager_with_fake_agent_names(root, home, &["claude", "codex", "gemini", "opencode"])
+    manager_with_fake_agent_names(
+        root,
+        home,
+        &["claude", "codex", "antigravity", "gemini", "opencode"],
+    )
 }
 
 pub fn manager_with_fake_agent_names(
