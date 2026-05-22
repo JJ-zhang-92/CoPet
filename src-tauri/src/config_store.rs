@@ -525,24 +525,6 @@ impl ConfigStore {
     pub fn pets_dir(&self) -> PathBuf {
         self.root.join("pets")
     }
-
-    pub fn next_available_user_pet_storage_id(&self, base_id: &str) -> Result<String, StoreError> {
-        validate_pet_storage_id(base_id)?;
-
-        let pets_dir = self.pets_dir();
-        if !pets_dir.join(base_id).exists() {
-            return Ok(base_id.to_string());
-        }
-
-        for suffix in 2.. {
-            let candidate = format!("{base_id}-{suffix}");
-            if !pets_dir.join(&candidate).exists() {
-                return Ok(candidate);
-            }
-        }
-
-        unreachable!("exhausted numeric pet storage id suffixes")
-    }
 }
 
 impl StoreError {

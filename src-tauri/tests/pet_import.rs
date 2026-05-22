@@ -443,7 +443,7 @@ fn commit_import_previews_falls_back_to_manifest_id_for_older_previews_without_m
 }
 
 #[test]
-fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest() {
+fn commit_import_previews_replaces_user_id_collisions_without_rewriting_manifest() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     create_pet_package(
@@ -452,6 +452,7 @@ fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest
         "local-fox",
         "Local Fox",
     );
+    fs::write(store.root().join("pets/local-fox/obsolete.txt"), "old").unwrap();
     let source_dir = temp.path().join("local-fox");
     create_pet_package(temp.path(), "local-fox", "desk-cat", "Desk Cat");
 
@@ -466,24 +467,22 @@ fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest
     .unwrap();
 
     assert_eq!(result.imported.len(), 1);
-    assert_eq!(result.imported[0].id, "user:local-fox-2");
+    assert_eq!(result.imported[0].id, "user:local-fox");
     assert!(result
         .state
         .pets
         .iter()
         .any(|pet| pet.id == "user:local-fox"));
-    assert!(result
-        .state
-        .pets
-        .iter()
-        .any(|pet| pet.id == "user:local-fox-2"));
-    let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox-2/pet.json")).unwrap();
+    assert!(!store.root().join("pets/local-fox-2").exists());
+    assert!(!store.root().join("pets/local-fox/obsolete.txt").exists());
+    let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox/pet.json")).unwrap();
     assert!(raw_manifest.contains(r#""id": "desk-cat""#));
+    assert!(raw_manifest.contains(r#""displayName": "Desk Cat""#));
     assert!(!raw_manifest.contains("user:"));
 }
 
 #[test]
-fn commit_import_previews_allocates_third_suffix_without_rewriting_manifest() {
+fn commit_import_previews_replaces_base_id_even_when_suffix_directory_exists() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     create_pet_package(
@@ -512,15 +511,17 @@ fn commit_import_previews_allocates_third_suffix_without_rewriting_manifest() {
     .unwrap();
 
     assert_eq!(result.imported.len(), 1);
-    assert_eq!(result.imported[0].id, "user:local-fox-3");
+    assert_eq!(result.imported[0].id, "user:local-fox");
     assert!(result
         .state
         .pets
         .iter()
-        .any(|pet| pet.id == "user:local-fox-3"));
-    let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox-3/pet.json")).unwrap();
+        .any(|pet| pet.id == "user:local-fox"));
+    let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox/pet.json")).unwrap();
     assert!(raw_manifest.contains(r#""id": "desk-cat""#));
+    assert!(raw_manifest.contains(r#""displayName": "Desk Cat""#));
     assert!(!raw_manifest.contains("user:"));
+    assert!(!store.root().join("pets/local-fox-3").exists());
     let existing_manifest =
         fs::read_to_string(store.root().join("pets/local-fox-2/pet.json")).unwrap();
     assert!(existing_manifest.contains(r#""id": "local-fox""#));
