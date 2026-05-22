@@ -11,11 +11,12 @@ use std::{
 pub(crate) const COPET_MARKER: &str = "copet-managed-hook";
 pub(crate) const HELPER_NAME: &str = "copet-hook.sh";
 
-static ADAPTERS: [&dyn CliAdapter; 5] = [
+static ADAPTERS: [&dyn CliAdapter; 6] = [
     adapters::CLAUDE_CODE,
     adapters::CODEX,
     adapters::ANTIGRAVITY,
     adapters::OPENCODE,
+    adapters::COPILOT,
     adapters::GEMINI,
 ];
 
@@ -548,6 +549,9 @@ hook_output() {
 tool="$(json_string_field tool_name)"
 if [ -z "$tool" ]; then
   tool="$(json_string_field tool)"
+fi
+if [ -z "$tool" ]; then
+  tool="$(json_string_field toolName)"
 fi
 if [ -z "$tool" ]; then
   tool="$(json_string_field_after_key toolCall name)"

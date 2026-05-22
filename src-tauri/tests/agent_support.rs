@@ -10,6 +10,9 @@ mod claude_code;
 #[path = "agent_support/codex.rs"]
 mod codex;
 
+#[path = "agent_support/copilot.rs"]
+mod copilot;
+
 #[path = "agent_support/gemini.rs"]
 mod gemini;
 

@@ -5,6 +5,18 @@ use serde_json::Value;
 use std::{env, ffi::OsString, fs, path::PathBuf, sync::Mutex};
 
 pub static OPENCODE_ENV_LOCK: Mutex<()> = Mutex::new(());
+pub static COPILOT_ENV_LOCK: Mutex<()> = Mutex::new(());
+
+struct EnvRestore {
+    key: &'static str,
+    value: Option<OsString>,
+}
+
+impl Drop for EnvRestore {
+    fn drop(&mut self) {
+        restore_env_var(self.key, self.value.clone());
+    }
+}
 
 pub fn read_json(path: impl AsRef<std::path::Path>) -> Value {
     serde_json::from_slice(&fs::read(path).unwrap()).unwrap()
@@ -17,7 +29,7 @@ pub fn manager_with_fake_agents(
     manager_with_fake_agent_names(
         root,
         home,
-        &["claude", "codex", "agy", "gemini", "opencode"],
+        &["claude", "codex", "agy", "gemini", "opencode", "copilot"],
     )
 }
 
@@ -52,6 +64,47 @@ pub fn with_opencode_config_dir(test: impl FnOnce(&std::path::Path)) {
     env::set_var("OPENCODE_CONFIG_DIR", &opencode_config_dir);
     test(&opencode_config_dir);
     restore_env_var("OPENCODE_CONFIG_DIR", previous);
+}
+
+pub fn with_copilot_home(test: impl FnOnce(&std::path::Path)) {
+    let _guard = COPILOT_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let temp = tempfile::tempdir().unwrap();
+    let copilot_home = temp.path().join("copilot-home");
+    let _restore = EnvRestore {
+        key: "COPILOT_HOME",
+        value: env::var_os("COPILOT_HOME"),
+    };
+
+    env::set_var("COPILOT_HOME", &copilot_home);
+    test(&copilot_home);
+}
+
+pub fn with_cleared_copilot_home(test: impl FnOnce()) {
+    let _guard = COPILOT_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _restore = EnvRestore {
+        key: "COPILOT_HOME",
+        value: env::var_os("COPILOT_HOME"),
+    };
+
+    env::remove_var("COPILOT_HOME");
+    test();
+}
+
+pub fn with_empty_copilot_home(test: impl FnOnce()) {
+    let _guard = COPILOT_ENV_LOCK
+        .lock()
+        .unwrap_or_else(|poisoned| poisoned.into_inner());
+    let _restore = EnvRestore {
+        key: "COPILOT_HOME",
+        value: env::var_os("COPILOT_HOME"),
+    };
+
+    env::set_var("COPILOT_HOME", "");
+    test();
 }
 
 pub fn restore_env_var(key: &str, value: Option<OsString>) {

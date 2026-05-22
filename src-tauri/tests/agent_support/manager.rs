@@ -1,74 +1,91 @@
 use super::helpers::{
-    manager_with_fake_agent_names, manager_with_fake_agents, read_json, with_opencode_config_dir,
+    manager_with_fake_agent_names, manager_with_fake_agents, read_json, with_cleared_copilot_home,
+    with_opencode_config_dir,
 };
 use copet_lib::{agents::AgentManager, config_store::ConfigStore, run_agent_auto_install_once};
 use std::fs;
 
 #[test]
 fn list_exposes_each_platform_adapter() {
-    let temp = tempfile::tempdir().unwrap();
-    let manager = AgentManager::new(temp.path().join(".copet"), temp.path().join("home"));
+    with_cleared_copilot_home(|| {
+        let temp = tempfile::tempdir().unwrap();
+        let manager = AgentManager::new(temp.path().join(".copet"), temp.path().join("home"));
 
-    let adapters = manager
-        .list()
-        .unwrap()
-        .into_iter()
-        .map(|adapter| (adapter.id, adapter.display_name))
-        .collect::<Vec<_>>();
+        let adapters = manager
+            .list()
+            .unwrap()
+            .into_iter()
+            .map(|adapter| (adapter.id, adapter.display_name))
+            .collect::<Vec<_>>();
 
-    assert_eq!(
-        adapters,
-        [
-            ("claude-code".to_string(), "Claude Code".to_string()),
-            ("codex".to_string(), "Codex".to_string()),
-            ("antigravity".to_string(), "Antigravity".to_string()),
-            ("opencode".to_string(), "OpenCode".to_string()),
-            ("gemini".to_string(), "Gemini".to_string()),
-        ]
-    );
+        assert_eq!(
+            adapters,
+            [
+                ("claude-code".to_string(), "Claude Code".to_string()),
+                ("codex".to_string(), "Codex".to_string()),
+                ("antigravity".to_string(), "Antigravity".to_string()),
+                ("opencode".to_string(), "OpenCode".to_string()),
+                ("copilot".to_string(), "Copilot CLI".to_string()),
+                ("gemini".to_string(), "Gemini".to_string()),
+            ]
+        );
+    });
 }
 
 #[test]
 fn adapters_install_repair_and_uninstall_real_config_files() {
     with_opencode_config_dir(|opencode_config_dir| {
-        let temp = tempfile::tempdir().unwrap();
-        let root = temp.path().join(".copet");
-        let home = temp.path().join("home");
-        let manager = manager_with_fake_agents(&root, &home);
+        with_cleared_copilot_home(|| {
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().join(".copet");
+            let home = temp.path().join("home");
+            let manager = manager_with_fake_agents(&root, &home);
 
-        for adapter_id in ["codex", "claude-code", "antigravity", "gemini", "opencode"] {
-            let installed = manager.install(adapter_id).unwrap();
-            assert!(installed.adapter.installed, "{adapter_id} should install");
-            assert!(
-                root.join("adapters")
-                    .join(format!("{adapter_id}.json"))
-                    .exists(),
-                "{adapter_id} should write adapter metadata"
-            );
-            assert!(
-                root.join("hooks/copet-hook.sh").exists(),
-                "{adapter_id} should ensure the shared helper"
-            );
-            assert_adapter_config_contains_marker(adapter_id, &home, opencode_config_dir);
+            for adapter_id in [
+                "codex",
+                "claude-code",
+                "antigravity",
+                "opencode",
+                "copilot",
+                "gemini",
+            ] {
+                let installed = manager.install(adapter_id).unwrap();
+                assert!(installed.adapter.installed, "{adapter_id} should install");
+                assert!(
+                    root.join("adapters")
+                        .join(format!("{adapter_id}.json"))
+                        .exists(),
+                    "{adapter_id} should write adapter metadata"
+                );
+                assert!(
+                    root.join("hooks/copet-hook.sh").exists(),
+                    "{adapter_id} should ensure the shared helper"
+                );
+                assert_adapter_config_contains_marker(adapter_id, &home, opencode_config_dir);
 
-            let repaired = manager.repair(adapter_id).unwrap();
-            assert!(repaired.adapter.installed, "{adapter_id} should repair");
-            assert_adapter_config_contains_marker(adapter_id, &home, opencode_config_dir);
+                let repaired = manager.repair(adapter_id).unwrap();
+                assert!(repaired.adapter.installed, "{adapter_id} should repair");
+                assert_adapter_config_contains_marker(adapter_id, &home, opencode_config_dir);
 
-            let uninstalled = manager.uninstall(adapter_id).unwrap();
-            assert!(
-                !uninstalled.adapter.installed,
-                "{adapter_id} should report uninstalled"
-            );
-            assert!(
-                !root
-                    .join("adapters")
-                    .join(format!("{adapter_id}.json"))
-                    .exists(),
-                "{adapter_id} should remove adapter metadata"
-            );
-            assert_adapter_config_does_not_contain_marker(adapter_id, &home, opencode_config_dir);
-        }
+                let uninstalled = manager.uninstall(adapter_id).unwrap();
+                assert!(
+                    !uninstalled.adapter.installed,
+                    "{adapter_id} should report uninstalled"
+                );
+                assert!(
+                    !root
+                        .join("adapters")
+                        .join(format!("{adapter_id}.json"))
+                        .exists(),
+                    "{adapter_id} should remove adapter metadata"
+                );
+                assert_adapter_config_does_not_contain_marker(
+                    adapter_id,
+                    &home,
+                    opencode_config_dir,
+                );
+            }
+        });
     });
 }
 
@@ -105,6 +122,11 @@ fn assert_adapter_config_contains_marker(
             let content = fs::read_to_string(opencode_config_dir.join("plugins/copet.js")).unwrap();
             assert!(content.contains("copet-managed-hook"));
         }
+        "copilot" => {
+            let value = read_json(home.join(".copilot/hooks/copet.json"));
+            assert!(value.to_string().contains("copet-hook.sh"));
+            assert!(value.to_string().contains("copilot"));
+        }
         _ => unreachable!("unknown adapter"),
     }
 }
@@ -124,6 +146,7 @@ fn assert_adapter_config_does_not_contain_marker(
             assert!(!content.contains("copet-antigravity"));
         }
         "opencode" => assert!(!opencode_config_dir.join("plugins/copet.js").exists()),
+        "copilot" => assert!(!home.join(".copilot/hooks/copet.json").exists()),
         _ => unreachable!("unknown adapter"),
     }
 }
@@ -135,31 +158,36 @@ fn assert_json_file_lacks_marker(path: impl AsRef<std::path::Path>) {
 
 #[test]
 fn auto_install_detected_agents_installs_only_available_cli_adapters() {
-    let temp = tempfile::tempdir().unwrap();
-    let root = temp.path().join(".copet");
-    let home = temp.path().join("home");
-    let manager = manager_with_fake_agent_names(&root, &home, &["codex", "agy", "gemini"]);
+    with_cleared_copilot_home(|| {
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join(".copet");
+        let home = temp.path().join("home");
+        let manager =
+            manager_with_fake_agent_names(&root, &home, &["codex", "agy", "copilot", "gemini"]);
 
-    let summary = manager.auto_install_detected_agents();
+        let summary = manager.auto_install_detected_agents();
 
-    assert_eq!(
-        summary.installed,
-        vec![
-            "codex".to_string(),
-            "antigravity".to_string(),
-            "gemini".to_string()
-        ]
-    );
-    assert_eq!(
-        summary.skipped,
-        vec!["claude-code".to_string(), "opencode".to_string()]
-    );
-    assert!(summary.failed.is_empty());
-    assert!(home.join(".codex/hooks.json").exists());
-    assert!(home.join(".gemini/config/hooks.json").exists());
-    assert!(home.join(".gemini/settings.json").exists());
-    assert!(!home.join(".claude/settings.json").exists());
-    assert!(!home.join(".config/opencode/plugins/copet.js").exists());
+        assert_eq!(
+            summary.installed,
+            vec![
+                "codex".to_string(),
+                "antigravity".to_string(),
+                "copilot".to_string(),
+                "gemini".to_string()
+            ]
+        );
+        assert_eq!(
+            summary.skipped,
+            vec!["claude-code".to_string(), "opencode".to_string()]
+        );
+        assert!(summary.failed.is_empty());
+        assert!(home.join(".codex/hooks.json").exists());
+        assert!(home.join(".gemini/config/hooks.json").exists());
+        assert!(home.join(".copilot/hooks/copet.json").exists());
+        assert!(home.join(".gemini/settings.json").exists());
+        assert!(!home.join(".claude/settings.json").exists());
+        assert!(!home.join(".config/opencode/plugins/copet.js").exists());
+    });
 }
 
 #[test]
