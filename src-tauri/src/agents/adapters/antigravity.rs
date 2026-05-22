@@ -4,7 +4,7 @@ use serde_json::{json, Value};
 
 use super::super::{
     hook_command, read_json_object_optional, read_json_object_required, write_json_atomic,
-    AdapterError, AgentManager, CliAdapter, COPET_MARKER, HELPER_NAME,
+    AdapterError, AgentManager, CliAdapter, HELPER_NAME,
 };
 
 pub(super) static ADAPTER: AntigravityAdapter = AntigravityAdapter;
@@ -162,7 +162,5 @@ fn handlers_have_copet_kind(handlers: &[Value], adapter_id: &str, kind: &str) ->
 }
 
 fn is_antigravity_copet_command(command: &str, adapter_id: &str, kind: &str) -> bool {
-    (command.contains(COPET_MARKER) || command.contains(HELPER_NAME))
-        && command.contains(&format!(" {adapter_id} "))
-        && command.contains(&format!(" {kind}"))
+    command.contains(HELPER_NAME) && command.contains(&format!(" {adapter_id} {kind};"))
 }

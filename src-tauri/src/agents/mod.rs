@@ -494,7 +494,7 @@ fn is_copet_command(command: &str, adapter_id: &str) -> bool {
     command.contains(HELPER_NAME) && command.contains(&format!(" {adapter_id} "))
 }
 
-pub(crate) fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
+fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
     let path = shell_quote(&helper_path.to_string_lossy());
     format!("if [ -f {path} ]; then {path} {adapter_id} {kind}; else echo \"{{}}\"; fi")
 }
