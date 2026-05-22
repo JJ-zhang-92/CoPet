@@ -90,6 +90,7 @@ export function PetPackageCard({
       </div>
       <button
         aria-label={pet.displayName}
+        aria-pressed={mode === "preview" ? checked : undefined}
         className="pet-card-main"
         disabled={busy}
         onClick={handleMainClick}

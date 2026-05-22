@@ -35,8 +35,10 @@ export type PetPackageGridProps = {
   currentPetId?: string;
   emptyTitle: string;
   locateCurrentLabel?: string;
+  onScrollToPetIdHandled?: () => void;
   pets: PetSummary[];
   renderSecondaryText?: (pet: PetSummary) => ReactNode;
+  scrollToPetId?: string | null;
   showCurrentLocator?: boolean;
   strings: PetPackageCardProps["strings"] & { backToTop: string };
   cardProps: (
@@ -48,8 +50,10 @@ export function PetPackageGrid({
   currentPetId,
   emptyTitle,
   locateCurrentLabel,
+  onScrollToPetIdHandled,
   pets,
   renderSecondaryText,
+  scrollToPetId,
   showCurrentLocator = false,
   strings,
   cardProps,
@@ -57,7 +61,6 @@ export function PetPackageGrid({
   const [columns, setColumns] = useState(3);
   const virtuosoRef = useRef<VirtuosoHandle>(null);
   const listRegionRef = useRef<HTMLDivElement | null>(null);
-  const previousCurrentPetIdRef = useRef<string | undefined>(currentPetId);
 
   useLayoutEffect(() => {
     const node = listRegionRef.current;
@@ -104,8 +107,8 @@ export function PetPackageGrid({
     virtuosoRef.current?.scrollToIndex({ index: 0, behavior: "smooth" });
   };
 
-  const scrollToCurrentPet = () => {
-    const index = pets.findIndex((pet) => pet.id === currentPetId);
+  const scrollToPet = (petId: string | undefined) => {
+    const index = pets.findIndex((pet) => pet.id === petId);
     if (index === -1) {
       return;
     }
@@ -116,15 +119,18 @@ export function PetPackageGrid({
     });
   };
 
+  const scrollToCurrentPet = () => {
+    scrollToPet(currentPetId);
+  };
+
   useEffect(() => {
-    if (!currentPetId || previousCurrentPetIdRef.current === currentPetId) {
-      previousCurrentPetIdRef.current = currentPetId;
+    if (!scrollToPetId) {
       return;
     }
 
-    previousCurrentPetIdRef.current = currentPetId;
-    scrollToCurrentPet();
-  }, [columns, currentPetId, pets]);
+    scrollToPet(scrollToPetId);
+    onScrollToPetIdHandled?.();
+  }, [columns, onScrollToPetIdHandled, pets, scrollToPetId]);
 
   if (pets.length === 0) {
     return (

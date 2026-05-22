@@ -48,6 +48,9 @@ export function SettingsPetsSection({
   t,
 }: SettingsPetsSectionProps) {
   const [refreshing, setRefreshing] = useState(false);
+  const [pendingScrollPetId, setPendingScrollPetId] = useState<string | null>(
+    null,
+  );
 
   const petCardStrings = useMemo(
     () => ({
@@ -96,6 +99,11 @@ export function SettingsPetsSection({
       toast.error(result.errorMessage);
       return;
     }
+
+    const nextCurrentPetId = result.state?.currentPetId;
+    if (nextCurrentPetId) {
+      setPendingScrollPetId(nextCurrentPetId);
+    }
   };
 
   const handleImportLocalFolder = async () => {
@@ -120,6 +128,11 @@ export function SettingsPetsSection({
         : result.errorMessage;
       toast.error(message);
       return;
+    }
+
+    const nextCurrentPetId = result.state?.currentPetId;
+    if (nextCurrentPetId) {
+      setPendingScrollPetId(nextCurrentPetId);
     }
   };
 
@@ -169,7 +182,9 @@ export function SettingsPetsSection({
         currentPetId={currentPetId}
         emptyTitle={t("noInstalledPets")}
         locateCurrentLabel={t("locateCurrent")}
+        onScrollToPetIdHandled={() => setPendingScrollPetId(null)}
         pets={installedPets}
+        scrollToPetId={pendingScrollPetId}
         showCurrentLocator
         strings={petCardStrings}
         cardProps={(pet) => ({
