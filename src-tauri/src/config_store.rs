@@ -5,7 +5,10 @@ use crate::{
         MIN_PET_WINDOW_SIZE,
     },
     i18n::{default_locale, Locale, LocalePreference},
-    pet_package::{collect_pet_sounds, find_sprite_path, PetManifest, PetPackage, PetSummary},
+    pet_package::{
+        collect_pet_sounds, find_sprite_path, parse_runtime_pet_id, system_pet_id, user_pet_id,
+        PetManifest, PetNamespace, PetPackage, PetSummary,
+    },
     pet_registry::BUILTIN_PET_ID,
 };
 use serde::{
@@ -119,7 +122,7 @@ impl ConfigStore {
         let normalized_pet_window_size = normalize_pet_window_size(config.pet_window_size);
 
         if !pets.iter().any(|pet| pet.id == config.current_pet_id) {
-            config.current_pet_id = BUILTIN_PET_ID.to_string();
+            config.current_pet_id = system_pet_id(BUILTIN_PET_ID);
             self.save_config(&config)?;
         }
         if config.pet_window_size != normalized_pet_window_size {
@@ -143,15 +146,13 @@ impl ConfigStore {
     pub fn list_pets(&self) -> Result<Vec<PetSummary>, StoreError> {
         let mut pets_by_id: BTreeMap<String, PetSummary> = BTreeMap::new();
 
-        // User-imported pets first (built_in=false).
-        for package in self.scan_user_pets()? {
-            let summary = mark_summary(package, false);
+        for (storage_id, package) in self.scan_user_pets()? {
+            let summary = package.summary(PetNamespace::User, &storage_id);
             pets_by_id.insert(summary.id.clone(), summary);
         }
 
-        // Built-in pets shadow any user-side copy that happens to share an id.
-        for package in self.scan_builtin_pets()? {
-            let summary = mark_summary(package, true);
+        for (storage_id, package) in self.scan_builtin_pets()? {
+            let summary = package.summary(PetNamespace::System, &storage_id);
             pets_by_id.insert(summary.id.clone(), summary);
         }
 
@@ -160,22 +161,22 @@ impl ConfigStore {
         Ok(pets)
     }
 
-    fn scan_user_pets(&self) -> Result<Vec<PetPackage>, StoreError> {
-        scan_packages(&self.pets_dir())
+    fn scan_user_pets(&self) -> Result<Vec<(String, PetPackage)>, StoreError> {
+        scan_packages_with_storage_ids(&self.pets_dir())
     }
 
-    fn scan_builtin_pets(&self) -> Result<Vec<PetPackage>, StoreError> {
+    fn scan_builtin_pets(&self) -> Result<Vec<(String, PetPackage)>, StoreError> {
         let Some(dir) = self.builtin_pets_dir.as_ref() else {
             return Ok(Vec::new());
         };
-        scan_packages(dir)
+        scan_packages_with_storage_ids(dir)
     }
 
     fn builtin_ids(&self) -> Result<HashSet<String>, StoreError> {
         Ok(self
             .scan_builtin_pets()?
             .into_iter()
-            .map(|package| package.manifest.id)
+            .map(|(storage_id, _package)| storage_id)
             .collect())
     }
 
@@ -327,7 +328,7 @@ impl ConfigStore {
             &self.pets_dir().join(&package.manifest.id),
             &package,
         )?;
-        self.select_pet(&package.manifest.id)
+        self.select_pet(&user_pet_id(&package.manifest.id))
     }
 
     pub fn import_codex_pets(&self, codex_pets_dir: &Path) -> Result<PetImportResult, StoreError> {
@@ -419,7 +420,7 @@ impl ConfigStore {
         )?;
         fs::write(target_dir.join(sprite_name), sprite_bytes)?;
 
-        self.select_pet(&manifest.id)
+        self.select_pet(&user_pet_id(&manifest.id))
     }
 
     pub fn import_pet_folder(&self, source_dir: &Path) -> Result<AppState, StoreError> {
@@ -458,15 +459,19 @@ impl ConfigStore {
             serde_json::to_vec_pretty(&package.manifest)?,
         )?;
 
-        self.select_pet(&package.manifest.id)
+        self.select_pet(&user_pet_id(&package.manifest.id))
     }
 
     pub fn remove_pet(&self, pet_id: &str) -> Result<AppState, StoreError> {
         self.app_state()?;
-        if self.builtin_ids()?.contains(pet_id) {
-            return Err(StoreError::BuiltInPetCannotBeRemoved(pet_id.to_string()));
+        let Some((namespace, raw_id)) = parse_runtime_pet_id(pet_id) else {
+            return Err(StoreError::PetNotFound(pet_id.to_string()));
+        };
+        if namespace == PetNamespace::System {
+            return Err(StoreError::BuiltInPetCannotBeRemoved(raw_id.to_string()));
         }
-        let target_dir = self.pets_dir().join(pet_id);
+
+        let target_dir = self.pets_dir().join(raw_id);
         if !target_dir.is_dir() || read_pet_package(&target_dir).is_none() {
             return Err(StoreError::PetNotFound(pet_id.to_string()));
         }
@@ -475,7 +480,7 @@ impl ConfigStore {
 
         let mut config = self.load_or_create_config()?;
         if config.current_pet_id == pet_id {
-            config.current_pet_id = BUILTIN_PET_ID.to_string();
+            config.current_pet_id = system_pet_id(BUILTIN_PET_ID);
             self.save_config(&config)?;
         }
 
@@ -497,6 +502,11 @@ impl ConfigStore {
         if !pets_dir.exists() {
             return Ok(None);
         }
+        let lookup_id = match parse_runtime_pet_id(pet_id) {
+            Some((PetNamespace::User, raw_id)) => raw_id,
+            Some((PetNamespace::System, _raw_id)) => return Ok(None),
+            None => pet_id,
+        };
 
         for entry in fs::read_dir(pets_dir)? {
             let source_dir = entry?.path();
@@ -507,7 +517,7 @@ impl ConfigStore {
             let Some(package) = read_pet_package(&source_dir) else {
                 continue;
             };
-            if package.manifest.id == pet_id {
+            if package.manifest.id == lookup_id {
                 return Ok(Some((source_dir, package)));
             }
         }
@@ -605,25 +615,36 @@ fn lift_legacy_pet_interactions(value: &mut serde_json::Value) -> bool {
     true
 }
 
-fn scan_packages(dir: &Path) -> Result<Vec<PetPackage>, StoreError> {
+fn scan_packages_with_storage_ids(dir: &Path) -> Result<Vec<(String, PetPackage)>, StoreError> {
     if !dir.exists() {
         return Ok(Vec::new());
     }
+
     let mut packages = Vec::new();
     for entry in fs::read_dir(dir)? {
-        let path = entry?.path();
+        let entry = entry?;
+        let path = entry.path();
         if !path.is_dir() {
             continue;
         }
+        let Some(storage_id) = path.file_name().and_then(|name| name.to_str()) else {
+            continue;
+        };
         if let Some(package) = read_pet_package(&path) {
-            packages.push(package);
+            packages.push((storage_id.to_string(), package));
         }
     }
     Ok(packages)
 }
 
 fn mark_summary(package: PetPackage, built_in: bool) -> PetSummary {
-    let mut summary = package.summary();
+    let namespace = if built_in {
+        PetNamespace::System
+    } else {
+        PetNamespace::User
+    };
+    let storage_id = package.manifest.id.clone();
+    let mut summary = package.summary(namespace, &storage_id);
     summary.built_in = built_in;
     summary
 }
@@ -637,7 +658,7 @@ fn sort_pet_summaries(pets: &mut [PetSummary]) {
 }
 
 fn sort_group(pet: &PetSummary) -> u8 {
-    if pet.id == BUILTIN_PET_ID {
+    if pet.id == system_pet_id(BUILTIN_PET_ID) {
         0
     } else if !pet.built_in {
         1
@@ -758,7 +779,7 @@ struct StoredConfig {
 impl Default for StoredConfig {
     fn default() -> Self {
         Self {
-            current_pet_id: BUILTIN_PET_ID.to_string(),
+            current_pet_id: system_pet_id(BUILTIN_PET_ID),
             onboarding_complete: false,
             agent_auto_install_complete: false,
             locale_preference: LocalePreference::System,

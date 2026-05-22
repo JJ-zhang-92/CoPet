@@ -2,7 +2,6 @@ use copet_lib::{
     app_state::AgentMessageDisplay,
     config_store::ConfigStore,
     i18n::{Locale, LocalePreference},
-    pet_registry::BUILTIN_PET_ID,
 };
 use std::{fs, path::Path, path::PathBuf};
 
@@ -23,10 +22,10 @@ fn ensure_ready_initializes_copet_tree_without_copying_builtins() {
 
     let state = store.ensure_ready().unwrap();
 
-    assert_eq!(state.current_pet_id, "copet");
+    assert_eq!(state.current_pet_id, "system:copet");
     assert!(!state.onboarding_complete);
     assert_eq!(state.agent_message_display, AgentMessageDisplay::All);
-    assert!(state.pets.iter().any(|pet| pet.id == "copet"));
+    assert!(state.pets.iter().any(|pet| pet.id == "system:copet"));
     assert!(store.root().join("config.json").exists());
     assert!(store.root().join("runtime").exists());
     // Built-in pets are not copied to the user dir under the new architecture.
@@ -52,11 +51,11 @@ fn list_pets_exposes_all_builtin_packages_from_resource_dir() {
     let zodiac_dragon = state
         .pets
         .iter()
-        .find(|pet| pet.id == NON_DEFAULT_BUILTIN_PET_ID)
+        .find(|pet| pet.id == format!("system:{NON_DEFAULT_BUILTIN_PET_ID}"))
         .unwrap();
 
-    assert!(ids.contains(&"copet"));
-    assert!(ids.contains(&NON_DEFAULT_BUILTIN_PET_ID));
+    assert!(ids.contains(&"system:copet"));
+    assert!(ids.contains(&format!("system:{NON_DEFAULT_BUILTIN_PET_ID}").as_str()));
     assert!(zodiac_dragon.built_in);
 }
 
@@ -68,8 +67,16 @@ fn list_pets_returns_user_imports_alongside_builtins() {
     create_user_pet(store.root(), "desk-cat", "Desk Cat");
 
     let state = store.app_state().unwrap();
-    let desk_cat = state.pets.iter().find(|pet| pet.id == "desk-cat").unwrap();
-    let copet = state.pets.iter().find(|pet| pet.id == "copet").unwrap();
+    let desk_cat = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "user:desk-cat")
+        .unwrap();
+    let copet = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "system:copet")
+        .unwrap();
 
     assert!(!desk_cat.built_in);
     assert!(copet.built_in);
@@ -85,7 +92,7 @@ fn list_pets_orders_copet_then_user_imports_then_builtins() {
 
     let pets = store.list_pets().unwrap();
 
-    assert_eq!(pets.first().unwrap().id, "copet");
+    assert_eq!(pets.first().unwrap().id, "system:copet");
 
     let user_indices = pets
         .iter()
@@ -96,7 +103,7 @@ fn list_pets_orders_copet_then_user_imports_then_builtins() {
         .iter()
         .enumerate()
         .filter_map(|(idx, pet)| {
-            (pet.built_in && pet.id != "copet").then_some((idx, pet.id.as_str()))
+            (pet.built_in && pet.id != "system:copet").then_some((idx, pet.id.as_str()))
         })
         .collect::<Vec<_>>();
 
@@ -111,7 +118,7 @@ fn list_pets_orders_copet_then_user_imports_then_builtins() {
 
     // User imports sort alphabetically by display name within their group.
     let user_ids = user_indices.iter().map(|(_, id)| *id).collect::<Vec<_>>();
-    assert_eq!(user_ids, vec!["a-user-pet", "z-user-pet"]);
+    assert_eq!(user_ids, vec!["user:a-user-pet", "user:z-user-pet"]);
 }
 
 #[test]
@@ -167,9 +174,13 @@ fn import_pet_files_writes_user_dir_and_marks_not_builtin() {
     let state = store
         .import_pet_files(manifest, "spritesheet.png", b"sprite".to_vec())
         .unwrap();
-    let local_fox = state.pets.iter().find(|pet| pet.id == "local-fox").unwrap();
+    let local_fox = state
+        .pets
+        .iter()
+        .find(|pet| pet.id == "user:local-fox")
+        .unwrap();
 
-    assert_eq!(state.current_pet_id, "local-fox");
+    assert_eq!(state.current_pet_id, "user:local-fox");
     // Imported pet always lives in user dir regardless of manifest hint.
     assert!(store.root().join("pets/local-fox/pet.json").exists());
     assert!(!local_fox.built_in);
@@ -230,10 +241,10 @@ fn import_pet_folder_reads_manifest_and_sprite_from_selected_directory() {
     let folder_fox = state
         .pets
         .iter()
-        .find(|pet| pet.id == "folder-fox")
+        .find(|pet| pet.id == "user:folder-fox")
         .unwrap();
 
-    assert_eq!(state.current_pet_id, "folder-fox");
+    assert_eq!(state.current_pet_id, "user:folder-fox");
     assert!(store.root().join("pets/folder-fox/pet.json").exists());
     assert!(store
         .root()
@@ -248,12 +259,12 @@ fn remove_pet_deletes_user_pet_and_falls_back_when_current() {
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
     create_user_pet(store.root(), "desk-cat", "Desk Cat");
-    store.select_pet("desk-cat").unwrap();
+    store.select_pet("user:desk-cat").unwrap();
 
-    let state = store.remove_pet("desk-cat").unwrap();
+    let state = store.remove_pet("user:desk-cat").unwrap();
 
-    assert_eq!(state.current_pet_id, BUILTIN_PET_ID);
-    assert!(!state.pets.iter().any(|pet| pet.id == "desk-cat"));
+    assert_eq!(state.current_pet_id, "system:copet");
+    assert!(!state.pets.iter().any(|pet| pet.id == "user:desk-cat"));
     assert!(!store.root().join("pets/desk-cat").exists());
 }
 
@@ -263,7 +274,7 @@ fn remove_pet_rejects_built_in_pet() {
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
 
-    let error = store.remove_pet(BUILTIN_PET_ID).unwrap_err();
+    let error = store.remove_pet("system:copet").unwrap_err();
 
     assert!(error.to_string().contains("built-in"));
 }
@@ -274,7 +285,9 @@ fn remove_pet_rejects_any_bundled_builtin() {
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
 
-    let error = store.remove_pet(NON_DEFAULT_BUILTIN_PET_ID).unwrap_err();
+    let error = store
+        .remove_pet(&format!("system:{NON_DEFAULT_BUILTIN_PET_ID}"))
+        .unwrap_err();
 
     assert!(error.to_string().contains("built-in"));
 }
@@ -286,11 +299,11 @@ fn select_pet_persists_current_pet_in_config() {
     store.ensure_ready().unwrap();
     create_user_pet(store.root(), "desk-cat", "Desk Cat");
 
-    let state = store.select_pet("desk-cat").unwrap();
+    let state = store.select_pet("user:desk-cat").unwrap();
     let reloaded = store.ensure_ready().unwrap();
 
-    assert_eq!(state.current_pet_id, "desk-cat");
-    assert_eq!(reloaded.current_pet_id, "desk-cat");
+    assert_eq!(state.current_pet_id, "user:desk-cat");
+    assert_eq!(reloaded.current_pet_id, "user:desk-cat");
 }
 
 #[test]
@@ -382,9 +395,9 @@ fn list_pets_hides_broken_user_packages_without_crashing() {
     let pets = store.list_pets().unwrap();
     let ids = pets.iter().map(|pet| pet.id.as_str()).collect::<Vec<_>>();
 
-    assert!(ids.contains(&"copet"));
-    assert!(ids.contains(&"good-pet"));
-    assert!(!ids.contains(&"broken-pet"));
+    assert!(ids.contains(&"system:copet"));
+    assert!(ids.contains(&"user:good-pet"));
+    assert!(!ids.contains(&"user:broken-pet"));
 }
 
 #[test]
@@ -406,7 +419,7 @@ fn import_codex_pets_copies_valid_packages_and_skips_broken_packages() {
 
     assert_eq!(result.imported, 1);
     assert_eq!(result.skipped, 1);
-    assert!(ids.contains(&"space-cat"));
+    assert!(ids.contains(&"user:space-cat"));
     assert!(store.root().join("pets/space-cat/pet.json").exists());
     assert!(store.root().join("pets/space-cat/spritesheet.png").exists());
 }
@@ -448,7 +461,7 @@ fn list_codex_pets_reads_source_without_installing() {
     let pets = store.list_codex_pets(&codex_pets).unwrap();
 
     assert_eq!(pets.len(), 1);
-    assert_eq!(pets[0].id, "space-cat");
+    assert_eq!(pets[0].id, "user:space-cat");
     assert!(pets[0].sprite_path.contains(".codex"));
     assert!(!store.root().join("pets/space-cat").exists());
 }
@@ -461,12 +474,17 @@ fn install_codex_pet_copies_one_pet_and_sets_current_pet() {
     create_pet_package(&codex_pets.join("space-cat"), "space-cat", "Space Cat");
     create_pet_package(&codex_pets.join("desk-cat"), "desk-cat", "Desk Cat");
     store.ensure_ready().unwrap();
+    let available = store.list_codex_pets(&codex_pets).unwrap();
+    let space_cat = available
+        .iter()
+        .find(|pet| pet.id == "user:space-cat")
+        .unwrap();
 
-    let state = store.install_codex_pet(&codex_pets, "space-cat").unwrap();
+    let state = store.install_codex_pet(&codex_pets, &space_cat.id).unwrap();
 
-    assert_eq!(state.current_pet_id, "space-cat");
-    assert!(state.pets.iter().any(|pet| pet.id == "space-cat"));
-    assert!(!state.pets.iter().any(|pet| pet.id == "desk-cat"));
+    assert_eq!(state.current_pet_id, "user:space-cat");
+    assert!(state.pets.iter().any(|pet| pet.id == "user:space-cat"));
+    assert!(!state.pets.iter().any(|pet| pet.id == "user:desk-cat"));
     assert!(store.root().join("pets/space-cat/pet.json").exists());
 }
 
@@ -573,6 +591,68 @@ fn legacy_config_missing_agent_auto_install_complete_defaults_to_false() {
     let store = ConfigStore::with_builtin_dir(root, builtin_pets_dir());
 
     assert!(!store.agent_auto_install_complete().unwrap());
+}
+
+#[test]
+fn app_state_exposes_namespaced_runtime_pet_ids() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+
+    let state = store.ensure_ready().unwrap();
+
+    assert_eq!(state.current_pet_id, "system:copet");
+    assert!(state.pets.iter().any(|pet| pet.id == "system:copet"));
+    assert!(state
+        .pets
+        .iter()
+        .any(|pet| pet.id == format!("system:{NON_DEFAULT_BUILTIN_PET_ID}")));
+}
+
+#[test]
+fn user_pet_runtime_id_comes_from_user_directory_name() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    create_user_pet(store.root(), "desk-cat-2", "Desk Cat Copy");
+    let manifest_path = store.root().join("pets/desk-cat-2/pet.json");
+    let mut manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&manifest_path).unwrap()).unwrap();
+    manifest["id"] = serde_json::Value::String("desk-cat".to_string());
+    fs::write(
+        &manifest_path,
+        serde_json::to_vec_pretty(&manifest).unwrap(),
+    )
+    .unwrap();
+
+    let state = store.app_state().unwrap();
+
+    assert!(state.pets.iter().any(|pet| pet.id == "user:desk-cat-2"));
+    assert!(!state.pets.iter().any(|pet| pet.id == "user:desk-cat"));
+}
+
+#[test]
+fn selecting_namespaced_user_pet_persists_runtime_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    create_user_pet(store.root(), "desk-cat", "Desk Cat");
+
+    let state = store.select_pet("user:desk-cat").unwrap();
+    let reloaded = store.ensure_ready().unwrap();
+
+    assert_eq!(state.current_pet_id, "user:desk-cat");
+    assert_eq!(reloaded.current_pet_id, "user:desk-cat");
+}
+
+#[test]
+fn removing_system_pet_is_rejected_by_namespace() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+
+    let error = store.remove_pet("system:copet").unwrap_err();
+
+    assert!(error.to_string().contains("built-in"));
 }
 
 fn create_user_pet(root: &Path, id: &str, display_name: &str) {

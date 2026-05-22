@@ -10,6 +10,45 @@ pub const DEFAULT_FRAME_HEIGHT: u32 = 208;
 pub const DEFAULT_GRID_COLUMNS: u32 = 8;
 pub const DEFAULT_GRID_ROWS: u32 = 9;
 pub const MAX_PET_SOUND_BYTES: u64 = 16 * 1024 * 1024;
+pub const SYSTEM_PET_PREFIX: &str = "system:";
+pub const USER_PET_PREFIX: &str = "user:";
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum PetNamespace {
+    System,
+    User,
+}
+
+impl PetNamespace {
+    pub fn prefix(self) -> &'static str {
+        match self {
+            PetNamespace::System => SYSTEM_PET_PREFIX,
+            PetNamespace::User => USER_PET_PREFIX,
+        }
+    }
+}
+
+pub fn runtime_pet_id(namespace: PetNamespace, storage_id: &str) -> String {
+    format!("{}{}", namespace.prefix(), storage_id)
+}
+
+pub fn system_pet_id(storage_id: &str) -> String {
+    runtime_pet_id(PetNamespace::System, storage_id)
+}
+
+pub fn user_pet_id(storage_id: &str) -> String {
+    runtime_pet_id(PetNamespace::User, storage_id)
+}
+
+pub fn parse_runtime_pet_id(runtime_id: &str) -> Option<(PetNamespace, &str)> {
+    if let Some(raw) = runtime_id.strip_prefix(SYSTEM_PET_PREFIX) {
+        return Some((PetNamespace::System, raw));
+    }
+    if let Some(raw) = runtime_id.strip_prefix(USER_PET_PREFIX) {
+        return Some((PetNamespace::User, raw));
+    }
+    None
+}
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,15 +150,15 @@ pub struct PetPackage {
 }
 
 impl PetPackage {
-    pub fn summary(self) -> PetSummary {
+    pub fn summary(self, namespace: PetNamespace, storage_id: &str) -> PetSummary {
         let slug = if self.manifest.slug.is_empty() {
-            self.manifest.id.clone()
+            storage_id.to_string()
         } else {
             self.manifest.slug
         };
 
         PetSummary {
-            id: self.manifest.id,
+            id: runtime_pet_id(namespace, storage_id),
             slug,
             display_name: self.manifest.display_name,
             description: self.manifest.description,
@@ -127,7 +166,7 @@ impl PetPackage {
             frame_height: self.manifest.frame_height,
             grid_columns: self.manifest.grid_columns,
             grid_rows: self.manifest.grid_rows,
-            built_in: self.manifest.built_in,
+            built_in: matches!(namespace, PetNamespace::System),
             sprite_path: self.sprite_path.to_string_lossy().into_owned(),
             sounds: self.sounds,
         }
