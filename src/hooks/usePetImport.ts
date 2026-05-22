@@ -177,9 +177,9 @@ export function usePetImport(options: UsePetImportOptions = {}) {
   }, []);
 
   const ensureSession = useCallback(
-    async (operation: PetImportOperation) => {
+    async (operation: PetImportOperation): Promise<PetImportSessionResult> => {
       if (sessionRef.current) {
-        return sessionRef.current;
+        return { errorMessage: null, session: sessionRef.current };
       }
 
       if (sessionPromiseRef.current?.generation !== operation.generation) {
@@ -201,16 +201,17 @@ export function usePetImport(options: UsePetImportOptions = {}) {
         if (result.session) {
           await discardSessionBestEffort(result.session);
         }
-        return null;
+        return { errorMessage: null, session: null };
       }
 
       if (result.errorMessage || !result.session) {
-        appendErrors([result.errorMessage ?? strings.createSessionFailed]);
-        return null;
+        const message = result.errorMessage ?? strings.createSessionFailed;
+        appendErrors([message]);
+        return { errorMessage: message, session: null };
       }
 
       setSessionState(result.session);
-      return result.session;
+      return { errorMessage: null, session: result.session };
     },
     [
       appendErrors,
@@ -223,7 +224,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
 
   const runOperation = useCallback(
     async (
-      action: (operation: PetImportOperation) => Promise<void>,
+      action: (operation: PetImportOperation) => Promise<string | null | void>,
     ): Promise<PetImportActionResult> => {
       const operation = beginOperation();
       if (!operation) {
@@ -231,8 +232,8 @@ export function usePetImport(options: UsePetImportOptions = {}) {
       }
 
       try {
-        await action(operation);
-        return { errorMessage: null };
+        const errorMessage = await action(operation);
+        return { errorMessage: errorMessage ?? null };
       } catch (error) {
         const message = toMessage(error);
         if (isOperationCurrent(operation)) {
@@ -289,21 +290,26 @@ export function usePetImport(options: UsePetImportOptions = {}) {
 
   const previewCodex = useCallback(async () => {
     return runOperation(async (operation) => {
-      const activeSession = await ensureSession(operation);
-      if (!activeSession || !isOperationCurrent(operation)) {
-        return;
+      const sessionResult = await ensureSession(operation);
+      if (sessionResult.errorMessage) {
+        return sessionResult.errorMessage;
+      }
+      if (!sessionResult.session || !isOperationCurrent(operation)) {
+        return null;
       }
 
-      const result = await previewCodexPetImports(activeSession.sessionId);
+      const result = await previewCodexPetImports(sessionResult.session.sessionId);
       if (!isOperationCurrent(operation)) {
-        return;
+        return null;
       }
       if (result.errorMessage || !result.batch) {
-        appendErrors([result.errorMessage ?? strings.previewCodexFailed]);
-        return;
+        const message = result.errorMessage ?? strings.previewCodexFailed;
+        appendErrors([message]);
+        return message;
       }
 
       applyBatch(operation, result.batch);
+      return null;
     });
   }, [
     appendErrors,
@@ -333,36 +339,40 @@ export function usePetImport(options: UsePetImportOptions = {}) {
           }),
         );
       } catch (error) {
+        const message = `${strings.dialogOpenFailed} ${toMessage(error)}`;
         if (isOperationCurrent(operation)) {
-          appendErrors([
-            `${strings.dialogOpenFailed} ${toMessage(error)}`,
-          ]);
+          appendErrors([message]);
         }
-        return;
+        return message;
       }
 
       if (selectedPaths.length === 0 || !isOperationCurrent(operation)) {
-        return;
+        return null;
       }
 
-      const activeSession = await ensureSession(operation);
-      if (!activeSession || !isOperationCurrent(operation)) {
-        return;
+      const sessionResult = await ensureSession(operation);
+      if (sessionResult.errorMessage) {
+        return sessionResult.errorMessage;
+      }
+      if (!sessionResult.session || !isOperationCurrent(operation)) {
+        return null;
       }
 
       const result = await previewPetImportFolders(
-        activeSession.sessionId,
+        sessionResult.session.sessionId,
         selectedPaths,
       );
       if (!isOperationCurrent(operation)) {
-        return;
+        return null;
       }
       if (result.errorMessage || !result.batch) {
-        appendErrors([result.errorMessage ?? strings.previewFoldersFailed]);
-        return;
+        const message = result.errorMessage ?? strings.previewFoldersFailed;
+        appendErrors([message]);
+        return message;
       }
 
       applyBatch(operation, result.batch);
+      return null;
     });
   }, [
     appendErrors,
@@ -395,36 +405,40 @@ export function usePetImport(options: UsePetImportOptions = {}) {
           }),
         );
       } catch (error) {
+        const message = `${strings.dialogOpenFailed} ${toMessage(error)}`;
         if (isOperationCurrent(operation)) {
-          appendErrors([
-            `${strings.dialogOpenFailed} ${toMessage(error)}`,
-          ]);
+          appendErrors([message]);
         }
-        return;
+        return message;
       }
 
       if (selectedPaths.length === 0 || !isOperationCurrent(operation)) {
-        return;
+        return null;
       }
 
-      const activeSession = await ensureSession(operation);
-      if (!activeSession || !isOperationCurrent(operation)) {
-        return;
+      const sessionResult = await ensureSession(operation);
+      if (sessionResult.errorMessage) {
+        return sessionResult.errorMessage;
+      }
+      if (!sessionResult.session || !isOperationCurrent(operation)) {
+        return null;
       }
 
       const result = await previewPetImportZips(
-        activeSession.sessionId,
+        sessionResult.session.sessionId,
         selectedPaths,
       );
       if (!isOperationCurrent(operation)) {
-        return;
+        return null;
       }
       if (result.errorMessage || !result.batch) {
-        appendErrors([result.errorMessage ?? strings.previewZipsFailed]);
-        return;
+        const message = result.errorMessage ?? strings.previewZipsFailed;
+        appendErrors([message]);
+        return message;
       }
 
       applyBatch(operation, result.batch);
+      return null;
     });
   }, [
     appendErrors,
@@ -443,7 +457,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
       return runOperation(async (operation) => {
         const activeSession = sessionRef.current;
         if (!activeSession || previewIds.length === 0) {
-          return;
+          return null;
         }
 
         const result = await commitPetImportPreviews(
@@ -451,11 +465,12 @@ export function usePetImport(options: UsePetImportOptions = {}) {
           previewIds,
         );
         if (!isOperationCurrent(operation)) {
-          return;
+          return null;
         }
         if (result.errorMessage || !result.result) {
-          appendErrors([result.errorMessage ?? strings.importFailed]);
-          return;
+          const message = result.errorMessage ?? strings.importFailed;
+          appendErrors([message]);
+          return message;
         }
 
         const failedPreviewIds = new Set(
@@ -482,6 +497,7 @@ export function usePetImport(options: UsePetImportOptions = {}) {
             (failure) => `${failure.previewId}: ${failure.errorMessage}`,
           ),
         );
+        return null;
       });
     },
     [

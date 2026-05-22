@@ -69,6 +69,23 @@ test("codex import previews pets selected by default", async ({ browser }) => {
   });
 });
 
+test("codex preview failure shows inline error and toast", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    commandErrors: {
+      preview_codex_pet_imports: "Codex preview failed",
+    },
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import pets" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "From Codex" }).click();
+
+  await expect(page.locator(".pet-import-errors")).toContainText(
+    "Codex preview failed",
+  );
+  await expect(page.getByText("Codex preview failed")).toHaveCount(2);
+});
+
 test("preview rows can be unselected removed and imported", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     importPreviews: [previewFox, previewPanda],
