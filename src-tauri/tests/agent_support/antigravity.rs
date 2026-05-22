@@ -427,7 +427,7 @@ fn antigravity_helper_name_must_match_exactly() {
 }
 
 #[test]
-fn antigravity_hook_command_exits_successfully_when_helper_is_missing() {
+fn antigravity_stop_command_allows_stop_when_helper_is_missing() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
     let root = temp.path().join(".copet");
@@ -450,7 +450,10 @@ fn antigravity_hook_command_exits_successfully_when_helper_is_missing() {
         .unwrap();
 
     assert!(output.status.success());
-    assert_eq!(String::from_utf8_lossy(&output.stdout), "{}\n");
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{\"decision\":\"allow\"}\n"
+    );
 }
 
 #[test]
@@ -574,6 +577,32 @@ fn antigravity_pre_tool_command_allows_tool_when_helper_is_missing() {
         .unwrap();
     let output = Command::new("sh")
         .args(["-c", command])
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .spawn()
+        .unwrap()
+        .wait_with_output()
+        .unwrap();
+
+    assert!(output.status.success());
+    assert_eq!(
+        String::from_utf8_lossy(&output.stdout),
+        "{\"decision\":\"allow\"}\n"
+    );
+}
+
+#[test]
+fn antigravity_helper_allows_stop_when_runtime_is_unavailable() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let manager = manager_with_fake_agents(&root, &home);
+
+    manager.install("antigravity").unwrap();
+
+    let helper = root.join("hooks/copet-hook.sh");
+    let output = Command::new(helper)
+        .args(["antigravity", "session.stop"])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()

@@ -508,7 +508,7 @@ fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
 }
 
 fn hook_default_output(adapter_id: &str, kind: &str) -> &'static str {
-    if adapter_id == "antigravity" && kind == "tool.before" {
+    if adapter_id == "antigravity" && matches!(kind, "tool.before" | "session.stop") {
         r#"{"decision":"allow"}"#
     } else {
         "{}"
@@ -530,11 +530,15 @@ json_string_field() {
   printf '%s' "$compact_input" | sed -n 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
 }
 hook_output() {
-  if [ "$agent" = "antigravity" ] && [ "$kind" = "tool.before" ]; then
-    printf '{"decision":"allow"}\n'
-  else
-    printf '{}\n'
+  if [ "$agent" = "antigravity" ]; then
+    case "$kind" in
+      tool.before|session.stop)
+        printf '{"decision":"allow"}\n'
+        return
+        ;;
+    esac
   fi
+  printf '{}\n'
 }
 tool="$(json_string_field tool_name)"
 if [ -z "$tool" ]; then
