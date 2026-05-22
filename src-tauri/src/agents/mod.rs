@@ -11,9 +11,10 @@ use std::{
 pub(crate) const COPET_MARKER: &str = "copet-managed-hook";
 pub(crate) const HELPER_NAME: &str = "copet-hook.sh";
 
-static ADAPTERS: [&dyn CliAdapter; 4] = [
+static ADAPTERS: [&dyn CliAdapter; 5] = [
     adapters::CLAUDE_CODE,
     adapters::CODEX,
+    adapters::ANTIGRAVITY,
     adapters::OPENCODE,
     adapters::GEMINI,
 ];
@@ -495,7 +496,23 @@ fn is_copet_command(command: &str, adapter_id: &str) -> bool {
 
 fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
     let path = shell_quote(&helper_path.to_string_lossy());
-    format!("if [ -f {path} ]; then {path} {adapter_id} {kind}; else echo \"{{}}\"; fi")
+    let fallback_output = hook_default_output(adapter_id, kind);
+    if fallback_output == "{}" {
+        format!("if [ -f {path} ]; then {path} {adapter_id} {kind}; else echo \"{{}}\"; fi")
+    } else {
+        let fallback = shell_quote(fallback_output);
+        format!(
+            "if [ -f {path} ]; then {path} {adapter_id} {kind}; else printf '%s\\n' {fallback}; fi"
+        )
+    }
+}
+
+fn hook_default_output(adapter_id: &str, kind: &str) -> &'static str {
+    if adapter_id == "antigravity" && matches!(kind, "tool.before" | "session.stop") {
+        r#"{"decision":"allow"}"#
+    } else {
+        "{}"
+    }
 }
 
 fn helper_script() -> &'static str {
@@ -504,33 +521,60 @@ fn helper_script() -> &'static str {
 agent="${1:-unknown}"
 kind="${2:-unknown}"
 input="$(cat)"
+compact_input="$(printf '%s' "$input" | tr '\n\r' '  ')"
 json_escape() {
   printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'
 }
 json_string_field() {
   key="$1"
-  printf '%s' "$input" | sed -n 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
+  printf '%s' "$compact_input" | sed -n 's/.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
 }
-tool="$(printf '%s' "$input" | sed -n 's/.*"tool_name"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+json_string_field_after_key() {
+  marker="$1"
+  key="$2"
+  printf '%s' "$compact_input" | sed -n 's/.*"'"$marker"'"[[:space:]]*:[[:space:]]*{.*"'"$key"'"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1
+}
+hook_output() {
+  if [ "$agent" = "antigravity" ]; then
+    case "$kind" in
+      tool.before|session.stop)
+        printf '{"decision":"allow"}\n'
+        return
+        ;;
+    esac
+  fi
+  printf '{}\n'
+}
+tool="$(json_string_field tool_name)"
 if [ -z "$tool" ]; then
-  tool="$(printf '%s' "$input" | sed -n 's/.*"tool"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' | head -n 1)"
+  tool="$(json_string_field tool)"
+fi
+if [ -z "$tool" ]; then
+  tool="$(json_string_field_after_key toolCall name)"
 fi
 tool_input=""
-for key in file_path filePath path command pattern url description subject; do
-  value="$(json_string_field "$key")"
+for field in file_path:file_path filePath:filePath path:path command:command CommandLine:command pattern:pattern url:url description:description subject:subject AbsolutePath:filePath TargetFile:filePath DirectoryPath:path SearchDirectory:path SearchPath:path Cwd:path Query:pattern query:pattern Pattern:pattern Url:url Description:description Instruction:subject Prompt:subject Input:subject Message:subject Reason:subject Action:subject Target:subject ImageName:subject; do
+  source_key="${field%%:*}"
+  output_key="${field#*:}"
+  value="$(json_string_field "$source_key")"
   if [ -n "$value" ]; then
     escaped_value="$(json_escape "$value")"
-    tool_input=",\"toolInput\":{\"$key\":\"$escaped_value\"}"
+    tool_input=",\"toolInput\":{\"$output_key\":\"$escaped_value\"}"
     break
   fi
 done
 runtime="${COPET_RUNTIME_DIR:-$HOME/.copet/runtime}"
-endpoint="$(cat "$runtime/event-endpoint" 2>/dev/null)" || { echo "{}" ; exit 0; }
-token="$(cat "$runtime/event-token" 2>/dev/null)" || { echo "{}" ; exit 0; }
-[ -n "$endpoint" ] && [ -n "$token" ] || { echo "{}" ; exit 0; }
-payload="$(printf '{"agent":"%s","kind":"%s","tool":"%s"%s}' "$(json_escape "$agent")" "$(json_escape "$kind")" "$(json_escape "$tool")" "$tool_input")"
+endpoint="$(cat "$runtime/event-endpoint" 2>/dev/null)" || { hook_output ; exit 0; }
+token="$(cat "$runtime/event-token" 2>/dev/null)" || { hook_output ; exit 0; }
+[ -n "$endpoint" ] && [ -n "$token" ] || { hook_output ; exit 0; }
+tool_field=""
+if [ -n "$tool" ]; then
+  escaped_tool="$(json_escape "$tool")"
+  tool_field=",\"tool\":\"$escaped_tool\""
+fi
+payload="$(printf '{"agent":"%s","kind":"%s"%s%s}' "$(json_escape "$agent")" "$(json_escape "$kind")" "$tool_field" "$tool_input")"
 curl -fsS --noproxy '*' --max-time 0.8 -H "Authorization: Bearer $token" -H "Content-Type: application/json" -d "$payload" "$endpoint" >/dev/null 2>&1 || true
-echo "{}"
+hook_output
 exit 0
 "#
 }

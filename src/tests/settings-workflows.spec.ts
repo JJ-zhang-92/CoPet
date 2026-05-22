@@ -1,6 +1,7 @@
 import { expect, test } from "@playwright/test";
 
 import {
+  antigravityAdapter,
   codexAdapter,
   createAppHarness,
   goku,
@@ -77,6 +78,85 @@ test("agent integration config path abbreviates mac home paths", async ({ browse
   const configPath = page.locator(".adapter-config-path");
   await expect(configPath.locator("code")).toHaveText("~/.codex/hooks.json");
   await expect(configPath).toHaveAttribute("title", "/Users/elu/.codex/hooks.json");
+});
+
+test("agent integrations render Antigravity as the third adapter", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    adapters: [
+      {
+        id: "claude-code",
+        displayName: "Claude Code",
+        configPath: "/home/.claude/settings.json",
+        installed: false,
+        healthy: false,
+        message: "Configuration path not created yet",
+      },
+      codexAdapter,
+      antigravityAdapter,
+      {
+        id: "opencode",
+        displayName: "OpenCode",
+        configPath: "/home/.config/opencode/plugins/copet.js",
+        installed: false,
+        healthy: false,
+        message: "Configuration path not created yet",
+      },
+      {
+        id: "gemini",
+        displayName: "Gemini",
+        configPath: "/home/.gemini/settings.json",
+        installed: false,
+        healthy: false,
+        message: "Configuration path not created yet",
+      },
+    ],
+  });
+  const page = await harness.openPage("settings");
+  await page.getByRole("tab", { name: "Agents" }).click();
+
+  await expect(page.locator(".adapter-card-name")).toHaveText([
+    "Claude Code",
+    "Codex",
+    "Antigravity",
+    "OpenCode",
+    "Gemini",
+  ]);
+});
+
+test("antigravity integration switch installs and uninstalls the adapter", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    adapters: [antigravityAdapter],
+  });
+  const page = await harness.openPage("settings");
+  await page.getByRole("tab", { name: "Agents" }).click();
+  const antigravitySwitch = page.getByRole("switch", { name: "Antigravity" });
+
+  await expect(antigravitySwitch).toHaveAttribute("aria-checked", "false");
+  await antigravitySwitch.click();
+  await expect(antigravitySwitch).toHaveAttribute("aria-checked", "true");
+
+  await antigravitySwitch.click();
+  await expect(antigravitySwitch).toHaveAttribute("aria-checked", "false");
+
+  const adapterCalls = harness.calls.filter(
+    (call) =>
+      call.command === "install_agent_adapter" ||
+      call.command === "uninstall_agent_adapter",
+  );
+  expect(adapterCalls).toEqual([
+    {
+      command: "install_agent_adapter",
+      args: { adapterId: "antigravity" },
+    },
+    {
+      command: "uninstall_agent_adapter",
+      args: { adapterId: "antigravity" },
+    },
+  ]);
 });
 
 test("settings page uses Chinese copy from app locale", async ({ browser }) => {

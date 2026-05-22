@@ -1,6 +1,9 @@
 #[path = "agent_support/helpers.rs"]
 mod helpers;
 
+#[path = "agent_support/antigravity.rs"]
+mod antigravity;
+
 #[path = "agent_support/claude_code.rs"]
 mod claude_code;
 
