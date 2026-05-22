@@ -16,6 +16,7 @@ use std::{
 use zip::ZipArchive;
 
 const STALE_SESSION_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+const PREVIEW_METADATA_FILE: &str = ".copet-import-preview.json";
 pub const ZIP_PREVIEW_MAX_ENTRIES: usize = 512;
 pub const ZIP_PREVIEW_MAX_FILE_BYTES: u64 = 32 * 1024 * 1024;
 pub const ZIP_PREVIEW_MAX_TOTAL_BYTES: u64 = 128 * 1024 * 1024;
@@ -59,6 +60,15 @@ pub struct PetImportCommitResult {
     pub imported: Vec<PetSummary>,
     pub failed: Vec<PetImportFailure>,
     pub state: AppState,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct PetImportPreviewMetadata {
+    preview_id: String,
+    intended_storage_id: String,
+    intended_pet_id: String,
+    source_label: String,
 }
 
 pub fn create_import_session(store: &ConfigStore) -> Result<PetImportSession, StoreError> {
@@ -134,13 +144,15 @@ pub fn preview_folder_imports(
                         continue;
                     }
 
-                    previews.push(build_preview(
-                        &preview_id,
-                        storage_id,
-                        &source_dir,
-                        &target_dir,
-                        package,
-                    ));
+                    let preview =
+                        build_preview(&preview_id, storage_id, &source_dir, &target_dir, package);
+                    if let Err(error) = write_preview_metadata(&target_dir, &preview, storage_id) {
+                        let _ = fs::remove_dir_all(&target_dir);
+                        errors.push(format!("could not stage {}: {error}", source_dir.display()));
+                        continue;
+                    }
+
+                    previews.push(preview);
                 }
             }
             Err(message) => errors.push(message),
@@ -258,7 +270,18 @@ pub fn commit_import_previews(
             continue;
         }
 
-        let storage_id = match store.next_available_user_pet_storage_id(&package.manifest.id) {
+        let base_storage_id = match preview_intended_storage_id(&preview_dir, &package) {
+            Ok(storage_id) => storage_id,
+            Err(error) => {
+                failed.push(PetImportFailure {
+                    preview_id: preview_id.clone(),
+                    error_message: error.to_string(),
+                });
+                continue;
+            }
+        };
+
+        let storage_id = match store.next_available_user_pet_storage_id(&base_storage_id) {
             Ok(storage_id) => storage_id,
             Err(error) => {
                 failed.push(PetImportFailure {
@@ -328,6 +351,42 @@ fn build_preview(
         selected_by_default: true,
         warning: None,
     }
+}
+
+fn write_preview_metadata(
+    preview_dir: &Path,
+    preview: &PetImportPreview,
+    intended_storage_id: &str,
+) -> Result<(), StoreError> {
+    let metadata = PetImportPreviewMetadata {
+        preview_id: preview.preview_id.clone(),
+        intended_storage_id: intended_storage_id.to_string(),
+        intended_pet_id: preview.intended_pet_id.clone(),
+        source_label: preview.source_label.clone(),
+    };
+    fs::write(
+        preview_dir.join(PREVIEW_METADATA_FILE),
+        serde_json::to_vec_pretty(&metadata)?,
+    )?;
+    Ok(())
+}
+
+fn preview_intended_storage_id(
+    preview_dir: &Path,
+    package: &PetPackage,
+) -> Result<String, StoreError> {
+    let metadata_path = preview_dir.join(PREVIEW_METADATA_FILE);
+    if !metadata_path.exists() {
+        return Ok(package.manifest.id.clone());
+    }
+
+    let metadata: PetImportPreviewMetadata = serde_json::from_slice(&fs::read(metadata_path)?)?;
+    if !safe_pet_storage_id(&metadata.intended_storage_id) {
+        return Err(StoreError::InvalidPetPackage(
+            "preview metadata has an invalid pet id".to_string(),
+        ));
+    }
+    Ok(metadata.intended_storage_id)
 }
 
 fn session_dir(store: &ConfigStore, session_id: &str) -> PathBuf {

@@ -533,6 +533,72 @@ fn commit_import_previews_allows_system_id_collision() {
 }
 
 #[test]
+fn commit_import_previews_preserves_source_storage_id_without_rewriting_manifest() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat-2");
+    create_pet_package(temp.path(), "desk-cat-2", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        &[batch.previews[0].preview_id.clone()],
+    )
+    .unwrap();
+
+    assert_eq!(result.imported.len(), 1);
+    assert_eq!(result.imported[0].id, "user:desk-cat-2");
+    assert!(result
+        .state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "user:desk-cat-2"));
+    assert!(store.root().join("pets/desk-cat-2/pet.json").exists());
+    assert!(!store.root().join("pets/desk-cat/pet.json").exists());
+    let raw_manifest = fs::read_to_string(store.root().join("pets/desk-cat-2/pet.json")).unwrap();
+    assert!(raw_manifest.contains(r#""id": "desk-cat""#));
+    assert!(!raw_manifest.contains("user:"));
+    assert!(!store
+        .root()
+        .join("pets/desk-cat-2/.copet-import-preview.json")
+        .exists());
+}
+
+#[test]
+fn commit_import_previews_falls_back_to_manifest_id_for_older_previews_without_metadata() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("legacy-storage");
+    create_pet_package(temp.path(), "legacy-storage", "legacy-pet", "Legacy Pet");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+    fs::remove_file(
+        store
+            .import_previews_dir()
+            .join(&session.session_id)
+            .join(&batch.previews[0].preview_id)
+            .join(".copet-import-preview.json"),
+    )
+    .unwrap();
+
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        &[batch.previews[0].preview_id.clone()],
+    )
+    .unwrap();
+
+    assert_eq!(result.imported.len(), 1);
+    assert_eq!(result.imported[0].id, "user:legacy-pet");
+    assert!(store.root().join("pets/legacy-pet/pet.json").exists());
+    assert!(!store.root().join("pets/legacy-storage/pet.json").exists());
+}
+
+#[test]
 fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
@@ -543,7 +609,7 @@ fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest
         "Local Fox",
     );
     let source_dir = temp.path().join("local-fox");
-    create_pet_package(temp.path(), "local-fox", "local-fox", "New Local Fox");
+    create_pet_package(temp.path(), "local-fox", "desk-cat", "Desk Cat");
 
     let session = create_import_session(&store).unwrap();
     let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
@@ -568,7 +634,7 @@ fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest
         .iter()
         .any(|pet| pet.id == "user:local-fox-2"));
     let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox-2/pet.json")).unwrap();
-    assert!(raw_manifest.contains(r#""id": "local-fox""#));
+    assert!(raw_manifest.contains(r#""id": "desk-cat""#));
     assert!(!raw_manifest.contains("user:"));
 }
 
@@ -612,7 +678,7 @@ fn commit_import_previews_reports_missing_selected_preview_and_continues() {
 }
 
 #[test]
-fn commit_import_previews_suffixes_duplicate_manifest_ids_in_one_request() {
+fn commit_import_previews_keeps_distinct_source_ids_for_duplicate_manifest_ids() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     let selected_parent = temp.path().join("pet-packages");
@@ -635,9 +701,10 @@ fn commit_import_previews_suffixes_duplicate_manifest_ids_in_one_request() {
             .iter()
             .map(|summary| summary.id.as_str())
             .collect::<Vec<_>>(),
-        vec!["user:shared-fox", "user:shared-fox-2"]
+        vec!["user:first-fox", "user:second-fox"]
     );
     assert!(result.failed.is_empty());
-    assert!(store.root().join("pets/shared-fox/pet.json").exists());
-    assert!(store.root().join("pets/shared-fox-2/pet.json").exists());
+    assert!(store.root().join("pets/first-fox/pet.json").exists());
+    assert!(store.root().join("pets/second-fox/pet.json").exists());
+    assert!(!store.root().join("pets/shared-fox/pet.json").exists());
 }
