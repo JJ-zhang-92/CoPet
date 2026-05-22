@@ -62,6 +62,12 @@ test("codex import previews pets selected by default", async ({ browser }) => {
   const foxCard = page.locator(".pet-card").filter({ hasText: "Local Fox" });
   await expect(foxCard).toContainText("Compact martial arts pet");
   await expect(foxCard).not.toContainText("Codex · user:local-fox");
+  await expect(foxCard.getByTestId("pet-card-custom-badge")).toHaveCount(0);
+  await expect(
+    foxCard.locator(
+      ".pet-card-preview-identity > .pet-card-checkbox + .pet-card-id",
+    ),
+  ).toHaveCount(1);
   const foxCheckbox = page.getByRole("checkbox", {
     name: "Select preview pet Local Fox",
   });

@@ -1862,6 +1862,30 @@ select {
   width: auto;
 }
 
+.pet-import-primary-action.ui-button {
+  border-color: hsl(var(--primary) / 0.76);
+  color: hsl(var(--primary-foreground));
+  background: hsl(var(--primary));
+  box-shadow: 0 8px 18px hsl(var(--primary) / 0.18);
+}
+
+.pet-import-primary-action.ui-button:hover {
+  border-color: hsl(var(--primary) / 0.9);
+  background: hsl(211 94% 44%);
+  box-shadow: 0 10px 22px hsl(var(--primary) / 0.22);
+}
+
+.pet-import-secondary-action.ui-button {
+  color: hsl(var(--muted-foreground));
+  background: transparent;
+  box-shadow: none;
+}
+
+.pet-import-secondary-action.ui-button:hover {
+  color: hsl(214 90% 28%);
+  background: hsl(var(--card) / 0.72);
+}
+
 .pet-import-errors {
   display: grid;
   gap: 6px;
@@ -1971,6 +1995,11 @@ select {
   cursor: pointer;
 }
 
+.pet-card[data-mode="preview"] .pet-card-main {
+  grid-template-rows: 78px 1fr;
+  padding-top: 44px;
+}
+
 .pet-card-main:disabled {
   cursor: wait;
   opacity: 0.72;
@@ -1986,6 +2015,22 @@ select {
   align-items: center;
   justify-content: flex-end;
   gap: 5px;
+}
+
+.pet-card-preview-identity {
+  position: absolute;
+  top: 7px;
+  left: 8px;
+  z-index: 2;
+  display: grid;
+  justify-items: start;
+  gap: 4px;
+  max-width: calc(100% - 48px);
+}
+
+.pet-card-preview-identity .pet-card-checkbox.ui-checkbox {
+  width: 16px;
+  height: 16px;
 }
 
 .pet-card-pill {
@@ -2077,11 +2122,8 @@ select {
 }
 
 .pet-card-id {
-  position: absolute;
-  top: 7px;
-  left: 8px;
-  z-index: 2;
-  max-width: calc(100% - 48px);
+  display: inline-block;
+  max-width: 100%;
   overflow: hidden;
   padding: 2px 6px;
   border: 1px solid hsl(var(--border) / 0.86);

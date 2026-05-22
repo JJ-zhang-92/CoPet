@@ -53,18 +53,13 @@ export function PetPackageCard({
     : `Select ${pet.displayName}`;
 
   return (
-    <article className="pet-card" data-active={active} data-pet-id={pet.id}>
+    <article
+      className="pet-card"
+      data-active={active}
+      data-mode={mode}
+      data-pet-id={pet.id}
+    >
       <div className="pet-card-top-actions">
-        {mode === "preview" ? (
-          <Checkbox
-            aria-label={previewSelectLabel}
-            checked={checked}
-            className="pet-card-checkbox"
-            disabled={busy}
-            onClick={(event) => event.stopPropagation()}
-            onCheckedChange={() => onToggleChecked?.(pet)}
-          />
-        ) : null}
         {active ? (
           <span
             className="pet-card-pill pet-card-status pet-card-current-status"
@@ -88,6 +83,19 @@ export function PetPackageCard({
           </button>
         ) : null}
       </div>
+      <span className="pet-card-preview-identity">
+        {mode === "preview" ? (
+          <Checkbox
+            aria-label={previewSelectLabel}
+            checked={checked}
+            className="pet-card-checkbox"
+            disabled={busy}
+            onClick={(event) => event.stopPropagation()}
+            onCheckedChange={() => onToggleChecked?.(pet)}
+          />
+        ) : null}
+        <span className="pet-card-id">{pet.slug}</span>
+      </span>
       <button
         aria-label={pet.displayName}
         aria-pressed={mode === "preview" ? checked : undefined}
@@ -96,7 +104,6 @@ export function PetPackageCard({
         onClick={handleMainClick}
         type="button"
       >
-        <span className="pet-card-id">{pet.slug}</span>
         <span className="pet-card-preview">
           <PetSprite
             pet={pet}
@@ -111,7 +118,7 @@ export function PetPackageCard({
         <span className="pet-card-copy">
           <span className="pet-card-name">
             <span className="pet-card-name-text">{pet.displayName}</span>
-            {!pet.builtIn ? (
+            {mode === "installed" && !pet.builtIn ? (
               <span
                 className="pet-card-custom-badge"
                 data-testid="pet-card-custom-badge"

@@ -150,22 +150,21 @@ export function SettingsPetImportDrawer({
             </div>
             <div className="pet-import-toolbar-actions">
               <Button
-                className="pet-toolbar-button"
+                className="pet-import-primary-action"
                 disabled={petImport.isBusy || petImport.selectedCount === 0}
                 onClick={() => void runImportAction(petImport.importSelected)}
                 size="sm"
                 type="button"
-                variant="outline"
               >
                 {t("importSelected")}
               </Button>
               <Button
-                className="pet-toolbar-button"
+                className="pet-import-secondary-action"
                 disabled={petImport.isBusy || !hasPreviews}
                 onClick={() => void runImportAction(petImport.importAll)}
                 size="sm"
                 type="button"
-                variant="outline"
+                variant="ghost"
               >
                 {t("importAll")}
               </Button>
