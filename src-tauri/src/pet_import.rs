@@ -74,13 +74,12 @@ pub fn preview_folder_imports(
     folders: &[PathBuf],
 ) -> Result<PetImportPreviewBatch, StoreError> {
     store.ensure_ready()?;
-    let target_session_dir = session_dir(store, session_id);
-    fs::create_dir_all(&target_session_dir)?;
+    let target_session_dir = existing_session_dir(store, session_id)?;
 
     let mut previews = Vec::new();
     let mut skipped = 0;
     let mut errors = Vec::new();
-    let mut used_preview_ids = BTreeSet::new();
+    let mut used_preview_ids = existing_preview_ids(&target_session_dir)?;
 
     for folder in folders {
         match folder_candidates(folder) {
@@ -107,7 +106,12 @@ pub fn preview_folder_imports(
                     };
                     let preview_id = preview_id_for(storage_id, &mut used_preview_ids);
                     let target_dir = target_session_dir.join(&preview_id);
-                    copy_pet_package_for_import(&source_dir, &target_dir, &package)?;
+                    if let Err(error) =
+                        copy_pet_package_for_import(&source_dir, &target_dir, &package)
+                    {
+                        errors.push(format!("could not stage {}: {error}", source_dir.display()));
+                        continue;
+                    }
 
                     previews.push(build_preview(
                         &preview_id,
@@ -137,10 +141,8 @@ pub fn preview_folder_imports(
 }
 
 pub fn discard_import_session(store: &ConfigStore, session_id: &str) -> Result<(), StoreError> {
-    let dir = session_dir(store, session_id);
-    if dir.exists() {
-        fs::remove_dir_all(dir)?;
-    }
+    let dir = existing_session_dir(store, session_id)?;
+    fs::remove_dir_all(dir)?;
     Ok(())
 }
 
@@ -176,9 +178,34 @@ fn build_preview(
 }
 
 fn session_dir(store: &ConfigStore, session_id: &str) -> PathBuf {
-    store
-        .import_previews_dir()
-        .join(sanitize_preview_segment(session_id))
+    store.import_previews_dir().join(session_id)
+}
+
+fn existing_session_dir(store: &ConfigStore, session_id: &str) -> Result<PathBuf, StoreError> {
+    if !safe_session_id(session_id) {
+        return Err(StoreError::InvalidPetPackage(
+            "import preview session id is invalid".to_string(),
+        ));
+    }
+
+    let dir = session_dir(store, session_id);
+    if !dir.is_dir() {
+        return Err(StoreError::InvalidPetPackage(
+            "import preview session was not found".to_string(),
+        ));
+    }
+    Ok(dir)
+}
+
+fn existing_preview_ids(session_dir: &Path) -> Result<BTreeSet<String>, StoreError> {
+    let mut ids = BTreeSet::new();
+    for entry in fs::read_dir(session_dir)? {
+        let path = entry?.path();
+        if let Some(name) = path.file_name().and_then(|name| name.to_str()) {
+            ids.insert(name.to_string());
+        }
+    }
+    Ok(ids)
 }
 
 fn folder_candidates(folder: &Path) -> Result<Vec<PathBuf>, String> {
@@ -232,6 +259,14 @@ fn safe_storage_id(value: &str) -> bool {
         && value
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+}
+
+fn safe_session_id(value: &str) -> bool {
+    value.starts_with("session-")
+        && !value.is_empty()
+        && value
+            .chars()
+            .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_'))
 }
 
 fn preview_id_for(storage_id: &str, used_preview_ids: &mut BTreeSet<String>) -> String {

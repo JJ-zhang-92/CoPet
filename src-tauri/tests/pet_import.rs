@@ -166,3 +166,118 @@ fn preview_folder_imports_uses_safe_source_storage_id_without_rewriting_manifest
     assert_eq!(staged_manifest["id"], "desk-cat");
     assert!(!store.root().join("pets/desk-cat-2").exists());
 }
+
+#[test]
+fn preview_folder_imports_repeated_source_in_same_session_keeps_distinct_staged_previews() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("repeat-cat");
+    create_pet_package(temp.path(), "repeat-cat", "repeat-cat", "Repeat Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let first = preview_folder_imports(
+        &store,
+        &session.session_id,
+        std::slice::from_ref(&source_dir),
+    )
+    .unwrap();
+    let second = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    assert_eq!(first.previews.len(), 1);
+    assert_eq!(second.previews.len(), 1);
+    let first_id = &first.previews[0].preview_id;
+    let second_id = &second.previews[0].preview_id;
+    assert_ne!(first_id, second_id);
+    assert!(store
+        .import_previews_dir()
+        .join(&session.session_id)
+        .join(first_id)
+        .join("pet.json")
+        .exists());
+    assert!(store
+        .import_previews_dir()
+        .join(&session.session_id)
+        .join(second_id)
+        .join("pet.json")
+        .exists());
+}
+
+#[test]
+fn preview_folder_imports_rejects_malformed_session_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat");
+    create_pet_package(temp.path(), "desk-cat", "desk-cat", "Desk Cat");
+
+    let result = preview_folder_imports(&store, "../bad-session", &[source_dir]);
+
+    assert!(result.is_err());
+    assert!(!store.import_previews_dir().join("bad-session").exists());
+}
+
+#[test]
+fn preview_folder_imports_rejects_unknown_session_id_without_creating_directory() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let source_dir = temp.path().join("desk-cat");
+    create_pet_package(temp.path(), "desk-cat", "desk-cat", "Desk Cat");
+
+    let result = preview_folder_imports(&store, "session-unknown", &[source_dir]);
+
+    assert!(result.is_err());
+    assert!(!store.import_previews_dir().join("session-unknown").exists());
+}
+
+#[test]
+fn discard_import_session_rejects_malformed_or_unknown_session_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+
+    assert!(copet_lib::pet_import::discard_import_session(&store, "../bad-session").is_err());
+    assert!(copet_lib::pet_import::discard_import_session(&store, "session-unknown").is_err());
+    assert!(!store.import_previews_dir().join("bad-session").exists());
+    assert!(!store.import_previews_dir().join("session-unknown").exists());
+}
+
+#[test]
+fn preview_folder_imports_collects_staging_errors_and_continues() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let selected_parent = temp.path().join("pet-packages");
+    create_pet_package(
+        &selected_parent,
+        "broken-stage",
+        "broken-stage",
+        "Broken Stage",
+    );
+    create_pet_package(
+        &selected_parent,
+        "working-stage",
+        "working-stage",
+        "Working Stage",
+    );
+
+    let session = create_import_session(&store).unwrap();
+    fs::write(
+        store
+            .import_previews_dir()
+            .join(&session.session_id)
+            .join(".broken-stage.staging"),
+        b"not a directory",
+    )
+    .unwrap();
+
+    let batch = preview_folder_imports(&store, &session.session_id, &[selected_parent]).unwrap();
+
+    assert_eq!(batch.previews.len(), 1);
+    assert_eq!(batch.previews[0].summary.id, "user:working-stage");
+    assert_eq!(batch.skipped, 0);
+    assert_eq!(batch.errors.len(), 1);
+    assert!(batch.errors[0].contains("broken-stage"));
+    assert!(store
+        .import_previews_dir()
+        .join(&session.session_id)
+        .join("working-stage")
+        .join("pet.json")
+        .exists());
+}
