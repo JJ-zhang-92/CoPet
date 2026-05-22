@@ -290,6 +290,8 @@ impl ConfigStore {
         let (source_dir, storage_id, package) = self
             .find_pet_package_by_id(codex_pets_dir, pet_id)?
             .ok_or_else(|| StoreError::PetNotFound(pet_id.to_string()))?;
+        validate_pet_storage_id(&storage_id)?;
+        validate_pet_storage_id(&package.manifest.id)?;
         copy_pet_package(&source_dir, &self.pets_dir().join(&storage_id), &package)?;
         self.select_pet(&user_pet_id(&storage_id))
     }
@@ -352,11 +354,7 @@ impl ConfigStore {
                 "pet id cannot be empty".to_string(),
             ));
         }
-        if !safe_pet_storage_id(&manifest.id) {
-            return Err(StoreError::InvalidPetPackage(
-                "pet id must be a safe storage id".to_string(),
-            ));
-        }
+        validate_pet_storage_id(&manifest.id)?;
         if sprite_bytes.is_empty() {
             return Err(StoreError::InvalidPetPackage(
                 "sprite file cannot be empty".to_string(),
@@ -405,11 +403,7 @@ impl ConfigStore {
                 "pet id cannot be empty".to_string(),
             ));
         }
-        if !safe_pet_storage_id(&package.manifest.id) {
-            return Err(StoreError::InvalidPetPackage(
-                "pet id must be a safe storage id".to_string(),
-            ));
-        }
+        validate_pet_storage_id(&package.manifest.id)?;
         if fs::metadata(&package.sprite_path)?.len() == 0 {
             return Err(StoreError::InvalidPetPackage(
                 "sprite file cannot be empty".to_string(),
@@ -533,11 +527,7 @@ impl ConfigStore {
     }
 
     pub fn next_available_user_pet_storage_id(&self, base_id: &str) -> Result<String, StoreError> {
-        if !safe_pet_storage_id(base_id) {
-            return Err(StoreError::InvalidPetPackage(
-                "pet id must be a safe storage id".to_string(),
-            ));
-        }
+        validate_pet_storage_id(base_id)?;
 
         let pets_dir = self.pets_dir();
         if !pets_dir.join(base_id).exists() {
@@ -657,6 +647,15 @@ pub(crate) fn safe_pet_storage_id(raw: &str) -> bool {
         && raw
             .chars()
             .all(|ch| ch.is_ascii_alphanumeric() || matches!(ch, '-' | '_' | '.'))
+}
+
+fn validate_pet_storage_id(raw: &str) -> Result<(), StoreError> {
+    if !safe_pet_storage_id(raw) {
+        return Err(StoreError::InvalidPetPackage(
+            "pet id must be a safe storage id".to_string(),
+        ));
+    }
+    Ok(())
 }
 
 fn copy_pet_package(

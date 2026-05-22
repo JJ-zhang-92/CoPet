@@ -574,6 +574,40 @@ fn install_codex_pet_allows_user_pet_that_shadows_builtin_id() {
 }
 
 #[test]
+fn install_codex_pet_rejects_unsafe_source_storage_id_without_writing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let codex_pets = temp.path().join(".codex/pets");
+    create_pet_package(&codex_pets.join("bad:id"), "desk-cat", "Desk Cat");
+    store.ensure_ready().unwrap();
+
+    let error = store
+        .install_codex_pet(&codex_pets, "user:bad:id")
+        .unwrap_err();
+
+    assert!(error.to_string().contains("safe storage id"));
+    assert!(!store.root().join("pets/bad:id").exists());
+    assert!(!store.root().join("pets/desk-cat").exists());
+}
+
+#[test]
+fn install_codex_pet_rejects_unsafe_manifest_id_without_writing() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let codex_pets = temp.path().join(".codex/pets");
+    create_pet_package(&codex_pets.join("bad-manifest"), "bad:id", "Bad Manifest");
+    store.ensure_ready().unwrap();
+
+    let error = store
+        .install_codex_pet(&codex_pets, "user:bad-manifest")
+        .unwrap_err();
+
+    assert!(error.to_string().contains("safe storage id"));
+    assert!(!store.root().join("pets/bad-manifest").exists());
+    assert!(!store.root().join("pets/bad:id").exists());
+}
+
+#[test]
 fn response_paused_defaults_to_false() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);

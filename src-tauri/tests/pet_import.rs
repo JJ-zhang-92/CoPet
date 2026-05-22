@@ -639,6 +639,47 @@ fn commit_import_previews_suffixes_user_id_collisions_without_rewriting_manifest
 }
 
 #[test]
+fn commit_import_previews_allocates_third_suffix_without_rewriting_manifest() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    create_pet_package(
+        &store.root().join("pets"),
+        "local-fox",
+        "local-fox",
+        "Local Fox",
+    );
+    create_pet_package(
+        &store.root().join("pets"),
+        "local-fox-2",
+        "local-fox",
+        "Local Fox Copy",
+    );
+    let source_dir = temp.path().join("local-fox");
+    create_pet_package(temp.path(), "local-fox", "desk-cat", "Desk Cat");
+
+    let session = create_import_session(&store).unwrap();
+    let batch = preview_folder_imports(&store, &session.session_id, &[source_dir]).unwrap();
+
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        &[batch.previews[0].preview_id.clone()],
+    )
+    .unwrap();
+
+    assert_eq!(result.imported.len(), 1);
+    assert_eq!(result.imported[0].id, "user:local-fox-3");
+    assert!(result
+        .state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "user:local-fox-3"));
+    let raw_manifest = fs::read_to_string(store.root().join("pets/local-fox-3/pet.json")).unwrap();
+    assert!(raw_manifest.contains(r#""id": "desk-cat""#));
+    assert!(!raw_manifest.contains("user:"));
+}
+
+#[test]
 fn commit_import_previews_rejects_malformed_or_unknown_session_without_installing() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
