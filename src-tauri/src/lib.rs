@@ -5,6 +5,7 @@ pub mod config_store;
 pub mod diagnostics;
 pub mod i18n;
 pub mod pet_context_menu;
+pub mod pet_import;
 pub mod pet_package;
 pub mod pet_registry;
 pub mod runtime_server;

@@ -506,7 +506,11 @@ impl ConfigStore {
         self.root.join("runtime")
     }
 
-    fn pets_dir(&self) -> PathBuf {
+    pub fn import_previews_dir(&self) -> PathBuf {
+        self.root.join("import-previews")
+    }
+
+    pub fn pets_dir(&self) -> PathBuf {
         self.root.join("pets")
     }
 }
@@ -675,6 +679,14 @@ fn copy_pet_package(
     Ok(())
 }
 
+pub(crate) fn copy_pet_package_for_import(
+    source_dir: &Path,
+    target_dir: &Path,
+    package: &PetPackage,
+) -> Result<(), StoreError> {
+    copy_pet_package(source_dir, target_dir, package)
+}
+
 fn sibling_work_dir(target_dir: &Path, suffix: &str) -> Result<PathBuf, StoreError> {
     let parent = target_dir.parent().ok_or_else(|| {
         StoreError::InvalidPetPackage("pet target directory is invalid".to_string())
@@ -798,4 +810,8 @@ fn read_pet_package(dir: &Path) -> Option<PetPackage> {
         sprite_path,
         sounds,
     })
+}
+
+pub(crate) fn read_pet_package_for_import(dir: &Path) -> Option<PetPackage> {
+    read_pet_package(dir)
 }
