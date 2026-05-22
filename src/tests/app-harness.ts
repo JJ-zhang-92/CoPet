@@ -305,7 +305,7 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
           return options.dialogOpenPath ?? null;
         }
         if (command === "get_downloads_dir") {
-          return options.downloadsDir ?? "/Users/test/Downloads";
+          return "downloadsDir" in options ? options.downloadsDir : "/Users/test/Downloads";
         }
         if (command === "create_pet_import_session") {
           return { sessionId: `session-${++importSessionCounter}` };

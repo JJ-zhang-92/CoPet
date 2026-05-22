@@ -66,3 +66,14 @@ test("dismissed agent message stays dismissed across pet-state events", async ({
 
   await expect(page.getByTestId("pet-agent-message")).toHaveCount(0);
 });
+
+test("app harness can mock a missing downloads directory", async ({ browser }) => {
+  const harness = await createAppHarness(browser, { downloadsDir: null });
+  const page = await harness.openPage("settings");
+
+  const downloadsDir = await page.evaluate(() =>
+    window.__TAURI_INTERNALS__.invoke("get_downloads_dir"),
+  );
+
+  expect(downloadsDir).toBeNull();
+});
