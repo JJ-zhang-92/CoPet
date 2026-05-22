@@ -16,7 +16,7 @@ use serde::{
     Deserialize, Deserializer, Serialize,
 };
 use std::{
-    collections::{BTreeMap, HashSet},
+    collections::BTreeMap,
     fs, io,
     path::{Path, PathBuf},
     sync::OnceLock,
@@ -30,8 +30,6 @@ pub enum StoreError {
     PetNotFound(String),
     #[error("built-in pet '{0}' cannot be removed")]
     BuiltInPetCannotBeRemoved(String),
-    #[error("pet '{0}' shares an id with a built-in pet")]
-    BuiltInIdCollision(String),
     #[error("pet package is invalid: {0}")]
     InvalidPetPackage(String),
     #[error("I/O error: {0}")]
@@ -111,7 +109,7 @@ impl ConfigStore {
     pub fn ensure_ready(&self) -> Result<AppState, StoreError> {
         self.ensure_dirs()?;
         self.load_or_create_config()?;
-        self.prune_stale_builtin_copies()?;
+        self.remove_legacy_pet_index()?;
         self.app_state()
     }
 
@@ -172,36 +170,12 @@ impl ConfigStore {
         scan_packages_with_storage_ids(dir)
     }
 
-    fn builtin_ids(&self) -> Result<HashSet<String>, StoreError> {
-        Ok(self
-            .scan_builtin_pets()?
-            .into_iter()
-            .map(|(storage_id, _package)| storage_id)
-            .collect())
-    }
-
-    fn prune_stale_builtin_copies(&self) -> Result<(), StoreError> {
+    fn remove_legacy_pet_index(&self) -> Result<(), StoreError> {
         let pets_dir = self.pets_dir();
         if !pets_dir.exists() {
             return Ok(());
         }
-        let builtin_ids = self.builtin_ids()?;
-        if builtin_ids.is_empty() {
-            return Ok(());
-        }
-        for entry in fs::read_dir(&pets_dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if !path.is_dir() {
-                continue;
-            }
-            let Some(id) = path.file_name().and_then(|name| name.to_str()) else {
-                continue;
-            };
-            if builtin_ids.contains(id) {
-                fs::remove_dir_all(&path)?;
-            }
-        }
+
         // Legacy cache file from the old sync-based architecture.
         let legacy_index = pets_dir.join("index.json");
         if legacy_index.is_file() {
@@ -322,7 +296,6 @@ impl ConfigStore {
         let (source_dir, package) = self
             .find_pet_package_by_id(codex_pets_dir, pet_id)?
             .ok_or_else(|| StoreError::PetNotFound(pet_id.to_string()))?;
-        self.reject_if_builtin_id(&package.manifest.id)?;
         copy_pet_package(
             &source_dir,
             &self.pets_dir().join(&package.manifest.id),
@@ -341,7 +314,6 @@ impl ConfigStore {
             });
         }
 
-        let builtin_ids = self.builtin_ids()?;
         let mut imported = 0;
         let mut skipped = 0;
         for entry in fs::read_dir(codex_pets_dir)? {
@@ -354,10 +326,6 @@ impl ConfigStore {
                 skipped += 1;
                 continue;
             };
-            if builtin_ids.contains(&package.manifest.id) {
-                skipped += 1;
-                continue;
-            }
             copy_pet_package(
                 &source_dir,
                 &self.pets_dir().join(&package.manifest.id),
@@ -380,7 +348,7 @@ impl ConfigStore {
         sprite_bytes: Vec<u8>,
     ) -> Result<AppState, StoreError> {
         self.app_state()?;
-        let mut manifest: PetManifest = serde_json::from_str(manifest_json)?;
+        let manifest: PetManifest = serde_json::from_str(manifest_json)?;
         if manifest.id.trim().is_empty() {
             return Err(StoreError::InvalidPetPackage(
                 "pet id cannot be empty".to_string(),
@@ -401,12 +369,6 @@ impl ConfigStore {
             return Err(StoreError::InvalidPetPackage(
                 "sprite file must be spritesheet.png or spritesheet.webp".to_string(),
             ));
-        }
-        self.reject_if_builtin_id(&manifest.id)?;
-
-        manifest.built_in = false;
-        if manifest.slug.is_empty() {
-            manifest.slug = manifest.id.clone();
         }
 
         let target_dir = self.pets_dir().join(&manifest.id);
@@ -430,7 +392,7 @@ impl ConfigStore {
             ));
         }
 
-        let mut package = read_pet_package(source_dir).ok_or_else(|| {
+        let package = read_pet_package(source_dir).ok_or_else(|| {
             StoreError::InvalidPetPackage(
                 "folder must contain pet.json and spritesheet.webp or spritesheet.png".to_string(),
             )
@@ -440,24 +402,14 @@ impl ConfigStore {
                 "pet id cannot be empty".to_string(),
             ));
         }
-        self.reject_if_builtin_id(&package.manifest.id)?;
         if fs::metadata(&package.sprite_path)?.len() == 0 {
             return Err(StoreError::InvalidPetPackage(
                 "sprite file cannot be empty".to_string(),
             ));
         }
 
-        package.manifest.built_in = false;
-        if package.manifest.slug.is_empty() {
-            package.manifest.slug = package.manifest.id.clone();
-        }
-
         let target_dir = self.pets_dir().join(&package.manifest.id);
         copy_pet_package(source_dir, &target_dir, &package)?;
-        fs::write(
-            target_dir.join("pet.json"),
-            serde_json::to_vec_pretty(&package.manifest)?,
-        )?;
 
         self.select_pet(&user_pet_id(&package.manifest.id))
     }
@@ -485,13 +437,6 @@ impl ConfigStore {
         }
 
         self.app_state()
-    }
-
-    fn reject_if_builtin_id(&self, pet_id: &str) -> Result<(), StoreError> {
-        if self.builtin_ids()?.contains(pet_id) {
-            return Err(StoreError::BuiltInIdCollision(pet_id.to_string()));
-        }
-        Ok(())
     }
 
     fn find_pet_package_by_id(
@@ -583,9 +528,6 @@ impl StoreError {
                 StoreError::PetNotFound(pet_id) => format!("未找到宠物 '{pet_id}'"),
                 StoreError::BuiltInPetCannotBeRemoved(pet_id) => {
                     format!("内置宠物 '{pet_id}' 不能被移除")
-                }
-                StoreError::BuiltInIdCollision(pet_id) => {
-                    format!("宠物 '{pet_id}' 与内置宠物 id 冲突")
                 }
                 StoreError::InvalidPetPackage(message) => format!("宠物包无效：{message}"),
                 StoreError::Io(error) => format!("I/O 错误：{error}"),

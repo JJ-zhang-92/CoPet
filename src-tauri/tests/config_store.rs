@@ -122,24 +122,19 @@ fn list_pets_orders_copet_then_user_imports_then_builtins() {
 }
 
 #[test]
-fn ensure_ready_prunes_stale_builtin_copies_from_user_dir() {
+fn ensure_ready_preserves_user_pet_that_shadows_builtin_id() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     fs::create_dir_all(store.root().join("pets")).unwrap();
-    // Simulate a stale copy left over from the previous sync-based architecture.
-    create_user_pet(store.root(), "copet", "Stale CoPet");
-    create_user_pet(store.root(), NON_DEFAULT_BUILTIN_PET_ID, "Stale Builtin");
+    create_user_pet(store.root(), "copet", "User CoPet");
     create_user_pet(store.root(), "desk-cat", "Desk Cat");
 
-    store.ensure_ready().unwrap();
+    let state = store.ensure_ready().unwrap();
 
-    assert!(!store.root().join("pets/copet").exists());
-    assert!(!store
-        .root()
-        .join("pets")
-        .join(NON_DEFAULT_BUILTIN_PET_ID)
-        .exists());
+    assert!(store.root().join("pets/copet").exists());
     assert!(store.root().join("pets/desk-cat").exists());
+    assert!(state.pets.iter().any(|pet| pet.id == "system:copet"));
+    assert!(state.pets.iter().any(|pet| pet.id == "user:copet"));
 }
 
 #[test]
@@ -187,7 +182,7 @@ fn import_pet_files_writes_user_dir_and_marks_not_builtin() {
 }
 
 #[test]
-fn import_pet_files_rejects_builtin_id_collision() {
+fn import_pet_files_allows_user_pet_that_shadows_builtin_id() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
@@ -198,19 +193,33 @@ fn import_pet_files_rejects_builtin_id_collision() {
   "frameWidth": 160,
   "frameHeight": 64,
   "gridColumns": 8,
-  "gridRows": 9
+  "gridRows": 9,
+  "builtIn": true
 }"#;
 
-    let error = store
+    let state = store
         .import_pet_files(manifest, "spritesheet.png", b"sprite".to_vec())
-        .unwrap_err();
+        .unwrap();
+    let saved_manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            store
+                .root()
+                .join("pets")
+                .join(NON_DEFAULT_BUILTIN_PET_ID)
+                .join("pet.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
 
-    assert!(error.to_string().contains("built-in"));
-    assert!(!store
-        .root()
-        .join("pets")
-        .join(NON_DEFAULT_BUILTIN_PET_ID)
-        .exists());
+    assert_eq!(state.current_pet_id, "user:zodiac-dragon");
+    assert!(state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "system:zodiac-dragon"));
+    assert!(state.pets.iter().any(|pet| pet.id == "user:zodiac-dragon"));
+    assert_eq!(saved_manifest["id"], "zodiac-dragon");
+    assert_eq!(saved_manifest["builtIn"], true);
 }
 
 #[test]
@@ -251,6 +260,46 @@ fn import_pet_folder_reads_manifest_and_sprite_from_selected_directory() {
         .join("pets/folder-fox/spritesheet.png")
         .exists());
     assert!(!folder_fox.built_in);
+}
+
+#[test]
+fn import_pet_folder_allows_user_pet_that_shadows_builtin_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    store.ensure_ready().unwrap();
+    let source_dir = temp.path().join("shadow-builtin-pet");
+    create_pet_package(&source_dir, NON_DEFAULT_BUILTIN_PET_ID, "Shadow Builtin");
+    let source_manifest_path = source_dir.join("pet.json");
+    let mut source_manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(&source_manifest_path).unwrap()).unwrap();
+    source_manifest["builtIn"] = serde_json::Value::Bool(true);
+    fs::write(
+        &source_manifest_path,
+        serde_json::to_vec_pretty(&source_manifest).unwrap(),
+    )
+    .unwrap();
+
+    let state = store.import_pet_folder(&source_dir).unwrap();
+    let saved_manifest: serde_json::Value = serde_json::from_slice(
+        &fs::read(
+            store
+                .root()
+                .join("pets")
+                .join(NON_DEFAULT_BUILTIN_PET_ID)
+                .join("pet.json"),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+
+    assert_eq!(state.current_pet_id, "user:zodiac-dragon");
+    assert!(state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "system:zodiac-dragon"));
+    assert!(state.pets.iter().any(|pet| pet.id == "user:zodiac-dragon"));
+    assert_eq!(saved_manifest["id"], "zodiac-dragon");
+    assert_eq!(saved_manifest["builtIn"], true);
 }
 
 #[test]
@@ -425,7 +474,7 @@ fn import_codex_pets_copies_valid_packages_and_skips_broken_packages() {
 }
 
 #[test]
-fn import_codex_pets_skips_packages_that_collide_with_builtin_ids() {
+fn import_codex_pets_imports_packages_that_shadow_builtin_ids() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     let codex_pets = temp.path().join(".codex/pets");
@@ -438,14 +487,21 @@ fn import_codex_pets_skips_packages_that_collide_with_builtin_ids() {
     store.ensure_ready().unwrap();
 
     let result = store.import_codex_pets(&codex_pets).unwrap();
+    let ids = result
+        .pets
+        .iter()
+        .map(|pet| pet.id.as_str())
+        .collect::<Vec<_>>();
 
-    assert_eq!(result.imported, 1);
-    assert_eq!(result.skipped, 1);
-    assert!(!store
+    assert_eq!(result.imported, 2);
+    assert_eq!(result.skipped, 0);
+    assert!(store
         .root()
         .join("pets")
         .join(NON_DEFAULT_BUILTIN_PET_ID)
         .exists());
+    assert!(ids.contains(&"system:zodiac-dragon"));
+    assert!(ids.contains(&"user:zodiac-dragon"));
 }
 
 #[test]
@@ -489,7 +545,7 @@ fn install_codex_pet_copies_one_pet_and_sets_current_pet() {
 }
 
 #[test]
-fn install_codex_pet_rejects_builtin_id_collision() {
+fn install_codex_pet_allows_user_pet_that_shadows_builtin_id() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     let codex_pets = temp.path().join(".codex/pets");
@@ -500,16 +556,21 @@ fn install_codex_pet_rejects_builtin_id_collision() {
     );
     store.ensure_ready().unwrap();
 
-    let error = store
-        .install_codex_pet(&codex_pets, NON_DEFAULT_BUILTIN_PET_ID)
-        .unwrap_err();
+    let state = store
+        .install_codex_pet(&codex_pets, &format!("user:{NON_DEFAULT_BUILTIN_PET_ID}"))
+        .unwrap();
 
-    assert!(error.to_string().contains("built-in"));
-    assert!(!store
+    assert_eq!(state.current_pet_id, "user:zodiac-dragon");
+    assert!(store
         .root()
         .join("pets")
         .join(NON_DEFAULT_BUILTIN_PET_ID)
         .exists());
+    assert!(state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "system:zodiac-dragon"));
+    assert!(state.pets.iter().any(|pet| pet.id == "user:zodiac-dragon"));
 }
 
 #[test]
