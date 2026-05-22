@@ -655,6 +655,87 @@ fn legacy_config_missing_agent_auto_install_complete_defaults_to_false() {
 }
 
 #[test]
+fn legacy_raw_user_current_pet_id_migrates_to_user_runtime_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    create_pet_package(&root.join("pets/desk-cat"), "desk-cat", "Desk Cat");
+    write_legacy_config(&root, "desk-cat");
+    let store = ConfigStore::with_builtin_dir(root.clone(), builtin_pets_dir());
+
+    let state = store.app_state().unwrap();
+    let config: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("config.json")).unwrap()).unwrap();
+
+    assert_eq!(state.current_pet_id, "user:desk-cat");
+    assert_eq!(config["currentPetId"], "user:desk-cat");
+}
+
+#[test]
+fn legacy_raw_builtin_current_pet_id_migrates_to_system_runtime_id() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    write_legacy_config(&root, NON_DEFAULT_BUILTIN_PET_ID);
+    let store = ConfigStore::with_builtin_dir(root.clone(), builtin_pets_dir());
+
+    let state = store.app_state().unwrap();
+    let config: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("config.json")).unwrap()).unwrap();
+
+    assert_eq!(state.current_pet_id, "system:zodiac-dragon");
+    assert_eq!(config["currentPetId"], "system:zodiac-dragon");
+}
+
+#[test]
+fn legacy_raw_builtin_id_prefers_system_when_user_shadow_exists() {
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join(".copet");
+    create_pet_package(
+        &root.join("pets").join(NON_DEFAULT_BUILTIN_PET_ID),
+        NON_DEFAULT_BUILTIN_PET_ID,
+        "User Shadow",
+    );
+    write_legacy_config(&root, NON_DEFAULT_BUILTIN_PET_ID);
+    let store = ConfigStore::with_builtin_dir(root.clone(), builtin_pets_dir());
+
+    let state = store.app_state().unwrap();
+    let config: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("config.json")).unwrap()).unwrap();
+
+    assert_eq!(state.current_pet_id, "system:zodiac-dragon");
+    assert_eq!(config["currentPetId"], "system:zodiac-dragon");
+    assert!(state
+        .pets
+        .iter()
+        .any(|pet| pet.id == "system:zodiac-dragon"));
+    assert!(state.pets.iter().any(|pet| pet.id == "user:zodiac-dragon"));
+}
+
+#[test]
+fn codex_pet_runtime_id_comes_from_source_directory_name() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let codex_pets = temp.path().join(".codex/pets");
+    create_pet_package(&codex_pets.join("desk-cat-2"), "desk-cat", "Desk Cat Copy");
+    store.ensure_ready().unwrap();
+
+    let available = store.list_codex_pets(&codex_pets).unwrap();
+    let preview = available
+        .iter()
+        .find(|pet| pet.id == "user:desk-cat-2")
+        .unwrap();
+    let state = store.install_codex_pet(&codex_pets, &preview.id).unwrap();
+    let installed_manifest: serde_json::Value =
+        serde_json::from_slice(&fs::read(store.root().join("pets/desk-cat-2/pet.json")).unwrap())
+            .unwrap();
+
+    assert!(!available.iter().any(|pet| pet.id == "user:desk-cat"));
+    assert_eq!(state.current_pet_id, "user:desk-cat-2");
+    assert!(state.pets.iter().any(|pet| pet.id == "user:desk-cat-2"));
+    assert!(!store.root().join("pets/desk-cat").exists());
+    assert_eq!(installed_manifest["id"], "desk-cat");
+}
+
+#[test]
 fn app_state_exposes_namespaced_runtime_pet_ids() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
@@ -739,4 +820,19 @@ fn create_pet_package(dir: &Path, id: &str, display_name: &str) {
     )
     .unwrap();
     fs::write(dir.join("spritesheet.png"), b"sprite").unwrap();
+}
+
+fn write_legacy_config(root: &Path, current_pet_id: &str) {
+    fs::create_dir_all(root).unwrap();
+    fs::write(
+        root.join("config.json"),
+        format!(
+            r#"{{
+  "currentPetId": "{current_pet_id}",
+  "onboardingComplete": false,
+  "petWindowSize": 30
+}}"#
+        ),
+    )
+    .unwrap();
 }

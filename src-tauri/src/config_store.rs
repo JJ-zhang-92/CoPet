@@ -119,7 +119,12 @@ impl ConfigStore {
         let pets = self.list_pets()?;
         let normalized_pet_window_size = normalize_pet_window_size(config.pet_window_size);
 
-        if !pets.iter().any(|pet| pet.id == config.current_pet_id) {
+        if let Some(resolved_pet_id) = resolve_current_pet_id(&config.current_pet_id, &pets) {
+            if resolved_pet_id != config.current_pet_id {
+                config.current_pet_id = resolved_pet_id;
+                self.save_config(&config)?;
+            }
+        } else {
             config.current_pet_id = system_pet_id(BUILTIN_PET_ID);
             self.save_config(&config)?;
         }
@@ -267,21 +272,10 @@ impl ConfigStore {
     }
 
     pub fn list_codex_pets(&self, codex_pets_dir: &Path) -> Result<Vec<PetSummary>, StoreError> {
-        if !codex_pets_dir.exists() {
-            return Ok(Vec::new());
-        }
-
-        let mut pets = Vec::new();
-        for entry in fs::read_dir(codex_pets_dir)? {
-            let source_dir = entry?.path();
-            if !source_dir.is_dir() {
-                continue;
-            }
-
-            if let Some(package) = read_pet_package(&source_dir) {
-                pets.push(mark_summary(package, false));
-            }
-        }
+        let mut pets = scan_packages_with_storage_ids(codex_pets_dir)?
+            .into_iter()
+            .map(|(storage_id, package)| package.summary(PetNamespace::User, &storage_id))
+            .collect::<Vec<_>>();
 
         pets.sort_by(|left, right| left.display_name.cmp(&right.display_name));
         Ok(pets)
@@ -293,15 +287,11 @@ impl ConfigStore {
         pet_id: &str,
     ) -> Result<AppState, StoreError> {
         self.app_state()?;
-        let (source_dir, package) = self
+        let (source_dir, storage_id, package) = self
             .find_pet_package_by_id(codex_pets_dir, pet_id)?
             .ok_or_else(|| StoreError::PetNotFound(pet_id.to_string()))?;
-        copy_pet_package(
-            &source_dir,
-            &self.pets_dir().join(&package.manifest.id),
-            &package,
-        )?;
-        self.select_pet(&user_pet_id(&package.manifest.id))
+        copy_pet_package(&source_dir, &self.pets_dir().join(&storage_id), &package)?;
+        self.select_pet(&user_pet_id(&storage_id))
     }
 
     pub fn import_codex_pets(&self, codex_pets_dir: &Path) -> Result<PetImportResult, StoreError> {
@@ -322,15 +312,15 @@ impl ConfigStore {
                 continue;
             }
 
+            let Some(storage_id) = source_dir.file_name().and_then(|name| name.to_str()) else {
+                skipped += 1;
+                continue;
+            };
             let Some(package) = read_pet_package(&source_dir) else {
                 skipped += 1;
                 continue;
             };
-            copy_pet_package(
-                &source_dir,
-                &self.pets_dir().join(&package.manifest.id),
-                &package,
-            )?;
+            copy_pet_package(&source_dir, &self.pets_dir().join(storage_id), &package)?;
             imported += 1;
         }
 
@@ -443,27 +433,29 @@ impl ConfigStore {
         &self,
         pets_dir: &Path,
         pet_id: &str,
-    ) -> Result<Option<(PathBuf, PetPackage)>, StoreError> {
-        if !pets_dir.exists() {
-            return Ok(None);
-        }
+    ) -> Result<Option<(PathBuf, String, PetPackage)>, StoreError> {
         let lookup_id = match parse_runtime_pet_id(pet_id) {
             Some((PetNamespace::User, raw_id)) => raw_id,
             Some((PetNamespace::System, _raw_id)) => return Ok(None),
             None => pet_id,
         };
+        let mut packages = scan_packages_with_storage_ids(pets_dir)?;
+        packages.sort_by(|(left_id, _), (right_id, _)| left_id.cmp(right_id));
 
-        for entry in fs::read_dir(pets_dir)? {
-            let source_dir = entry?.path();
-            if !source_dir.is_dir() {
-                continue;
+        for (storage_id, package) in packages.iter() {
+            if storage_id == lookup_id {
+                return Ok(Some((
+                    pets_dir.join(storage_id),
+                    storage_id.clone(),
+                    package.clone(),
+                )));
             }
-
-            let Some(package) = read_pet_package(&source_dir) else {
-                continue;
-            };
-            if package.manifest.id == lookup_id {
-                return Ok(Some((source_dir, package)));
+        }
+        if parse_runtime_pet_id(pet_id).is_none() {
+            for (storage_id, package) in packages {
+                if package.manifest.id == lookup_id {
+                    return Ok(Some((pets_dir.join(&storage_id), storage_id, package)));
+                }
             }
         }
 
@@ -579,18 +571,6 @@ fn scan_packages_with_storage_ids(dir: &Path) -> Result<Vec<(String, PetPackage)
     Ok(packages)
 }
 
-fn mark_summary(package: PetPackage, built_in: bool) -> PetSummary {
-    let namespace = if built_in {
-        PetNamespace::System
-    } else {
-        PetNamespace::User
-    };
-    let storage_id = package.manifest.id.clone();
-    let mut summary = package.summary(namespace, &storage_id);
-    summary.built_in = built_in;
-    summary
-}
-
 fn sort_pet_summaries(pets: &mut [PetSummary]) {
     pets.sort_by(|left, right| {
         sort_group(left)
@@ -607,6 +587,23 @@ fn sort_group(pet: &PetSummary) -> u8 {
     } else {
         2
     }
+}
+
+fn resolve_current_pet_id(current_pet_id: &str, pets: &[PetSummary]) -> Option<String> {
+    if pets.iter().any(|pet| pet.id == current_pet_id) {
+        return Some(current_pet_id.to_string());
+    }
+    if parse_runtime_pet_id(current_pet_id).is_some() {
+        return None;
+    }
+
+    let system_id = system_pet_id(current_pet_id);
+    if pets.iter().any(|pet| pet.id == system_id) {
+        return Some(system_id);
+    }
+
+    let user_id = user_pet_id(current_pet_id);
+    pets.iter().any(|pet| pet.id == user_id).then_some(user_id)
 }
 
 fn copy_pet_package(
