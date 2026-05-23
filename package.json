@@ -11,7 +11,8 @@
     "test:rust": "cargo test --manifest-path src-tauri/Cargo.toml",
     "verify:hardening": "pnpm build && cargo test --manifest-path src-tauri/Cargo.toml && pnpm tauri build --bundles app",
     "tauri:dev": "tauri dev",
-    "tauri:build": "tauri build"
+    "tauri:build": "tauri build",
+    "tauri:build:app": "pnpm dotenv -e .env -- pnpm tauri build"
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
@@ -31,6 +32,7 @@
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",
+    "dotenv-cli": "^11.0.0",
     "typescript": "^5.5.4",
     "vite": "^5.4.0"
   }
