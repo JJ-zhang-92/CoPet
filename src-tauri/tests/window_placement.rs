@@ -362,6 +362,78 @@ mod subject {
     }
 
     #[test]
+    fn startup_window_command_symbol_is_registered() {
+        let source = include_str!("../src/lib.rs");
+
+        assert!(source.contains("commands::run_pet_startup_window_animation"));
+    }
+
+    #[test]
+    fn startup_window_command_preserves_tray_hidden_pet() {
+        let source = include_str!("../src/commands.rs");
+        let body = source
+            .split("pub fn run_pet_startup_window_animation")
+            .nth(1)
+            .and_then(|rest| rest.split("#[tauri::command]").next())
+            .unwrap_or(source);
+
+        assert!(
+            body.contains("is_visible"),
+            "startup animation command must inspect visibility before applying z-order"
+        );
+        assert!(
+            body.contains("return Ok(())"),
+            "startup animation command must no-op when the pet is hidden"
+        );
+    }
+
+    #[test]
+    fn startup_animation_settles_hidden_window_without_reasserting_after_mid_animation_hide() {
+        let start = PhysicalPosition { x: 200, y: 40 };
+        let target = PhysicalPosition { x: 100, y: 40 };
+        let mut visibility_checks = 0;
+        let mut elapsed_ms = 16;
+        let mut positions = Vec::new();
+        let mut keep_on_top_count = 0;
+
+        animate_pet_window_positions_while_visible(
+            start,
+            target,
+            32,
+            || {
+                visibility_checks += 1;
+                Ok(visibility_checks < 3)
+            },
+            |position| {
+                positions.push(position);
+                Ok(())
+            },
+            || {
+                keep_on_top_count += 1;
+                Ok(())
+            },
+            |_| {},
+            || {
+                let elapsed = elapsed_ms;
+                elapsed_ms += 16;
+                elapsed
+            },
+        )
+        .expect("animation helper should stop cleanly after hide");
+
+        assert_eq!(positions.first(), Some(&start));
+        assert_eq!(
+            positions.last(),
+            Some(&target),
+            "hidden mid-animation pet should settle to the normal target for the next tray show"
+        );
+        assert_eq!(
+            keep_on_top_count, 1,
+            "only the initial visible reassertion should run before the hide"
+        );
+    }
+
+    #[test]
     fn toggle_pet_window_visibility_reasserts_policy_synchronously_on_show() {
         let source = include_str!("../src/lib.rs");
         let show_branch = source

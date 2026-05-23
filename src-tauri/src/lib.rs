@@ -1026,7 +1026,8 @@ pub fn run() {
             uninstall_agent_adapter,
             repair_agent_adapter,
             pet_context_menu::open_pet_context_menu,
-            commands::reset_pet_window_position
+            commands::reset_pet_window_position,
+            commands::run_pet_startup_window_animation
         ])
         .build(tauri::generate_context!())
         .expect("failed to build CoPet")

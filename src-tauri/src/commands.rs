@@ -1,7 +1,8 @@
 use crate::config_store::ConfigStore;
 use crate::refresh_tray_menu;
 use crate::window_placement::{
-    keep_pet_window_on_top, place_window_bottom_right, schedule_pet_window_z_order_reassertions,
+    animate_pet_window_from_offscreen_right, keep_pet_window_on_top, place_window_bottom_right,
+    schedule_pet_window_z_order_reassertions,
 };
 use tauri::Manager;
 
@@ -24,4 +25,18 @@ pub fn reset_pet_window_position(app: tauri::AppHandle) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+#[tauri::command]
+pub fn run_pet_startup_window_animation(
+    app: tauri::AppHandle,
+    duration_ms: u64,
+) -> Result<(), String> {
+    let window = app
+        .get_webview_window("pet")
+        .ok_or_else(|| "pet window is not available".to_string())?;
+    if !window.is_visible().map_err(|e| e.to_string())? {
+        return Ok(());
+    }
+    animate_pet_window_from_offscreen_right(&window, duration_ms).map_err(|e| e.to_string())
 }
