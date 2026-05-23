@@ -52,6 +52,14 @@ export type PetSummary = {
   sounds?: PetSounds;
 };
 
+export type AudioPackSummary = {
+  id: string;
+  slug: string;
+  displayName: string;
+  builtIn: boolean;
+  sounds: PetSounds;
+};
+
 export type Locale = "en-US" | "zh-CN";
 export type LocalePreference = "system" | Locale;
 
@@ -71,9 +79,11 @@ export const defaultPetInteractionPrefs: PetInteractionPrefs = {
 
 export type AppState = {
   currentPetId: string;
+  currentAudioPackId: string;
   locale: Locale;
   localePreference: LocalePreference;
   pets: PetSummary[];
+  audioPacks: AudioPackSummary[];
   onboardingComplete: boolean;
   petWindowSize: PetWindowSize;
   agentMessageDisplay: AgentMessageDisplay;

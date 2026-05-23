@@ -15,6 +15,7 @@ pub mod window_placement;
 
 use agents::{AdapterError, AdapterOperationResult, AdapterSummary, AgentManager};
 use app_state::{AgentMessageDisplay, AppState, PetInteractionPrefs, PetWindowSize};
+use audio_pack::AudioPackSummary;
 use config_store::{set_builtin_audios_dir, set_builtin_pets_dir, ConfigStore, PetImportResult};
 use i18n::{default_locale, t, Locale, LocalePreference, MessageKey};
 use pet_import::{PetImportCommitResult, PetImportPreviewBatch, PetImportSession};
@@ -451,6 +452,13 @@ fn set_pet_interactions(
 fn list_pets() -> Result<Vec<PetSummary>, String> {
     ConfigStore::from_home()
         .and_then(|store| store.list_pets())
+        .map_err(localize_store_error)
+}
+
+#[tauri::command]
+fn list_audio_packs() -> Result<Vec<AudioPackSummary>, String> {
+    ConfigStore::from_home()
+        .and_then(|store| store.list_audio_packs())
         .map_err(localize_store_error)
 }
 
@@ -998,6 +1006,7 @@ pub fn run() {
             toggle_pet_window_visibility,
             get_pet_window_visible,
             list_pets,
+            list_audio_packs,
             list_codex_pets,
             install_codex_pet,
             import_codex_pets,

@@ -15,6 +15,14 @@ export type PetSummary = {
   sounds?: PetSounds;
 };
 
+export type AudioPackSummary = {
+  id: string;
+  slug: string;
+  displayName: string;
+  builtIn: boolean;
+  sounds: PetSounds;
+};
+
 export type PetInteractionSounds = {
   click?: string;
   doubleClick?: string;
@@ -44,9 +52,11 @@ export type PetInteractionPrefs = {
 
 export type AppState = {
   currentPetId: string;
+  currentAudioPackId?: string;
   locale?: "en-US" | "zh-CN";
   localePreference?: "system" | "en-US" | "zh-CN";
   pets: PetSummary[];
+  audioPacks?: AudioPackSummary[];
   onboardingComplete: boolean;
   petWindowSize?: number;
   agentMessageDisplay?: "all" | "latest";
@@ -151,6 +161,50 @@ export const copetWithSounds: PetSummary = {
   },
 };
 
+export const copetAudioPack: AudioPackSummary = {
+  id: "system:copet",
+  slug: "copet",
+  displayName: "CoPet",
+  builtIn: true,
+  sounds: {
+    interactionSounds: {
+      click: "/audios/copet/click.mp3",
+      doubleClick: "/audios/copet/surprised.mp3",
+      petted: "/audios/copet/purr.mp3",
+      pettedSlow: "/audios/copet/sigh.mp3",
+      dragLand: "/audios/copet/wheee.mp3",
+    },
+    agentSounds: {
+      thinking: "/audios/copet/hmm.mp3",
+      editing: "/audios/copet/tap.mp3",
+      inspecting: "/audios/copet/peek.mp3",
+      awaitingApproval: "/audios/copet/wait.mp3",
+      celebrating: "/audios/copet/yay.mp3",
+      failed: "/audios/copet/oof.mp3",
+    },
+  },
+};
+
+export const retroAudioPack: AudioPackSummary = {
+  id: "system:retro",
+  slug: "retro",
+  displayName: "Retro",
+  builtIn: true,
+  sounds: {
+    interactionSounds: {
+      click: "/audios/retro/click.mp3",
+      doubleClick: "/audios/retro/powerup.mp3",
+      petted: "/audios/retro/chime.mp3",
+    },
+    agentSounds: {
+      thinking: "/audios/retro/think.mp3",
+      editing: "/audios/retro/edit.mp3",
+      celebrating: "/audios/retro/win.mp3",
+      failed: "/audios/retro/fail.mp3",
+    },
+  },
+};
+
 export const goku: PetSummary = {
   id: "goku",
   slug: "goku",
@@ -213,14 +267,25 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
   const dialogOpenPaths = [...(options.dialogOpenPaths ?? [])];
   let state: AppState = options.state ?? {
     currentPetId: copet.id,
+    currentAudioPackId: copetAudioPack.id,
     locale: "en-US",
     localePreference: "system",
     pets: [copet],
+    audioPacks: [copetAudioPack],
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "all",
     agentMessageVisible: true,
   };
+  if (state.audioPacks === undefined) {
+    state = { ...state, audioPacks: [copetAudioPack] };
+  }
+  if (state.currentAudioPackId === undefined) {
+    state = {
+      ...state,
+      currentAudioPackId: state.audioPacks[0]?.id ?? "",
+    };
+  }
   if (state.agentMessageDisplay === undefined) {
     state = { ...state, agentMessageDisplay: "all" };
   }
@@ -312,6 +377,9 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
         }
         if (command === "list_codex_pets") {
           return codexPets;
+        }
+        if (command === "list_audio_packs") {
+          return state.audioPacks ?? [];
         }
         if (command === "get_pet_window_visible") {
           return petVisible;
@@ -476,6 +544,11 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
         }
         if (command === "select_pet") {
           state = { ...state, currentPetId: args.petId as string };
+          await emitAppState();
+          return state;
+        }
+        if (command === "select_audio_pack") {
+          state = { ...state, currentAudioPackId: args.audioPackId as string };
           await emitAppState();
           return state;
         }

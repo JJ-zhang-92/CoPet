@@ -66,6 +66,16 @@ export async function selectPet(pet: PetSummary): Promise<CommandResult> {
   }
 }
 
+export async function selectAudioPack(audioPackId: string): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("select_audio_pack", { audioPackId });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
+  }
+}
+
 export async function setPetWindowSize(
   size: PetWindowSize,
 ): Promise<CommandResult> {
