@@ -11,6 +11,7 @@ import type {
   AdapterSummary,
   AgentMessage,
   AppState,
+  AudioPackSummary,
   PetInteractionPrefs,
   PetStateId,
   PetSummary,
@@ -163,6 +164,20 @@ export function useSelectedPet(): PetSummary | null {
     const app = s.appState;
     if (!app) return null;
     return app.pets.find((p) => p.id === app.currentPetId) ?? app.pets[0] ?? null;
+  });
+}
+
+export function useSelectedAudioPack(): AudioPackSummary | null {
+  return useAppSlice((s) => {
+    const app = s.appState;
+    if (!app) return null;
+    const audioPacks = app.audioPacks ?? [];
+    const currentAudioPackId = app.currentAudioPackId ?? "";
+    return (
+      audioPacks.find((pack) => pack.id === currentAudioPackId) ??
+      audioPacks[0] ??
+      null
+    );
   });
 }
 

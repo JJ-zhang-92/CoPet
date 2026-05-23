@@ -22,6 +22,7 @@ import {
   usePetInteractions,
   usePetState,
   usePetWindowSize,
+  useSelectedAudioPack,
   useSelectedPet,
 } from "./hooks/useAppStore";
 import {
@@ -51,6 +52,7 @@ export function PetWindow() {
   const loadState = useLoadState();
   const agentMessages = useAgentMessages();
   const selectedPet = useSelectedPet();
+  const selectedAudioPack = useSelectedAudioPack();
   const petState = usePetState();
   const agentMessageVisible = useAgentMessageVisible();
   const petInteractions = usePetInteractions();
@@ -65,11 +67,12 @@ export function PetWindow() {
   };
   const { playInteractionSound, playAgentSound, stopAllSounds } = usePetSounds({
     enabled: soundEnabled,
-    sounds: selectedPet?.sounds,
+    sounds: selectedAudioPack?.sounds,
   });
   const lastAgentSoundKeyRef = useRef<string | null>(null);
   const previousPetStateRef = useRef<string | null>(null);
   const selectedPetIdRef = useRef<string | null>(null);
+  const selectedAudioPackIdRef = useRef<string | null>(null);
   // macOS NSPanel does not always deliver contextmenu to the webview; long-press
   // is a fallback path that opens the same native menu below the pet.
   // We require __TAURI__ to be present so this path does not activate under
@@ -161,11 +164,16 @@ export function PetWindow() {
     const selectedPetChanged = selectedPetIdRef.current !== selectedPetId;
     selectedPetIdRef.current = selectedPetId;
 
+    const selectedAudioPackId = selectedAudioPack?.id ?? null;
+    const selectedAudioPackChanged =
+      selectedAudioPackIdRef.current !== selectedAudioPackId;
+    selectedAudioPackIdRef.current = selectedAudioPackId;
+
     const previousPetState = previousPetStateRef.current;
     const petStateChanged = previousPetState !== null && previousPetState !== petState;
     previousPetStateRef.current = petState;
 
-    if (selectedPetChanged) {
+    if (selectedPetChanged || selectedAudioPackChanged) {
       lastAgentSoundKeyRef.current = null;
       stopAllSounds();
       return;
@@ -188,6 +196,7 @@ export function PetWindow() {
     agentMessageVisible,
     petState,
     playAgentSound,
+    selectedAudioPack?.id,
     selectedPet?.id,
     soundEnabled,
     stopAllSounds,
