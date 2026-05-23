@@ -263,14 +263,14 @@ mod subject {
     }
 
     #[test]
-    fn settings_window_default_width_is_740() {
+    fn settings_window_default_width_is_770() {
         let config = include_str!("../tauri.conf.json");
         let settings_window_config = config
             .split("\"label\": \"settings\"")
             .nth(1)
             .expect("settings window config should be present");
 
-        assert!(settings_window_config.contains("\"width\": 740"));
+        assert!(settings_window_config.contains("\"width\": 770"));
     }
 
     #[test]

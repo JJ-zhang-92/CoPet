@@ -2,10 +2,8 @@ import type { KeyboardEvent } from "react";
 import { toast } from "sonner";
 
 import type { AdapterSummary } from "../lib/appTypes";
-import { COPET_ISSUES_URL } from "../lib/appLinks";
 import { agentIconUrl } from "../lib/agentIcons";
 import { agentMeta } from "../lib/agentMeta";
-import { useOpenExternalUrl } from "../hooks/useOpenExternalUrl";
 import { Switch } from "./ui/switch";
 
 import type { Translator } from "../lib/settingsTypes";
@@ -28,8 +26,6 @@ export function SettingsAgentsSection({
   runAdapterAction,
   t,
 }: SettingsAgentsSectionProps) {
-  const openExternal = useOpenExternalUrl();
-
   const handleAdapterChange = async (
     adapter: AdapterSummary,
     checked: boolean,
@@ -148,37 +144,7 @@ export function SettingsAgentsSection({
           );
         })}
       </ul>
-
-      <p className="adapter-footnote">
-        {renderFootnoteWithLink(t, openExternal)}
-      </p>
     </div>
-  );
-}
-
-function renderFootnoteWithLink(
-  t: Translator,
-  openExternal: (url: string) => Promise<void>,
-) {
-  const template = t("agentFootnote");
-  const linkLabel = t("agentFootnoteLinkLabel");
-  const [before, after = ""] = template.split("{link}");
-  return (
-    <>
-      {before}
-      <a
-        className="adapter-footnote-link"
-        href={COPET_ISSUES_URL}
-        onClick={(event) => {
-          event.preventDefault();
-          void openExternal(COPET_ISSUES_URL);
-        }}
-        rel="noreferrer"
-      >
-        {linkLabel}
-      </a>
-      {after}
-    </>
   );
 }
 
