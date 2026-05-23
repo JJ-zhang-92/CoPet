@@ -72,7 +72,7 @@ export function SettingsPetsSection({
         <div className="pet-toolbar">
           <Button
             aria-busy={refreshing}
-            className="pet-toolbar-button"
+            className="pet-list-toolbar-button"
             disabled={refreshing}
             onClick={() => void handleRefresh()}
             size="sm"
@@ -87,7 +87,7 @@ export function SettingsPetsSection({
             {t("refreshList")}
           </Button>
           <Button
-            className="pet-toolbar-button"
+            className="pet-list-toolbar-button"
             disabled={petBusyId === "import-preview" || petBusyId === "import-commit"}
             onClick={() => setImportDrawerOpen(true)}
             size="sm"

@@ -193,7 +193,6 @@ export function SettingsPreferencesSection({
             </p>
             <div className="settings-preferences-row-control">
               <Button
-                className="pet-toolbar-button"
                 disabled={resetting}
                 onClick={() => void handleResetPosition()}
                 size="sm"

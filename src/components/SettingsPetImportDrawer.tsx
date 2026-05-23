@@ -106,7 +106,6 @@ export function SettingsPetImportDrawer({
       <DrawerBody className="pet-import-drawer-body">
         <div className="pet-import-actions">
           <Button
-            className="pet-toolbar-button"
             disabled={petImport.isBusy}
             onClick={() => void runImportAction(petImport.previewCodex)}
             size="sm"
@@ -117,7 +116,6 @@ export function SettingsPetImportDrawer({
             {t("fromCodex")}
           </Button>
           <Button
-            className="pet-toolbar-button"
             disabled={petImport.isBusy}
             onClick={() => void runImportAction(petImport.previewFolders)}
             size="sm"

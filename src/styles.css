@@ -1475,7 +1475,7 @@ select {
   display: none;
 }
 
-.pet-toolbar-button.ui-button {
+.pet-list-toolbar-button.ui-button {
   height: 28px;
   padding: 0 9px;
   border-color: transparent;
@@ -1487,14 +1487,14 @@ select {
   font-weight: 660;
 }
 
-.pet-toolbar-button.ui-button svg {
+.pet-list-toolbar-button.ui-button svg {
   width: 14px;
   height: 14px;
   color: hsl(var(--primary) / 0.86);
 }
 
-.pet-toolbar-button.ui-button:hover,
-.pet-toolbar-button.ui-button:focus-visible {
+.pet-list-toolbar-button.ui-button:hover,
+.pet-list-toolbar-button.ui-button:focus-visible {
   border-color: transparent;
   color: hsl(var(--primary));
   background: var(--control-hover-background);

@@ -19,7 +19,7 @@ const messages = {
     agentStatusUnhealthy: "Needs attention",
     agentConfigPathLabel: "Config",
     agentFootnote:
-      "Need another CLI? Open an issue on {link} — adapters are tiny and we add them often.",
+      "Need another agent? Open an issue on {link} — adapters are tiny and we add them often.",
     agentFootnoteLinkLabel: "GitHub",
     backToTop: "Back to top",
     close: "Close",
@@ -101,7 +101,7 @@ const messages = {
     agentOpencodeDescription: "支持任意模型的终端智能体",
     agentStatusUnhealthy: "需要检查",
     agentConfigPathLabel: "配置文件",
-    agentFootnote: "想要更多 CLI？欢迎在 {link} 上提 issue —— 适配器很小，我们会持续添加",
+    agentFootnote: "想要更多 Agent？欢迎在 {link} 上提 issue —— 适配器很小，我们会持续添加",
     agentFootnoteLinkLabel: "GitHub",
     backToTop: "返回顶部",
     close: "关闭",

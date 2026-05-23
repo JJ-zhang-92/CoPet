@@ -263,6 +263,18 @@ mod subject {
     }
 
     #[test]
+    fn settings_window_uses_app_title_for_system_window_label() {
+        let config = include_str!("../tauri.conf.json");
+        let settings_window_config = config
+            .split("\"label\": \"settings\"")
+            .nth(1)
+            .expect("settings window config should be present");
+
+        assert!(settings_window_config.contains("\"title\": \"CoPet\""));
+        assert!(!settings_window_config.contains("\"title\": \"CoPet Settings\""));
+    }
+
+    #[test]
     fn calculates_resize_position_from_existing_window_center() {
         let position = center_anchored_position(
             PhysicalPosition { x: 100, y: 200 },
