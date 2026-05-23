@@ -37,6 +37,14 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
+function shouldRunStartupAnimation(selectedPetId: string | null): boolean {
+  return (
+    !!selectedPetId &&
+    petStartupAnimationConfig.enabled &&
+    !prefersReducedMotion()
+  );
+}
+
 export function usePetStartupAnimation({
   selectedPetId,
   selectedSoundPackId,
@@ -45,6 +53,11 @@ export function usePetStartupAnimation({
   const [phase, setPhase] = useState<PetStartupAnimationPhase>(() => {
     const runState = getPetStartupAnimationRunState();
     if (runState === "complete") return "complete";
+    if (shouldRunStartupAnimation(selectedPetId)) {
+      return runState === "running" && hasPetStartupAnimationEnterResolved()
+        ? "arriving"
+        : "entering";
+    }
     if (runState === "running") {
       return hasPetStartupAnimationEnterResolved() ? "arriving" : "entering";
     }
@@ -54,6 +67,7 @@ export function usePetStartupAnimation({
   const localCompleteRef = useRef(phase === "complete");
   const arrivalTimerRef = useRef<number | null>(null);
   const onInteractionSoundRef = useRef(onInteractionSound);
+  const skippedStartupSettledRef = useRef(false);
 
   useEffect(() => {
     onInteractionSoundRef.current = onInteractionSound;
@@ -78,6 +92,24 @@ export function usePetStartupAnimation({
       clearArrivalTimer();
     };
   }, [clearArrivalTimer]);
+
+  useEffect(() => {
+    if (
+      !selectedPetId ||
+      skippedStartupSettledRef.current ||
+      getPetStartupAnimationRunState() === "complete" ||
+      shouldRunStartupAnimation(selectedPetId)
+    ) {
+      return;
+    }
+
+    skippedStartupSettledRef.current = true;
+    localCompleteRef.current = true;
+    setPhase("complete");
+    void runPetStartupWindowAnimation(0).finally(() => {
+      completePetStartupAnimationRun();
+    });
+  }, [selectedPetId]);
 
   useEffect(() => {
     const startedWith = startIdentityRef.current;
@@ -173,16 +205,22 @@ export function usePetStartupAnimation({
     };
   }, [clearArrivalTimer, complete, selectedPetId, selectedSoundPackId]);
 
+  const effectivePhase =
+    phase === "idle" &&
+    !localCompleteRef.current &&
+    shouldRunStartupAnimation(selectedPetId)
+      ? "entering"
+      : phase;
   const composedOverride =
-    phase === "entering"
+    effectivePhase === "entering"
       ? petStartupEnteringView
-      : phase === "arriving"
+      : effectivePhase === "arriving"
         ? petStartupArrivingView
         : null;
 
   return {
     composedOverride,
-    hideMessages: phase === "entering" || phase === "arriving",
+    hideMessages: effectivePhase === "entering" || effectivePhase === "arriving",
     complete,
   };
 }

@@ -32,7 +32,7 @@ use tauri::{
 #[cfg(target_os = "macos")]
 use tauri_nspanel::WebviewWindowExt;
 use window_placement::{
-    apply_pet_window_size, install_pet_window_z_order_guard, keep_pet_window_on_top,
+    apply_pet_window_size_for_startup, install_pet_window_z_order_guard, keep_pet_window_on_top,
     pet_window_event_needs_z_order_reassertion, prepare_settings_window_for_interaction,
     schedule_pet_window_z_order_reassertions,
 };
@@ -953,7 +953,7 @@ pub fn run() {
                     let _panel = window.to_panel();
                 }
                 let state = store.app_state()?;
-                apply_pet_window_size(&window, state.pet_window_size)?;
+                apply_pet_window_size_for_startup(&window, state.pet_window_size)?;
             }
             install_pet_window_z_order_guard(app.handle());
             schedule_pet_window_z_order_reassertions(app.handle());

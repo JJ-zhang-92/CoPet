@@ -362,6 +362,19 @@ mod subject {
     }
 
     #[test]
+    fn app_setup_places_pet_window_at_startup_start() {
+        let source = include_str!("../src/lib.rs");
+        let setup_body = source
+            .split(".setup(|app|")
+            .nth(1)
+            .and_then(|rest| rest.split("install_pet_window_z_order_guard").next())
+            .expect("app setup body should configure the pet window before z-order guard");
+
+        assert!(setup_body.contains("apply_pet_window_size_for_startup"));
+        assert!(!setup_body.contains("apply_pet_window_size(&window"));
+    }
+
+    #[test]
     fn startup_window_command_symbol_is_registered() {
         let source = include_str!("../src/lib.rs");
 

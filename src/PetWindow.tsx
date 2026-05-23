@@ -211,6 +211,10 @@ export function PetWindow() {
   ]);
 
   useEffect(() => {
+    if (startup.hideMessages) {
+      return;
+    }
+
     const animationFrame = window.requestAnimationFrame(() => {
       const anchor =
         initialContentResizePendingRef.current && stackRef.current
@@ -229,6 +233,7 @@ export function PetWindow() {
     selectedPet?.id,
     petScale,
     displayedAgentMessages.length,
+    startup.hideMessages,
     viewportSize.height,
     viewportSize.width,
   ]);

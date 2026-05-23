@@ -57,6 +57,18 @@ pub fn apply_pet_window_size(window: &WebviewWindow, size: PetWindowSize) -> tau
     Ok(())
 }
 
+pub fn apply_pet_window_size_for_startup(
+    window: &WebviewWindow,
+    size: PetWindowSize,
+) -> tauri::Result<()> {
+    place_window_startup_offscreen_right(window)?;
+    let (width, height) = pet_window_logical_dimensions(size);
+    window.set_size(LogicalSize::new(width, height))?;
+    place_window_startup_offscreen_right(window)?;
+    keep_pet_window_on_top(window)?;
+    Ok(())
+}
+
 pub fn resize_pet_window_from_center(
     window: &WebviewWindow,
     size: PetWindowSize,
@@ -80,6 +92,18 @@ pub fn place_window_bottom_right(window: &WebviewWindow) -> tauri::Result<()> {
     let margin = (BOTTOM_RIGHT_MARGIN_LOGICAL_PX * monitor.scale_factor()).round() as i32;
     let position = bottom_right_position(*monitor.position(), *monitor.size(), window_size, margin);
     window.set_position(position)?;
+    Ok(())
+}
+
+fn place_window_startup_offscreen_right(window: &WebviewWindow) -> tauri::Result<()> {
+    let Some(monitor) = window.current_monitor()? else {
+        return Ok(());
+    };
+    let window_size = window.outer_size()?;
+    let margin = (BOTTOM_RIGHT_MARGIN_LOGICAL_PX * monitor.scale_factor()).round() as i32;
+    let (start, _) =
+        pet_startup_window_positions(*monitor.position(), *monitor.size(), window_size, margin);
+    window.set_position(start)?;
     Ok(())
 }
 

@@ -135,6 +135,32 @@ test("messages received during startup render after startup completes", async ({
   }).toHaveText("Writing pet startup spec");
 });
 
+test("startup enter phase does not run frontend reset-position sizing", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    reducedMotion: "no-preference",
+    commandDelayMs: {
+      run_pet_startup_window_animation: petStartupAnimationConfig.enterDurationMs,
+    },
+    runtimeStatus: runtimeWithMessage(),
+    state: {
+      currentPetId: copet.id,
+      pets: [copet],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("pet");
+
+  await expect(page.locator(".pet-sprite")).toHaveAttribute(
+    "data-pet-state",
+    "running-left",
+  );
+  await page.waitForTimeout(100);
+
+  expect(harness.invocations("plugin:window|set_position")).toHaveLength(0);
+});
+
 test("startup stays in arrival for hooks mounted after enter resolves", async ({
   browser,
 }) => {
@@ -477,5 +503,10 @@ test("reduced motion skips startup animation and shows messages immediately", as
     "data-pet-state",
     "running",
   );
-  expect(harness.invocations("run_pet_startup_window_animation")).toHaveLength(0);
+  expect(harness.invocations("run_pet_startup_window_animation")).toEqual([
+    {
+      command: "run_pet_startup_window_animation",
+      args: { durationMs: 0 },
+    },
+  ]);
 });
