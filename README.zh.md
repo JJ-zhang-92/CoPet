@@ -1,4 +1,4 @@
-![CoPet](./public/banner.png)
+![CoPet](./public/banner.zh.png)
 
 [English](./README.md)
 
