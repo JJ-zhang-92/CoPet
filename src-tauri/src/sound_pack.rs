@@ -6,49 +6,49 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-pub const SYSTEM_AUDIO_PACK_PREFIX: &str = "system:";
-pub const USER_AUDIO_PACK_PREFIX: &str = "user:";
+pub const SYSTEM_SOUND_PACK_PREFIX: &str = "system:";
+pub const USER_SOUND_PACK_PREFIX: &str = "user:";
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum AudioPackNamespace {
+pub enum SoundPackNamespace {
     System,
     User,
 }
 
-impl AudioPackNamespace {
+impl SoundPackNamespace {
     pub fn prefix(self) -> &'static str {
         match self {
-            AudioPackNamespace::System => SYSTEM_AUDIO_PACK_PREFIX,
-            AudioPackNamespace::User => USER_AUDIO_PACK_PREFIX,
+            SoundPackNamespace::System => SYSTEM_SOUND_PACK_PREFIX,
+            SoundPackNamespace::User => USER_SOUND_PACK_PREFIX,
         }
     }
 }
 
-pub fn runtime_audio_pack_id(namespace: AudioPackNamespace, storage_id: &str) -> String {
+pub fn runtime_sound_pack_id(namespace: SoundPackNamespace, storage_id: &str) -> String {
     format!("{}{}", namespace.prefix(), storage_id)
 }
 
-pub fn system_audio_pack_id(storage_id: &str) -> String {
-    runtime_audio_pack_id(AudioPackNamespace::System, storage_id)
+pub fn system_sound_pack_id(storage_id: &str) -> String {
+    runtime_sound_pack_id(SoundPackNamespace::System, storage_id)
 }
 
-pub fn user_audio_pack_id(storage_id: &str) -> String {
-    runtime_audio_pack_id(AudioPackNamespace::User, storage_id)
+pub fn user_sound_pack_id(storage_id: &str) -> String {
+    runtime_sound_pack_id(SoundPackNamespace::User, storage_id)
 }
 
-pub fn parse_runtime_audio_pack_id(runtime_id: &str) -> Option<(AudioPackNamespace, &str)> {
-    if let Some(raw) = runtime_id.strip_prefix(SYSTEM_AUDIO_PACK_PREFIX) {
-        return Some((AudioPackNamespace::System, raw));
+pub fn parse_runtime_sound_pack_id(runtime_id: &str) -> Option<(SoundPackNamespace, &str)> {
+    if let Some(raw) = runtime_id.strip_prefix(SYSTEM_SOUND_PACK_PREFIX) {
+        return Some((SoundPackNamespace::System, raw));
     }
-    if let Some(raw) = runtime_id.strip_prefix(USER_AUDIO_PACK_PREFIX) {
-        return Some((AudioPackNamespace::User, raw));
+    if let Some(raw) = runtime_id.strip_prefix(USER_SOUND_PACK_PREFIX) {
+        return Some((SoundPackNamespace::User, raw));
     }
     None
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AudioPackManifest {
+pub struct SoundPackManifest {
     pub id: String,
     pub display_name: String,
     #[serde(default)]
@@ -61,7 +61,7 @@ pub struct AudioPackManifest {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-pub struct AudioPackSummary {
+pub struct SoundPackSummary {
     pub id: String,
     pub slug: String,
     pub display_name: String,
@@ -70,36 +70,36 @@ pub struct AudioPackSummary {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AudioPack {
-    pub manifest: AudioPackManifest,
+pub struct SoundPack {
+    pub manifest: SoundPackManifest,
     pub sounds: PetSounds,
 }
 
-impl AudioPack {
-    pub fn summary(self, namespace: AudioPackNamespace, storage_id: &str) -> AudioPackSummary {
-        AudioPackSummary {
-            id: runtime_audio_pack_id(namespace, storage_id),
+impl SoundPack {
+    pub fn summary(self, namespace: SoundPackNamespace, storage_id: &str) -> SoundPackSummary {
+        SoundPackSummary {
+            id: runtime_sound_pack_id(namespace, storage_id),
             slug: storage_id.to_string(),
             display_name: self.manifest.display_name,
-            built_in: matches!(namespace, AudioPackNamespace::System),
+            built_in: matches!(namespace, SoundPackNamespace::System),
             sounds: self.sounds,
         }
     }
 }
 
-pub fn read_audio_pack(dir: &Path) -> Option<AudioPack> {
+pub fn read_sound_pack(dir: &Path) -> Option<SoundPack> {
     if symlink_metadata_is_symlink(dir) {
         return None;
     }
 
     let storage_id = dir.file_name()?.to_str()?;
-    let manifest_path = dir.join("audio.json");
+    let manifest_path = dir.join("sound.json");
     if symlink_metadata_is_symlink(&manifest_path) || !manifest_path.is_file() {
         return None;
     }
 
     let manifest_bytes = fs::read(manifest_path).ok()?;
-    let manifest: AudioPackManifest = serde_json::from_slice(&manifest_bytes).ok()?;
+    let manifest: SoundPackManifest = serde_json::from_slice(&manifest_bytes).ok()?;
     if manifest.id != storage_id {
         return None;
     }
@@ -121,12 +121,12 @@ pub fn read_audio_pack(dir: &Path) -> Option<AudioPack> {
             failed: manifest.agent_sounds.failed.clone(),
         },
     };
-    let sounds = collect_valid_audio_pack_sounds(&raw_sounds, dir)?;
+    let sounds = collect_valid_sound_pack_sounds(&raw_sounds, dir)?;
 
-    Some(AudioPack { manifest, sounds })
+    Some(SoundPack { manifest, sounds })
 }
 
-pub fn scan_audio_packs_with_storage_ids(dir: &Path) -> io::Result<Vec<(String, AudioPack)>> {
+pub fn scan_sound_packs_with_storage_ids(dir: &Path) -> io::Result<Vec<(String, SoundPack)>> {
     if !dir.exists() {
         return Ok(Vec::new());
     }
@@ -141,62 +141,62 @@ pub fn scan_audio_packs_with_storage_ids(dir: &Path) -> io::Result<Vec<(String, 
         let Some(storage_id) = path.file_name().and_then(|name| name.to_str()) else {
             continue;
         };
-        if let Some(pack) = read_audio_pack(&path) {
+        if let Some(pack) = read_sound_pack(&path) {
             packs.push((storage_id.to_string(), pack));
         }
     }
     Ok(packs)
 }
 
-pub(crate) fn collect_valid_audio_pack_sounds(
+pub(crate) fn collect_valid_sound_pack_sounds(
     raw_sounds: &PetSounds,
     pack_dir: &Path,
 ) -> Option<PetSounds> {
     let sounds = PetSounds {
         interaction_sounds: PetInteractionSounds {
-            click: valid_audio_pack_sound_path(
+            click: valid_sound_pack_sound_path(
                 raw_sounds.interaction_sounds.click.as_deref(),
                 pack_dir,
             ),
-            double_click: valid_audio_pack_sound_path(
+            double_click: valid_sound_pack_sound_path(
                 raw_sounds.interaction_sounds.double_click.as_deref(),
                 pack_dir,
             ),
-            petted: valid_audio_pack_sound_path(
+            petted: valid_sound_pack_sound_path(
                 raw_sounds.interaction_sounds.petted.as_deref(),
                 pack_dir,
             ),
-            petted_slow: valid_audio_pack_sound_path(
+            petted_slow: valid_sound_pack_sound_path(
                 raw_sounds.interaction_sounds.petted_slow.as_deref(),
                 pack_dir,
             ),
-            drag_land: valid_audio_pack_sound_path(
+            drag_land: valid_sound_pack_sound_path(
                 raw_sounds.interaction_sounds.drag_land.as_deref(),
                 pack_dir,
             ),
         },
         agent_sounds: PetAgentSounds {
-            thinking: valid_audio_pack_sound_path(
+            thinking: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.thinking.as_deref(),
                 pack_dir,
             ),
-            editing: valid_audio_pack_sound_path(
+            editing: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.editing.as_deref(),
                 pack_dir,
             ),
-            inspecting: valid_audio_pack_sound_path(
+            inspecting: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.inspecting.as_deref(),
                 pack_dir,
             ),
-            awaiting_approval: valid_audio_pack_sound_path(
+            awaiting_approval: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.awaiting_approval.as_deref(),
                 pack_dir,
             ),
-            celebrating: valid_audio_pack_sound_path(
+            celebrating: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.celebrating.as_deref(),
                 pack_dir,
             ),
-            failed: valid_audio_pack_sound_path(
+            failed: valid_sound_pack_sound_path(
                 raw_sounds.agent_sounds.failed.as_deref(),
                 pack_dir,
             ),
@@ -206,7 +206,7 @@ pub(crate) fn collect_valid_audio_pack_sounds(
     has_any_sound(&sounds).then_some(sounds)
 }
 
-fn valid_audio_pack_sound_path(raw: Option<&str>, pack_dir: &Path) -> Option<String> {
+fn valid_sound_pack_sound_path(raw: Option<&str>, pack_dir: &Path) -> Option<String> {
     let raw = raw?;
     if raw.contains('\\') {
         return None;

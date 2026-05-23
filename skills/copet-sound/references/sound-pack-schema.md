@@ -1,14 +1,14 @@
-# Audio Pack Schema
+# Sound Pack Schema
 
-**Read this when:** composing or validating `audio.json` for a global CoPet audio pack.
+**Read this when:** composing or validating `sound.json` for a global CoPet sound pack.
 
-Audio packs live under `$HOME/.copet/audios/<audio-pack-id>/`. They are self-contained and never merge into a pet package.
+Sound packs live under `$HOME/.copet/sounds/<sound-pack-id>/`. They are self-contained and never merge into a pet package.
 
 ## Layout
 
 ```text
-$HOME/.copet/audios/<audio-pack-id>/
-├── audio.json
+$HOME/.copet/sounds/<sound-pack-id>/
+├── sound.json
 ├── click.mp3
 ├── surprised.mp3
 ├── purr.mp3
@@ -22,7 +22,7 @@ $HOME/.copet/audios/<audio-pack-id>/
 └── oof.mp3
 ```
 
-`<audio-pack-id>` is a kebab-case slug derived from `displayName`. If the slug already exists under `$HOME/.copet/audios/`, append `-2`, `-3`, and continue until the destination is unique.
+`<sound-pack-id>` is a kebab-case slug derived from `displayName`. If the slug already exists under `$HOME/.copet/sounds/`, append `-2`, `-3`, and continue until the destination is unique.
 
 ## Manifest
 
@@ -78,11 +78,11 @@ Top-level keys are exactly:
 - `celebrating`
 - `failed`
 
-Each value is a path relative to the audio pack root. All paths must end in `.mp3`, must resolve inside the pack root, and must not contain `..`, absolute path prefixes, URLs, query strings, fragments, or cross-directory segments.
+Each value is a path relative to the sound pack root. All paths must end in `.mp3`, must resolve inside the pack root, and must not contain `..`, absolute path prefixes, URLs, query strings, fragments, or cross-directory segments.
 
 ## Validation checklist
 
-- `audio.json` parses as JSON.
+- `sound.json` parses as JSON.
 - `id`, `displayName`, `schemaVersion`, `interactionSounds`, and `agentSounds` are present.
 - No unexpected top-level key is present.
 - `schemaVersion === 1`.
@@ -92,5 +92,5 @@ Each value is a path relative to the audio pack root. All paths must end in `.mp
 - Every declared MP3 file exists inside the staging root.
 - Every declared path is relative, has no directory separators, contains no `..`, and ends in `.mp3`.
 - Every MP3 file is at most 16 MB.
-- The staging directory contains exactly `audio.json` and the 11 declared MP3 files.
+- The staging directory contains exactly `sound.json` and the 11 declared MP3 files.
 - No `.tmp`, `.bak`, `.swp`, `.DS_Store`, `.hatch-run`, `.hatch-codex`, or stray source file is present.

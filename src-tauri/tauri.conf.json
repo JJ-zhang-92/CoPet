@@ -47,11 +47,11 @@
         "enable": true,
         "scope": [
           "$HOME/.copet/pets/**",
-          "$HOME/.copet/audios/**",
+          "$HOME/.copet/sounds/**",
           "$HOME/.copet/import-previews/**",
           "$HOME/.codex/pets/**",
           "$RESOURCE/assets/pets/**",
-          "$RESOURCE/assets/audios/**"
+          "$RESOURCE/assets/sounds/**"
         ]
       }
     }
@@ -61,7 +61,7 @@
     "targets": "all",
     "resources": {
       "assets/pets": "assets/pets",
-      "assets/audios": "assets/audios"
+      "assets/sounds": "assets/sounds"
     },
     "icon": [
       "icons/32x32.png",

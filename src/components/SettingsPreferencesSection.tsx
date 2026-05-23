@@ -6,7 +6,7 @@ import { toast } from "sonner";
 
 import type {
   AgentMessageDisplay,
-  AudioPackSummary,
+  SoundPackSummary,
   CooldownStyle,
   LocalePreference,
   PetInteractionPrefs,
@@ -23,7 +23,7 @@ import { Button } from "./ui/button";
 import { RadioGroup } from "./ui/radio-group";
 import { Slider } from "./ui/slider";
 import { Switch } from "./ui/switch";
-import { SettingsAudioPackSelect } from "./SettingsAudioPackSelect";
+import { SettingsSoundPackSelect } from "./SettingsSoundPackSelect";
 
 import type { Translator } from "../lib/settingsTypes";
 
@@ -43,9 +43,9 @@ interface SettingsPreferencesSectionProps {
   setAgentMessageVisible: (visible: boolean) => void;
   petInteractions: PetInteractionPrefs;
   setPetInteractions: (prefs: PetInteractionPrefs) => void;
-  audioPacks: AudioPackSummary[];
-  currentAudioPackId: string;
-  selectAudioPack: (audioPackId: string) => Promise<void>;
+  soundPacks: SoundPackSummary[];
+  currentSoundPackId: string;
+  selectSoundPack: (soundPackId: string) => Promise<void>;
   t: Translator;
 }
 
@@ -63,9 +63,9 @@ export function SettingsPreferencesSection({
   setAgentMessageVisible,
   petInteractions,
   setPetInteractions,
-  audioPacks,
-  currentAudioPackId,
-  selectAudioPack,
+  soundPacks,
+  currentSoundPackId,
+  selectSoundPack,
   t,
 }: SettingsPreferencesSectionProps) {
   const [resetting, setResetting] = useState(false);
@@ -255,10 +255,10 @@ export function SettingsPreferencesSection({
               {t("soundPack")}
             </span>
             <div className="settings-preferences-row-control">
-              <SettingsAudioPackSelect
-                audioPacks={audioPacks}
-                currentAudioPackId={currentAudioPackId}
-                selectAudioPack={selectAudioPack}
+              <SettingsSoundPackSelect
+                soundPacks={soundPacks}
+                currentSoundPackId={currentSoundPackId}
+                selectSoundPack={selectSoundPack}
                 t={t}
               />
             </div>

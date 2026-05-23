@@ -2,31 +2,31 @@ import { ChevronDown } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 
-import type { AudioPackSummary } from "../lib/appTypes";
+import type { SoundPackSummary } from "../lib/appTypes";
 import type { Translator } from "../lib/settingsTypes";
 
-interface SettingsAudioPackSelectProps {
-  audioPacks: AudioPackSummary[];
-  currentAudioPackId: string;
-  selectAudioPack: (audioPackId: string) => Promise<void>;
+interface SettingsSoundPackSelectProps {
+  soundPacks: SoundPackSummary[];
+  currentSoundPackId: string;
+  selectSoundPack: (soundPackId: string) => Promise<void>;
   t: Translator;
 }
 
-export function SettingsAudioPackSelect({
-  audioPacks,
-  currentAudioPackId,
-  selectAudioPack,
+export function SettingsSoundPackSelect({
+  soundPacks,
+  currentSoundPackId,
+  selectSoundPack,
   t,
-}: SettingsAudioPackSelectProps) {
+}: SettingsSoundPackSelectProps) {
   const selectId = useId();
   const listboxId = `${selectId}-listbox`;
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [open, setOpen] = useState(false);
   const [pending, setPending] = useState(false);
-  const builtInPacks = audioPacks.filter((pack) => pack.builtIn);
-  const customPacks = audioPacks.filter((pack) => !pack.builtIn);
-  const selectedPack = audioPacks.find((pack) => pack.id === currentAudioPackId);
-  const disabled = audioPacks.length === 0 || pending;
+  const builtInPacks = soundPacks.filter((pack) => pack.builtIn);
+  const customPacks = soundPacks.filter((pack) => !pack.builtIn);
+  const selectedPack = soundPacks.find((pack) => pack.id === currentSoundPackId);
+  const disabled = soundPacks.length === 0 || pending;
 
   useEffect(() => {
     if (!open) {
@@ -44,7 +44,7 @@ export function SettingsAudioPackSelect({
     return () => document.removeEventListener("pointerdown", handlePointerDown);
   }, [open]);
 
-  const label = selectedPack?.displayName ?? audioPacks[0]?.displayName ?? t("noSoundPacks");
+  const label = selectedPack?.displayName ?? soundPacks[0]?.displayName ?? t("noSoundPacks");
 
   const handleTriggerKeyDown = (event: KeyboardEvent<HTMLButtonElement>) => {
     if (event.key === "Escape") {
@@ -61,7 +61,7 @@ export function SettingsAudioPackSelect({
     }
   };
 
-  const handleSelect = async (audioPackId: string) => {
+  const handleSelect = async (soundPackId: string) => {
     if (pending) {
       return;
     }
@@ -69,13 +69,13 @@ export function SettingsAudioPackSelect({
     setPending(true);
     setOpen(false);
     try {
-      await selectAudioPack(audioPackId);
+      await selectSoundPack(soundPackId);
     } finally {
       setPending(false);
     }
   };
 
-  const renderGroup = (heading: string, packs: AudioPackSummary[]) => {
+  const renderGroup = (heading: string, packs: SoundPackSummary[]) => {
     if (packs.length === 0) {
       return null;
     }
@@ -85,9 +85,9 @@ export function SettingsAudioPackSelect({
         <div className="ui-select-group-label">{heading}</div>
         {packs.map((pack) => (
           <button
-            aria-selected={pack.id === currentAudioPackId}
+            aria-selected={pack.id === currentSoundPackId}
             className="ui-select-option"
-            data-selected={pack.id === currentAudioPackId}
+            data-selected={pack.id === currentSoundPackId}
             disabled={pending}
             key={pack.id}
             onClick={() => {
@@ -104,7 +104,7 @@ export function SettingsAudioPackSelect({
   };
 
   return (
-    <div className="ui-select audio-pack-select" ref={rootRef}>
+    <div className="ui-select sound-pack-select" ref={rootRef}>
       <button
         aria-controls={listboxId}
         aria-expanded={open}

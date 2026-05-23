@@ -4,7 +4,7 @@ CoPet-specific skill packages. Each skill documents one global CoPet pack type a
 
 Today there are three CoPet skills:
 
-- [`copet-audio`](./copet-audio/SKILL.md) creates global 11-clip MP3 audio packs.
+- [`copet-sound`](./copet-sound/SKILL.md) creates global 11-clip MP3 sound packs.
 - [`copet-gen`](./copet-gen/SKILL.md) creates CoPet pet packages by delegating generation to `$hatch-pet`, allowing its subagents, and installing the result.
 - [`copet-sticker`](./copet-sticker/SKILL.md) creates decorative animated SVG sticker packs.
 
@@ -18,9 +18,9 @@ $HOME/.copet/
 │   └── <pet-id>/
 │       ├── pet.json
 │       └── spritesheet.webp
-├── audios/
-│   └── <audio-pack-id>/
-│       ├── audio.json
+├── sounds/
+│   └── <sound-pack-id>/
+│       ├── sound.json
 │       ├── click.mp3
 │       ├── surprised.mp3
 │       ├── purr.mp3
@@ -44,7 +44,7 @@ Pack ids are kebab-case slugs derived from `displayName`. If a slug collides in 
 
 | Folder | `name` | `displayName` | Owns |
 |---|---|---|---|
-| [`copet-audio/`](./copet-audio/SKILL.md) | `copet-audio` | CoPet Audio | `$HOME/.copet/audios/<audio-pack-id>/`, `audio.json`, and the 11 required MP3 clips. |
+| [`copet-sound/`](./copet-sound/SKILL.md) | `copet-sound` | CoPet Sound | `$HOME/.copet/sounds/<sound-pack-id>/`, `sound.json`, and the 11 required MP3 clips. |
 | [`copet-gen/`](./copet-gen/SKILL.md) | `copet-gen` | CoPet Gen | `$HOME/.copet/pets/<pet-id>/`, `pet.json`, and `spritesheet.webp` copied from a completed `$hatch-pet` package. |
 | [`copet-sticker/`](./copet-sticker/SKILL.md) | `copet-sticker` | CoPet Sticker | `$HOME/.copet/stickers/<sticker-id>/`, `sticker.json`, and `animation.svg`. |
 

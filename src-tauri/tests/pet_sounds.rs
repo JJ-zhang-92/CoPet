@@ -32,67 +32,67 @@ fn builtin_copet_exposes_valid_interaction_and_agent_sounds() {
         .click
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/click.mp3"));
+        .ends_with("sounds/copet/click.mp3"));
     assert!(sounds
         .interaction_sounds
         .double_click
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/surprised.mp3"));
+        .ends_with("sounds/copet/surprised.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/purr.mp3"));
+        .ends_with("sounds/copet/purr.mp3"));
     assert!(sounds
         .interaction_sounds
         .petted_slow
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/sigh.mp3"));
+        .ends_with("sounds/copet/sigh.mp3"));
     assert!(sounds
         .interaction_sounds
         .drag_land
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/wheee.mp3"));
+        .ends_with("sounds/copet/wheee.mp3"));
     assert!(sounds
         .agent_sounds
         .thinking
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/hmm.mp3"));
+        .ends_with("sounds/copet/hmm.mp3"));
     assert!(sounds
         .agent_sounds
         .editing
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/tap.mp3"));
+        .ends_with("sounds/copet/tap.mp3"));
     assert!(sounds
         .agent_sounds
         .inspecting
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/peek.mp3"));
+        .ends_with("sounds/copet/peek.mp3"));
     assert!(sounds
         .agent_sounds
         .awaiting_approval
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/wait.mp3"));
+        .ends_with("sounds/copet/wait.mp3"));
     assert!(sounds
         .agent_sounds
         .celebrating
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/yay.mp3"));
+        .ends_with("sounds/copet/yay.mp3"));
     assert!(sounds
         .agent_sounds
         .failed
         .as_ref()
         .unwrap()
-        .ends_with("audios/copet/oof.mp3"));
+        .ends_with("sounds/copet/oof.mp3"));
 }
 
 #[test]
@@ -112,26 +112,26 @@ fn invalid_sound_entries_are_filtered_without_hiding_pet() {
   "gridColumns": 8,
   "gridRows": 9,
   "copet": {
-    "audio": {
+    "sound": {
       "interactionSounds": {
-        "click": "copet/audio/click.mp3",
+        "click": "copet/sound/click.mp3",
         "doubleClick": "/tmp/outside.mp3",
         "petted": "../escape.mp3",
-        "pettedSlow": "copet/audio/sigh.ogg",
+        "pettedSlow": "copet/sound/sigh.ogg",
         "dragLand": "copet/other/wheee.mp3"
       },
       "agentSounds": {
-        "thinking": "copet/audio/hmm.mp3",
-        "failed": "copet/audio/missing.mp3"
+        "thinking": "copet/sound/hmm.mp3",
+        "failed": "copet/sound/missing.mp3"
       }
     }
   }
 }"#,
     );
-    fs::create_dir_all(pet_dir.join("copet/audio")).unwrap();
-    fs::write(pet_dir.join("copet/audio/click.mp3"), b"click").unwrap();
-    fs::write(pet_dir.join("copet/audio/hmm.mp3"), b"hmm").unwrap();
-    fs::write(pet_dir.join("copet/audio/sigh.ogg"), b"ogg").unwrap();
+    fs::create_dir_all(pet_dir.join("copet/sound")).unwrap();
+    fs::write(pet_dir.join("copet/sound/click.mp3"), b"click").unwrap();
+    fs::write(pet_dir.join("copet/sound/hmm.mp3"), b"hmm").unwrap();
+    fs::write(pet_dir.join("copet/sound/sigh.ogg"), b"ogg").unwrap();
     fs::create_dir_all(pet_dir.join("copet/other")).unwrap();
     fs::write(pet_dir.join("copet/other/wheee.mp3"), b"outside").unwrap();
 
@@ -169,17 +169,17 @@ fn oversized_sound_entries_are_filtered() {
   "gridColumns": 8,
   "gridRows": 9,
   "copet": {
-    "audio": {
+    "sound": {
       "interactionSounds": {
-        "click": "copet/audio/click.mp3"
+        "click": "copet/sound/click.mp3"
       }
     }
   }
 }"#,
     );
-    let audio_dir = pet_dir.join("copet/audio");
-    fs::create_dir_all(&audio_dir).unwrap();
-    let large = fs::File::create(audio_dir.join("click.mp3")).unwrap();
+    let sound_dir = pet_dir.join("copet/sound");
+    fs::create_dir_all(&sound_dir).unwrap();
+    let large = fs::File::create(sound_dir.join("click.mp3")).unwrap();
     large.set_len(SOUND_LIMIT_BYTES + 1).unwrap();
 
     let state = store.app_state().unwrap();
@@ -212,9 +212,9 @@ fn symlinked_sound_entries_are_filtered() {
   "gridColumns": 8,
   "gridRows": 9,
   "copet": {
-    "audio": {
+    "sound": {
       "interactionSounds": {
-        "click": "copet/audio/click.mp3"
+        "click": "copet/sound/click.mp3"
       }
     }
   }
@@ -222,9 +222,9 @@ fn symlinked_sound_entries_are_filtered() {
     );
     let outside_sound = temp.path().join("outside.mp3");
     fs::write(&outside_sound, b"outside").unwrap();
-    let audio_dir = pet_dir.join("copet/audio");
-    fs::create_dir_all(&audio_dir).unwrap();
-    symlink(&outside_sound, audio_dir.join("click.mp3")).unwrap();
+    let sound_dir = pet_dir.join("copet/sound");
+    fs::create_dir_all(&sound_dir).unwrap();
+    symlink(&outside_sound, sound_dir.join("click.mp3")).unwrap();
 
     let state = store.app_state().unwrap();
     let pet = state
@@ -238,50 +238,50 @@ fn symlinked_sound_entries_are_filtered() {
 
 #[cfg(unix)]
 #[test]
-fn sound_entries_through_symlinked_audio_directory_are_filtered() {
+fn sound_entries_through_symlinked_sound_directory_are_filtered() {
     use std::os::unix::fs::symlink;
 
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
-    let pet_dir = store.root().join("pets/symlink-audio-dir-pet");
+    let pet_dir = store.root().join("pets/symlink-sound-dir-pet");
     create_pet_with_manifest(
         &pet_dir,
         r#"{
-  "id": "symlink-audio-dir-pet",
-  "slug": "symlink-audio-dir-pet",
-  "displayName": "Symlink Audio Dir Pet",
+  "id": "symlink-sound-dir-pet",
+  "slug": "symlink-sound-dir-pet",
+  "displayName": "Symlink Sound Dir Pet",
   "frameWidth": 160,
   "frameHeight": 64,
   "gridColumns": 8,
   "gridRows": 9,
   "copet": {
-    "audio": {
+    "sound": {
       "interactionSounds": {
-        "click": "copet/audio/click.mp3"
+        "click": "copet/sound/click.mp3"
       }
     }
   }
 }"#,
     );
-    let outside_audio_dir = temp.path().join("outside-audio");
-    fs::create_dir_all(&outside_audio_dir).unwrap();
-    fs::write(outside_audio_dir.join("click.mp3"), b"outside").unwrap();
+    let outside_sound_dir = temp.path().join("outside-sound");
+    fs::create_dir_all(&outside_sound_dir).unwrap();
+    fs::write(outside_sound_dir.join("click.mp3"), b"outside").unwrap();
     fs::create_dir_all(pet_dir.join("copet")).unwrap();
-    symlink(&outside_audio_dir, pet_dir.join("copet/audio")).unwrap();
+    symlink(&outside_sound_dir, pet_dir.join("copet/sound")).unwrap();
 
     let state = store.app_state().unwrap();
     let pet = state
         .pets
         .iter()
-        .find(|pet| pet.id == "user:symlink-audio-dir-pet")
+        .find(|pet| pet.id == "user:symlink-sound-dir-pet")
         .unwrap();
 
     assert!(pet.sounds.is_none());
 }
 
 #[test]
-fn import_pet_folder_preserves_valid_audio_resources() {
+fn import_pet_folder_preserves_valid_sound_resources() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
@@ -297,7 +297,7 @@ fn import_pet_folder_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/folder-sound-pet/copet/audio/click.mp3")
+        .join("pets/folder-sound-pet/copet/sound/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -307,11 +307,11 @@ fn import_pet_folder_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("folder-sound-pet/copet/audio/click.mp3"));
+        .contains("folder-sound-pet/copet/sound/click.mp3"));
 }
 
 #[test]
-fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
+fn import_pet_folder_from_relative_path_preserves_valid_sound_resources() {
     let cwd = env::current_dir().unwrap();
     let temp = tempfile::tempdir_in(&cwd).unwrap();
     let store = make_store(&temp);
@@ -329,7 +329,7 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/relative-sound-pet/copet/audio/click.mp3")
+        .join("pets/relative-sound-pet/copet/sound/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -339,7 +339,7 @@ fn import_pet_folder_from_relative_path_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("relative-sound-pet/copet/audio/click.mp3"));
+        .contains("relative-sound-pet/copet/sound/click.mp3"));
 }
 
 #[test]
@@ -360,7 +360,7 @@ fn import_pet_folder_from_installed_package_preserves_package() {
         .unwrap();
 
     assert!(installed_dir.exists());
-    assert!(installed_dir.join("copet/audio/click.mp3").exists());
+    assert!(installed_dir.join("copet/sound/click.mp3").exists());
     assert!(pet
         .sounds
         .as_ref()
@@ -369,11 +369,11 @@ fn import_pet_folder_from_installed_package_preserves_package() {
         .click
         .as_ref()
         .unwrap()
-        .contains("reimport-sound-pet/copet/audio/click.mp3"));
+        .contains("reimport-sound-pet/copet/sound/click.mp3"));
 }
 
 #[test]
-fn install_codex_pet_preserves_valid_audio_resources() {
+fn install_codex_pet_preserves_valid_sound_resources() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
@@ -395,7 +395,7 @@ fn install_codex_pet_preserves_valid_audio_resources() {
 
     assert!(store
         .root()
-        .join("pets/codex-sound-pet/copet/audio/click.mp3")
+        .join("pets/codex-sound-pet/copet/sound/click.mp3")
         .exists());
     assert!(pet
         .sounds
@@ -405,7 +405,7 @@ fn install_codex_pet_preserves_valid_audio_resources() {
         .click
         .as_ref()
         .unwrap()
-        .contains("codex-sound-pet/copet/audio/click.mp3"));
+        .contains("codex-sound-pet/copet/sound/click.mp3"));
 }
 
 #[test]
@@ -435,16 +435,16 @@ fn import_pet_folder_preserves_manifest_metadata() {
         "row": 0
       }
     },
-    "audio": {
+    "sound": {
       "interactionSounds": {
-        "click": "copet/audio/click.mp3"
+        "click": "copet/sound/click.mp3"
       }
     }
   }
 }"#,
     );
-    fs::create_dir_all(source_dir.join("copet/audio")).unwrap();
-    fs::write(source_dir.join("copet/audio/click.mp3"), b"click").unwrap();
+    fs::create_dir_all(source_dir.join("copet/sound")).unwrap();
+    fs::write(source_dir.join("copet/sound/click.mp3"), b"click").unwrap();
 
     store.import_pet_folder(&source_dir).unwrap();
 
@@ -472,7 +472,7 @@ fn create_pet_with_manifest(dir: &Path, manifest: &str) {
 }
 
 fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
-    fs::create_dir_all(dir.join("copet/audio")).unwrap();
+    fs::create_dir_all(dir.join("copet/sound")).unwrap();
     fs::write(
         dir.join("pet.json"),
         format!(
@@ -485,9 +485,9 @@ fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
   "gridColumns": 8,
   "gridRows": 9,
   "copet": {{
-    "audio": {{
+    "sound": {{
       "interactionSounds": {{
-        "click": "copet/audio/click.mp3"
+        "click": "copet/sound/click.mp3"
       }}
     }}
   }}
@@ -496,5 +496,5 @@ fn create_sound_pet(dir: &Path, id: &str, display_name: &str) {
     )
     .unwrap();
     fs::write(dir.join("spritesheet.png"), b"sprite").unwrap();
-    fs::write(dir.join("copet/audio/click.mp3"), b"click").unwrap();
+    fs::write(dir.join("copet/sound/click.mp3"), b"click").unwrap();
 }

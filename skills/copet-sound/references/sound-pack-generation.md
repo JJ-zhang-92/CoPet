@@ -1,8 +1,8 @@
-# Audio Pack Generation
+# Sound Pack Generation
 
-**Read this when:** generating a global CoPet audio pack.
+**Read this when:** generating a global CoPet sound pack.
 
-This workflow produces a self-contained audio pack under `$HOME/.copet/audios/<audio-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
+This workflow produces a self-contained sound pack under `$HOME/.copet/sounds/<sound-pack-id>/`. It never writes into a pet package, never reads a pet package, and never modifies `pet.json`.
 
 ## Input contract
 
@@ -12,11 +12,11 @@ The input is the same validated input accepted by `SKILL.md`:
 - Text, 2,000 characters or fewer, non-empty after trimming whitespace.
 - Image plus caption is allowed; the image is the primary signal and the caption is supporting context.
 
-The workflow infers the audio character directly from that input.
+The workflow infers the sound character directly from that input.
 
 ## Abort if the real backend is unavailable
 
-Every MP3 must come from a real audio-generation backend: text-to-speech, sound-effect generation, field recording library, curated sample library, or another authored audio source selected to match the inferred character.
+Every MP3 must come from a real sound-generation backend: text-to-speech, sound-effect generation, field recording library, curated sample library, or another authored sound source selected to match the inferred character.
 
 Abort if no real backend is available. Do not ship synthesized tones, code-generated waveforms, MIDI renders, oscillator output, silence, or pitch-shifted duplicates as substitutes.
 
@@ -34,19 +34,19 @@ Derive:
 - `displayName`: short English name for the pack.
 - `id`: kebab-case slug from `displayName`.
 
-If `$HOME/.copet/audios/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
+If `$HOME/.copet/sounds/<id>/` already exists, append `-2`, `-3`, and continue until the final destination is unique.
 
 ## Staging
 
 Write all in-flight files to a staging directory in the caller's default writable temporary directory:
 
 ```sh
-STAGING_DIR=$(mktemp -d "${TMPDIR:-/tmp}/copet-audios-<audio-pack-id>.XXXXXX")
+STAGING_DIR=$(mktemp -d "${TMPDIR:-/tmp}/copet-sounds-<sound-pack-id>.XXXXXX")
 ```
 
-Do not stage under `$HOME/.copet/tmp/`; that can trigger config-directory authorization before validation. The live `$HOME/.copet/audios/<audio-pack-id>/` directory is read-only until validation passes.
+Do not stage under `$HOME/.copet/tmp/`; that can trigger config-directory authorization before validation. The live `$HOME/.copet/sounds/<sound-pack-id>/` directory is read-only until validation passes.
 
-## Audio target inference
+## Sound target inference
 
 From an image, classify the depicted subject: animal class, size, material, energy, and obvious personality. A small energetic fox should sound quick and bright; a large sleepy bear should sound soft and low; a robot should use authored mechanical chirps rather than animal vocalizations.
 
@@ -78,11 +78,11 @@ Generate exactly 11 MP3 clips:
 
 Target each clip at 1-2 seconds after trimming leading and trailing silence. Interaction clips should stay reactive; agent clips can be a little softer and more ambient, but still compact.
 
-Read `audio-asset-format.md` for MP3 format, loudness, trimming, and size recommendations. Read `gesture-sound-map.md` for advisory interaction sound roles.
+Read `sound-asset-format.md` for MP3 format, loudness, trimming, and size recommendations. Read `gesture-sound-map.md` for advisory interaction sound roles.
 
 ## Manifest
 
-Compose `audio.json` in the staging root:
+Compose `sound.json` in the staging root:
 
 ```json
 {
@@ -111,7 +111,7 @@ Use the actual derived `id` and `displayName`; keep the fixed filenames and key 
 
 ## Validate and promote
 
-Before promotion, validate the staging directory with `audio-pack-schema.md`.
+Before promotion, validate the staging directory with `sound-pack-schema.md`.
 
 On success, promote:
 
@@ -122,7 +122,7 @@ $STAGING_DIR/
 to:
 
 ```text
-$HOME/.copet/audios/<audio-pack-id>/
+$HOME/.copet/sounds/<sound-pack-id>/
 ```
 
 On failure, leave staging in place, report the specific failed checklist item in the response language, and do not touch the live directory.

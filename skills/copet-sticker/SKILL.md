@@ -7,7 +7,7 @@ description: Use when generating CoPet decoration/effect animated SVG sticker pa
 
 ## Overview
 
-Create one self-contained CoPet decorative animated sticker pack under `$HOME/.copet/stickers/<sticker-id>/`. This skill never creates audio packs, sprite atlases, omni directional body atlases, pet packages, pet body art, or `pet.json`.
+Create one self-contained CoPet decorative animated sticker pack under `$HOME/.copet/stickers/<sticker-id>/`. This skill never creates sound packs, sprite atlases, omni directional body atlases, pet packages, pet body art, or `pet.json`.
 
 Sticker SVGs are overlays for an existing pet. They must be decoration/effect layers, not standalone pets, animals, humanoids, mascots, character bodies, heads, faces, or silhouettes.
 

@@ -66,9 +66,9 @@ export async function selectPet(pet: PetSummary): Promise<CommandResult> {
   }
 }
 
-export async function selectAudioPack(audioPackId: string): Promise<CommandResult> {
+export async function selectSoundPack(soundPackId: string): Promise<CommandResult> {
   try {
-    const next = await invoke<AppState>("select_audio_pack", { audioPackId });
+    const next = await invoke<AppState>("select_sound_pack", { soundPackId });
     patchAppState(next);
     return { errorMessage: null };
   } catch (error) {

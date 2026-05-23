@@ -15,7 +15,7 @@ export type PetSummary = {
   sounds?: PetSounds;
 };
 
-export type AudioPackSummary = {
+export type SoundPackSummary = {
   id: string;
   slug: string;
   displayName: string;
@@ -52,11 +52,11 @@ export type PetInteractionPrefs = {
 
 export type AppState = {
   currentPetId: string;
-  currentAudioPackId?: string;
+  currentSoundPackId?: string;
   locale?: "en-US" | "zh-CN";
   localePreference?: "system" | "en-US" | "zh-CN";
   pets: PetSummary[];
-  audioPacks?: AudioPackSummary[];
+  soundPacks?: SoundPackSummary[];
   onboardingComplete: boolean;
   petWindowSize?: number;
   agentMessageDisplay?: "all" | "latest";
@@ -144,63 +144,63 @@ export const copetWithSounds: PetSummary = {
   ...copet,
   sounds: {
     interactionSounds: {
-      click: "/pets/copet/copet/audio/click.mp3",
-      doubleClick: "/pets/copet/copet/audio/surprised.mp3",
-      petted: "/pets/copet/copet/audio/purr.mp3",
-      pettedSlow: "/pets/copet/copet/audio/sigh.mp3",
-      dragLand: "/pets/copet/copet/audio/wheee.mp3",
+      click: "/pets/copet/copet/sound/click.mp3",
+      doubleClick: "/pets/copet/copet/sound/surprised.mp3",
+      petted: "/pets/copet/copet/sound/purr.mp3",
+      pettedSlow: "/pets/copet/copet/sound/sigh.mp3",
+      dragLand: "/pets/copet/copet/sound/wheee.mp3",
     },
     agentSounds: {
-      thinking: "/pets/copet/copet/audio/hmm.mp3",
-      editing: "/pets/copet/copet/audio/tap.mp3",
-      inspecting: "/pets/copet/copet/audio/peek.mp3",
-      awaitingApproval: "/pets/copet/copet/audio/wait.mp3",
-      celebrating: "/pets/copet/copet/audio/yay.mp3",
-      failed: "/pets/copet/copet/audio/oof.mp3",
+      thinking: "/pets/copet/copet/sound/hmm.mp3",
+      editing: "/pets/copet/copet/sound/tap.mp3",
+      inspecting: "/pets/copet/copet/sound/peek.mp3",
+      awaitingApproval: "/pets/copet/copet/sound/wait.mp3",
+      celebrating: "/pets/copet/copet/sound/yay.mp3",
+      failed: "/pets/copet/copet/sound/oof.mp3",
     },
   },
 };
 
-export const copetAudioPack: AudioPackSummary = {
+export const copetSoundPack: SoundPackSummary = {
   id: "system:copet",
   slug: "copet",
   displayName: "CoPet",
   builtIn: true,
   sounds: {
     interactionSounds: {
-      click: "/audios/copet/click.mp3",
-      doubleClick: "/audios/copet/surprised.mp3",
-      petted: "/audios/copet/purr.mp3",
-      pettedSlow: "/audios/copet/sigh.mp3",
-      dragLand: "/audios/copet/wheee.mp3",
+      click: "/sounds/copet/click.mp3",
+      doubleClick: "/sounds/copet/surprised.mp3",
+      petted: "/sounds/copet/purr.mp3",
+      pettedSlow: "/sounds/copet/sigh.mp3",
+      dragLand: "/sounds/copet/wheee.mp3",
     },
     agentSounds: {
-      thinking: "/audios/copet/hmm.mp3",
-      editing: "/audios/copet/tap.mp3",
-      inspecting: "/audios/copet/peek.mp3",
-      awaitingApproval: "/audios/copet/wait.mp3",
-      celebrating: "/audios/copet/yay.mp3",
-      failed: "/audios/copet/oof.mp3",
+      thinking: "/sounds/copet/hmm.mp3",
+      editing: "/sounds/copet/tap.mp3",
+      inspecting: "/sounds/copet/peek.mp3",
+      awaitingApproval: "/sounds/copet/wait.mp3",
+      celebrating: "/sounds/copet/yay.mp3",
+      failed: "/sounds/copet/oof.mp3",
     },
   },
 };
 
-export const retroAudioPack: AudioPackSummary = {
+export const retroSoundPack: SoundPackSummary = {
   id: "system:retro",
   slug: "retro",
   displayName: "Retro",
   builtIn: true,
   sounds: {
     interactionSounds: {
-      click: "/audios/retro/click.mp3",
-      doubleClick: "/audios/retro/powerup.mp3",
-      petted: "/audios/retro/chime.mp3",
+      click: "/sounds/retro/click.mp3",
+      doubleClick: "/sounds/retro/powerup.mp3",
+      petted: "/sounds/retro/chime.mp3",
     },
     agentSounds: {
-      thinking: "/audios/retro/think.mp3",
-      editing: "/audios/retro/edit.mp3",
-      celebrating: "/audios/retro/win.mp3",
-      failed: "/audios/retro/fail.mp3",
+      thinking: "/sounds/retro/think.mp3",
+      editing: "/sounds/retro/edit.mp3",
+      celebrating: "/sounds/retro/win.mp3",
+      failed: "/sounds/retro/fail.mp3",
     },
   },
 };
@@ -267,23 +267,23 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
   const dialogOpenPaths = [...(options.dialogOpenPaths ?? [])];
   let state: AppState = options.state ?? {
     currentPetId: copet.id,
-    currentAudioPackId: copetAudioPack.id,
+    currentSoundPackId: copetSoundPack.id,
     locale: "en-US",
     localePreference: "system",
     pets: [copet],
-    audioPacks: [copetAudioPack],
+    soundPacks: [copetSoundPack],
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "all",
     agentMessageVisible: true,
   };
-  if (state.audioPacks === undefined) {
-    state = { ...state, audioPacks: [copetAudioPack] };
+  if (state.soundPacks === undefined) {
+    state = { ...state, soundPacks: [copetSoundPack] };
   }
-  if (state.currentAudioPackId === undefined) {
+  if (state.currentSoundPackId === undefined) {
     state = {
       ...state,
-      currentAudioPackId: state.audioPacks[0]?.id ?? "",
+      currentSoundPackId: state.soundPacks[0]?.id ?? "",
     };
   }
   if (state.agentMessageDisplay === undefined) {
@@ -378,8 +378,8 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
         if (command === "list_codex_pets") {
           return codexPets;
         }
-        if (command === "list_audio_packs") {
-          return state.audioPacks ?? [];
+        if (command === "list_sound_packs") {
+          return state.soundPacks ?? [];
         }
         if (command === "get_pet_window_visible") {
           return petVisible;
@@ -547,8 +547,8 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
           await emitAppState();
           return state;
         }
-        if (command === "select_audio_pack") {
-          state = { ...state, currentAudioPackId: args.audioPackId as string };
+        if (command === "select_sound_pack") {
+          state = { ...state, currentSoundPackId: args.soundPackId as string };
           await emitAppState();
           return state;
         }
@@ -641,10 +641,10 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
       const callbacks = new Map<number, (payload: unknown) => void>();
       const listeners: Listener[] = [];
 
-      window.__copetPlayedAudioUrls = [];
+      window.__copetPlayedSoundUrls = [];
       HTMLMediaElement.prototype.play = function () {
         const rawSrc = (this as HTMLAudioElement).getAttribute("src");
-        window.__copetPlayedAudioUrls.push(
+        window.__copetPlayedSoundUrls.push(
           rawSrc || (this as HTMLAudioElement).currentSrc || (this as HTMLAudioElement).src,
         );
         return Promise.resolve();
@@ -748,20 +748,20 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     );
   }
 
-  async function playedAudioUrls(page: Page) {
-    return page.evaluate(() => window.__copetPlayedAudioUrls);
+  async function playedSoundUrls(page: Page) {
+    return page.evaluate(() => window.__copetPlayedSoundUrls);
   }
 
-  async function clearPlayedAudioUrls(page: Page) {
+  async function clearPlayedSoundUrls(page: Page) {
     await page.evaluate(() => {
-      window.__copetPlayedAudioUrls = [];
+      window.__copetPlayedSoundUrls = [];
     });
   }
 
   return {
     calls,
     context,
-    clearPlayedAudioUrls,
+    clearPlayedSoundUrls,
     emitPetContextMenuAction: async (
       action: "toggleMessages" | "openSettings" | "hidePet",
     ) => {
@@ -777,7 +777,7 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     emitRuntimeUpdate,
     invocations: (command: string) => calls.filter((call) => call.command === command),
     openPage,
-    playedAudioUrls,
+    playedSoundUrls,
     state: () => state,
   };
 }
@@ -798,7 +798,7 @@ declare global {
       invoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
     };
     __copetInvoke: (command: string, args?: Record<string, unknown>) => Promise<unknown>;
-    __copetPlayedAudioUrls: string[];
+    __copetPlayedSoundUrls: string[];
     __copetScrolledPetIds: string[];
     __copetTestEmit: (event: string, payload: unknown) => void;
   }

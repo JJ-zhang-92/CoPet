@@ -1,10 +1,10 @@
 import { expect, test } from "@playwright/test";
 
 import {
-  copetAudioPack,
+  copetSoundPack,
   copetWithSounds,
   createAppHarness,
-  retroAudioPack,
+  retroSoundPack,
 } from "./app-harness";
 
 function soundState({
@@ -31,19 +31,19 @@ test("enabled interaction sound plays on successful click", async ({ browser }) 
 
   await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
 
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/copet/click.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/click.mp3",
   ]);
 });
 
-test("interaction sound plays from selected audio pack instead of selected pet", async ({
+test("interaction sound plays from selected sound pack instead of selected pet", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
     state: {
       ...soundState(),
-      currentAudioPackId: retroAudioPack.id,
-      audioPacks: [copetAudioPack, retroAudioPack],
+      currentSoundPackId: retroSoundPack.id,
+      soundPacks: [copetSoundPack, retroSoundPack],
       pets: [copetWithSounds],
       petInteractions: { enableClickSounds: true, cooldownStyle: "normal" },
     },
@@ -52,8 +52,8 @@ test("interaction sound plays from selected audio pack instead of selected pet",
 
   await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
 
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/retro/click.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/retro/click.mp3",
   ]);
 });
 
@@ -70,8 +70,8 @@ test("pet sounds default to enabled when interaction prefs are missing", async (
 
   await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
 
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/copet/click.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/click.mp3",
   ]);
 });
 
@@ -87,7 +87,7 @@ test("disabled pet sounds suppress interaction playback", async ({ browser }) =>
   await page.locator(".pet-sprite-frame").dispatchEvent("click", { button: 0, detail: 1 });
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });
 
 test("cooldown-suppressed gesture does not replay interaction sound", async ({ browser }) => {
@@ -98,15 +98,15 @@ test("cooldown-suppressed gesture does not replay interaction sound", async ({ b
   const spriteFrame = page.locator(".pet-sprite-frame");
 
   await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/copet/click.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/click.mp3",
   ]);
 
-  await harness.clearPlayedAudioUrls(page);
+  await harness.clearPlayedSoundUrls(page);
   await spriteFrame.dispatchEvent("click", { button: 0, detail: 1 });
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });
 
 test("agent state transition plays mapped agent sound once", async ({ browser }) => {
@@ -120,18 +120,18 @@ test("agent state transition plays mapped agent sound once", async ({ browser })
     currentState: { state: "running" },
     messages: [{ agent: "codex", displayName: "Codex", text: "editing", updatedAtMs: 1 }],
   });
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/copet/tap.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/tap.mp3",
   ]);
 
-  await harness.clearPlayedAudioUrls(page);
+  await harness.clearPlayedSoundUrls(page);
   await harness.emitRuntimeUpdate(page, {
     currentState: { state: "running" },
     messages: [{ agent: "codex", displayName: "Codex", text: "still editing", updatedAtMs: 2 }],
   });
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });
 
 test("hidden agent messages do not play agent sounds", async ({ browser }) => {
@@ -147,7 +147,7 @@ test("hidden agent messages do not play agent sounds", async ({ browser }) => {
   });
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });
 
 test("initial non-silent runtime state does not play agent sound on render", async ({
@@ -169,7 +169,7 @@ test("initial non-silent runtime state does not play agent sound on render", asy
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "running");
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });
 
 test("enabling sounds while already non-silent waits for next state transition", async ({
@@ -196,15 +196,15 @@ test("enabling sounds while already non-silent waits for next state transition",
   );
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 
   await harness.emitRuntimeUpdate(page, {
     currentState: { state: "review" },
     messages: [{ agent: "codex", displayName: "Codex", text: "reviewing", updatedAtMs: 2 }],
   });
 
-  await expect.poll(() => harness.playedAudioUrls(page)).toEqual([
-    "/audios/copet/peek.mp3",
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/peek.mp3",
   ]);
 });
 
@@ -227,5 +227,5 @@ test("hidden initial non-silent runtime state does not play agent sound", async 
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "waiting");
   await page.waitForTimeout(100);
 
-  expect(await harness.playedAudioUrls(page)).toEqual([]);
+  expect(await harness.playedSoundUrls(page)).toEqual([]);
 });

@@ -1,6 +1,6 @@
 # Gesture-Sound Role Map (Advisory)
 
-Suggested sound roles per gesture. **Advisory, not binding** — audio packs may diverge for personality reasons.
+Suggested sound roles per gesture. **Advisory, not binding** — sound packs may diverge for personality reasons.
 
 | Gesture | Trigger summary | Suggested role | Notes |
 |---|---|---|---|

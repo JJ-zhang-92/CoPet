@@ -1,4 +1,4 @@
-use crate::audio_pack::collect_valid_audio_pack_sounds;
+use crate::sound_pack::collect_valid_sound_pack_sounds;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -80,7 +80,7 @@ pub struct PetManifest {
 #[serde(rename_all = "camelCase")]
 pub struct CoPetMetadata {
     #[serde(default)]
-    pub audio: Option<PetSounds>,
+    pub sound: Option<PetSounds>,
     #[serde(flatten)]
     pub extra: BTreeMap<String, serde_json::Value>,
 }
@@ -214,11 +214,11 @@ pub fn find_sprite_path(dir: &Path) -> Option<PathBuf> {
 
 pub fn collect_pet_sounds(manifest: &PetManifest, package_dir: &Path) -> Option<PetSounds> {
     collect_embedded_pet_sounds(manifest, package_dir)
-        .or_else(|| collect_audio_pack_sounds(manifest, package_dir))
+        .or_else(|| collect_sound_pack_sounds(manifest, package_dir))
 }
 
 fn collect_embedded_pet_sounds(manifest: &PetManifest, package_dir: &Path) -> Option<PetSounds> {
-    let raw_sounds = manifest.copet.as_ref()?.audio.as_ref()?;
+    let raw_sounds = manifest.copet.as_ref()?.sound.as_ref()?;
     let sounds = PetSounds {
         interaction_sounds: PetInteractionSounds {
             click: valid_sound_path(raw_sounds.interaction_sounds.click.as_deref(), package_dir),
@@ -264,27 +264,27 @@ fn collect_embedded_pet_sounds(manifest: &PetManifest, package_dir: &Path) -> Op
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct AudioPackManifest {
+struct SoundPackManifest {
     id: String,
     #[serde(flatten)]
     sounds: PetSounds,
 }
 
-fn collect_audio_pack_sounds(manifest: &PetManifest, package_dir: &Path) -> Option<PetSounds> {
-    let pack_dir = audio_pack_dir(manifest, package_dir)?;
-    let pack: AudioPackManifest =
-        serde_json::from_slice(&fs::read(pack_dir.join("audio.json")).ok()?).ok()?;
+fn collect_sound_pack_sounds(manifest: &PetManifest, package_dir: &Path) -> Option<PetSounds> {
+    let pack_dir = sound_pack_dir(manifest, package_dir)?;
+    let pack: SoundPackManifest =
+        serde_json::from_slice(&fs::read(pack_dir.join("sound.json")).ok()?).ok()?;
     if pack.id != manifest.id {
         return None;
     }
 
-    collect_valid_audio_pack_sounds(&pack.sounds, &pack_dir)
+    collect_valid_sound_pack_sounds(&pack.sounds, &pack_dir)
 }
 
-fn audio_pack_dir(manifest: &PetManifest, package_dir: &Path) -> Option<PathBuf> {
+fn sound_pack_dir(manifest: &PetManifest, package_dir: &Path) -> Option<PathBuf> {
     let pets_dir = package_dir.parent()?;
     let root = pets_dir.parent()?;
-    Some(root.join("audios").join(&manifest.id))
+    Some(root.join("sounds").join(&manifest.id))
 }
 
 fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
@@ -299,7 +299,7 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
             .extension()
             .and_then(|extension| extension.to_str())
             != Some("mp3")
-        || !relative_path.starts_with(Path::new("copet/audio"))
+        || !relative_path.starts_with(Path::new("copet/sound"))
         || relative_path.components().any(|component| {
             matches!(
                 component,
@@ -320,7 +320,7 @@ fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {
     }
 
     let canonical_sound_path = fs::canonicalize(&sound_path).ok()?;
-    if !canonical_sound_path.starts_with(package_root.join("copet/audio")) {
+    if !canonical_sound_path.starts_with(package_root.join("copet/sound")) {
         return None;
     }
 

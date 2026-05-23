@@ -5,23 +5,23 @@ fn builtin_pets_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets")
 }
 
-fn builtin_audios_dir() -> PathBuf {
-    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/audios")
+fn builtin_sounds_dir() -> PathBuf {
+    PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/sounds")
 }
 
 fn make_store(temp: &tempfile::TempDir) -> ConfigStore {
     ConfigStore::with_builtin_dirs(
         temp.path().join(".copet"),
         builtin_pets_dir(),
-        builtin_audios_dir(),
+        builtin_sounds_dir(),
     )
 }
 
-fn write_audio_pack(root: &std::path::Path, id: &str, manifest_id: &str) {
+fn write_sound_pack(root: &std::path::Path, id: &str, manifest_id: &str) {
     let dir = root.join(id);
     fs::create_dir_all(&dir).unwrap();
     fs::write(
-        dir.join("audio.json"),
+        dir.join("sound.json"),
         format!(
             r#"{{
   "id": "{manifest_id}",
@@ -37,20 +37,20 @@ fn write_audio_pack(root: &std::path::Path, id: &str, manifest_id: &str) {
 }
 
 #[test]
-fn discovers_builtin_and_user_audio_packs() {
+fn discovers_builtin_and_user_sound_packs() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
-    write_audio_pack(&store.root().join("audios"), "retro", "retro");
+    write_sound_pack(&store.root().join("sounds"), "retro", "retro");
 
     let state = store.ensure_ready().unwrap();
 
-    assert!(state.audio_packs.iter().any(|pack| {
+    assert!(state.sound_packs.iter().any(|pack| {
         pack.id == "system:copet"
             && pack.slug == "copet"
             && pack.display_name == "CoPet"
             && pack.built_in
     }));
-    assert!(state.audio_packs.iter().any(|pack| {
+    assert!(state.sound_packs.iter().any(|pack| {
         pack.id == "user:retro"
             && pack.slug == "retro"
             && pack.display_name == "retro Pack"
@@ -59,14 +59,14 @@ fn discovers_builtin_and_user_audio_packs() {
 }
 
 #[test]
-fn skips_audio_pack_when_directory_and_manifest_id_differ() {
+fn skips_sound_pack_when_directory_and_manifest_id_differ() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
-    write_audio_pack(&store.root().join("audios"), "retro", "other");
+    write_sound_pack(&store.root().join("sounds"), "retro", "other");
 
     let state = store.ensure_ready().unwrap();
     let user_pack_ids = state
-        .audio_packs
+        .sound_packs
         .iter()
         .filter_map(|pack| (!pack.built_in).then_some(pack.id.as_str()))
         .collect::<Vec<_>>();
@@ -76,13 +76,13 @@ fn skips_audio_pack_when_directory_and_manifest_id_differ() {
 }
 
 #[test]
-fn filters_unsafe_audio_pack_sound_entries() {
+fn filters_unsafe_sound_pack_sound_entries() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
-    let dir = store.root().join("audios/unsafe");
+    let dir = store.root().join("sounds/unsafe");
     fs::create_dir_all(&dir).unwrap();
     fs::write(
-        dir.join("audio.json"),
+        dir.join("sound.json"),
         r#"{
   "id": "unsafe",
   "displayName": "Unsafe",
@@ -107,7 +107,7 @@ fn filters_unsafe_audio_pack_sound_entries() {
 
     let state = store.ensure_ready().unwrap();
     let sounds = &state
-        .audio_packs
+        .sound_packs
         .iter()
         .find(|pack| pack.id == "user:unsafe")
         .unwrap()
@@ -122,13 +122,13 @@ fn filters_unsafe_audio_pack_sound_entries() {
 }
 
 #[test]
-fn skips_audio_pack_when_all_sound_entries_are_invalid() {
+fn skips_sound_pack_when_all_sound_entries_are_invalid() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
-    let dir = store.root().join("audios/broken");
+    let dir = store.root().join("sounds/broken");
     fs::create_dir_all(&dir).unwrap();
     fs::write(
-        dir.join("audio.json"),
+        dir.join("sound.json"),
         r#"{
   "id": "broken",
   "displayName": "Broken",
@@ -150,22 +150,22 @@ fn skips_audio_pack_when_all_sound_entries_are_invalid() {
     let state = store.ensure_ready().unwrap();
 
     assert!(!state
-        .audio_packs
+        .sound_packs
         .iter()
         .any(|pack| pack.id == "user:broken"));
 }
 
 #[cfg(unix)]
 #[test]
-fn skips_audio_pack_when_only_sound_entry_is_symlinked() {
+fn skips_sound_pack_when_only_sound_entry_is_symlinked() {
     use std::os::unix::fs::symlink;
 
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
-    let dir = store.root().join("audios/symlinked");
+    let dir = store.root().join("sounds/symlinked");
     fs::create_dir_all(&dir).unwrap();
     fs::write(
-        dir.join("audio.json"),
+        dir.join("sound.json"),
         r#"{
   "id": "symlinked",
   "displayName": "Symlinked",
@@ -182,7 +182,7 @@ fn skips_audio_pack_when_only_sound_entry_is_symlinked() {
     let state = store.ensure_ready().unwrap();
 
     assert!(!state
-        .audio_packs
+        .sound_packs
         .iter()
         .any(|pack| pack.id == "user:symlinked"));
 }

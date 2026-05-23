@@ -11,7 +11,7 @@ import type {
   AdapterSummary,
   AgentMessage,
   AppState,
-  AudioPackSummary,
+  SoundPackSummary,
   PetInteractionPrefs,
   PetStateId,
   PetSummary,
@@ -167,15 +167,15 @@ export function useSelectedPet(): PetSummary | null {
   });
 }
 
-export function useSelectedAudioPack(): AudioPackSummary | null {
+export function useSelectedSoundPack(): SoundPackSummary | null {
   return useAppSlice((s) => {
     const app = s.appState;
     if (!app) return null;
-    const audioPacks = app.audioPacks ?? [];
-    const currentAudioPackId = app.currentAudioPackId ?? "";
+    const soundPacks = app.soundPacks ?? [];
+    const currentSoundPackId = app.currentSoundPackId ?? "";
     return (
-      audioPacks.find((pack) => pack.id === currentAudioPackId) ??
-      audioPacks[0] ??
+      soundPacks.find((pack) => pack.id === currentSoundPackId) ??
+      soundPacks[0] ??
       null
     );
   });

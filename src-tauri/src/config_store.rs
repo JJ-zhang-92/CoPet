@@ -4,16 +4,16 @@ use crate::{
         PetInteractionPrefs, PetWindowSize, DEFAULT_PET_WINDOW_SIZE, MAX_PET_WINDOW_SIZE,
         MIN_PET_WINDOW_SIZE,
     },
-    audio_pack::{
-        parse_runtime_audio_pack_id, scan_audio_packs_with_storage_ids, system_audio_pack_id,
-        AudioPack, AudioPackNamespace, AudioPackSummary,
-    },
     i18n::{default_locale, Locale, LocalePreference},
     pet_package::{
         collect_pet_sounds, find_sprite_path, parse_runtime_pet_id, system_pet_id, user_pet_id,
         PetManifest, PetNamespace, PetPackage, PetSummary,
     },
     pet_registry::BUILTIN_PET_ID,
+    sound_pack::{
+        parse_runtime_sound_pack_id, scan_sound_packs_with_storage_ids, system_sound_pack_id,
+        SoundPack, SoundPackNamespace, SoundPackSummary,
+    },
 };
 use serde::{
     de::{self, Visitor},
@@ -32,8 +32,8 @@ pub enum StoreError {
     MissingHome,
     #[error("pet '{0}' was not found")]
     PetNotFound(String),
-    #[error("audio pack '{0}' was not found")]
-    AudioPackNotFound(String),
+    #[error("sound pack '{0}' was not found")]
+    SoundPackNotFound(String),
     #[error("built-in pet '{0}' cannot be removed")]
     BuiltInPetCannotBeRemoved(String),
     #[error("pet package is invalid: {0}")]
@@ -48,7 +48,7 @@ pub enum StoreError {
 pub struct ConfigStore {
     root: PathBuf,
     builtin_pets_dir: Option<PathBuf>,
-    builtin_audios_dir: Option<PathBuf>,
+    builtin_sounds_dir: Option<PathBuf>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
@@ -60,7 +60,7 @@ pub struct PetImportResult {
 }
 
 static BUILTIN_PETS_DIR: OnceLock<PathBuf> = OnceLock::new();
-static BUILTIN_AUDIOS_DIR: OnceLock<PathBuf> = OnceLock::new();
+static BUILTIN_SOUNDS_DIR: OnceLock<PathBuf> = OnceLock::new();
 
 /// Set the process-wide built-in pets directory. Called once at startup from `main.rs`
 /// with the Tauri resource path. Subsequent calls are silently ignored.
@@ -72,14 +72,14 @@ pub fn builtin_pets_dir() -> Option<PathBuf> {
     BUILTIN_PETS_DIR.get().cloned()
 }
 
-/// Set the process-wide built-in audio packs directory. Called once at startup from `main.rs`
+/// Set the process-wide built-in sound packs directory. Called once at startup from `main.rs`
 /// with the Tauri resource path. Subsequent calls are silently ignored.
-pub fn set_builtin_audios_dir(path: PathBuf) {
-    let _ = BUILTIN_AUDIOS_DIR.set(path);
+pub fn set_builtin_sounds_dir(path: PathBuf) {
+    let _ = BUILTIN_SOUNDS_DIR.set(path);
 }
 
-pub fn builtin_audios_dir() -> Option<PathBuf> {
-    BUILTIN_AUDIOS_DIR.get().cloned()
+pub fn builtin_sounds_dir() -> Option<PathBuf> {
+    BUILTIN_SOUNDS_DIR.get().cloned()
 }
 
 impl ConfigStore {
@@ -88,7 +88,7 @@ impl ConfigStore {
         Ok(Self {
             root: home.join(".copet"),
             builtin_pets_dir: builtin_pets_dir(),
-            builtin_audios_dir: builtin_audios_dir(),
+            builtin_sounds_dir: builtin_sounds_dir(),
         })
     }
 
@@ -96,7 +96,7 @@ impl ConfigStore {
         Self {
             root: root.into(),
             builtin_pets_dir: None,
-            builtin_audios_dir: None,
+            builtin_sounds_dir: None,
         }
     }
 
@@ -104,19 +104,19 @@ impl ConfigStore {
         Self {
             root: root.into(),
             builtin_pets_dir: Some(builtin_dir.into()),
-            builtin_audios_dir: None,
+            builtin_sounds_dir: None,
         }
     }
 
     pub fn with_builtin_dirs(
         root: impl Into<PathBuf>,
         builtin_pets_dir: impl Into<PathBuf>,
-        builtin_audios_dir: impl Into<PathBuf>,
+        builtin_sounds_dir: impl Into<PathBuf>,
     ) -> Self {
         Self {
             root: root.into(),
             builtin_pets_dir: Some(builtin_pets_dir.into()),
-            builtin_audios_dir: Some(builtin_audios_dir.into()),
+            builtin_sounds_dir: Some(builtin_sounds_dir.into()),
         }
     }
 
@@ -150,7 +150,7 @@ impl ConfigStore {
         self.ensure_dirs()?;
         let mut config = self.load_or_create_config()?;
         let pets = self.list_pets()?;
-        let audio_packs = self.list_audio_packs()?;
+        let sound_packs = self.list_sound_packs()?;
         let normalized_pet_window_size = normalize_pet_window_size(config.pet_window_size);
 
         if let Some(resolved_pet_id) = resolve_current_pet_id(&config.current_pet_id, &pets) {
@@ -162,11 +162,11 @@ impl ConfigStore {
             config.current_pet_id = system_pet_id(BUILTIN_PET_ID);
             self.save_config(&config)?;
         }
-        if let Some(resolved_audio_pack_id) =
-            resolve_current_audio_pack_id(&config.current_audio_pack_id, &audio_packs)
+        if let Some(resolved_sound_pack_id) =
+            resolve_current_sound_pack_id(&config.current_sound_pack_id, &sound_packs)
         {
-            if resolved_audio_pack_id != config.current_audio_pack_id {
-                config.current_audio_pack_id = resolved_audio_pack_id;
+            if resolved_sound_pack_id != config.current_sound_pack_id {
+                config.current_sound_pack_id = resolved_sound_pack_id;
                 self.save_config(&config)?;
             }
         }
@@ -177,11 +177,11 @@ impl ConfigStore {
 
         Ok(AppState {
             current_pet_id: config.current_pet_id,
-            current_audio_pack_id: config.current_audio_pack_id,
+            current_sound_pack_id: config.current_sound_pack_id,
             locale: config.locale_preference.effective_locale(default_locale()),
             locale_preference: config.locale_preference,
             pets,
-            audio_packs,
+            sound_packs,
             onboarding_complete: config.onboarding_complete,
             pet_window_size: normalized_pet_window_size,
             agent_message_display: config.agent_message_display,
@@ -208,21 +208,21 @@ impl ConfigStore {
         Ok(pets)
     }
 
-    pub fn list_audio_packs(&self) -> Result<Vec<AudioPackSummary>, StoreError> {
-        let mut packs_by_id: BTreeMap<String, AudioPackSummary> = BTreeMap::new();
+    pub fn list_sound_packs(&self) -> Result<Vec<SoundPackSummary>, StoreError> {
+        let mut packs_by_id: BTreeMap<String, SoundPackSummary> = BTreeMap::new();
 
-        for (storage_id, pack) in self.scan_user_audio_packs()? {
-            let summary = pack.summary(AudioPackNamespace::User, &storage_id);
+        for (storage_id, pack) in self.scan_user_sound_packs()? {
+            let summary = pack.summary(SoundPackNamespace::User, &storage_id);
             packs_by_id.insert(summary.id.clone(), summary);
         }
 
-        for (storage_id, pack) in self.scan_builtin_audio_packs()? {
-            let summary = pack.summary(AudioPackNamespace::System, &storage_id);
+        for (storage_id, pack) in self.scan_builtin_sound_packs()? {
+            let summary = pack.summary(SoundPackNamespace::System, &storage_id);
             packs_by_id.insert(summary.id.clone(), summary);
         }
 
-        let mut packs: Vec<AudioPackSummary> = packs_by_id.into_values().collect();
-        sort_audio_pack_summaries(&mut packs);
+        let mut packs: Vec<SoundPackSummary> = packs_by_id.into_values().collect();
+        sort_sound_pack_summaries(&mut packs);
         Ok(packs)
     }
 
@@ -237,15 +237,15 @@ impl ConfigStore {
         scan_packages_with_storage_ids(dir)
     }
 
-    fn scan_user_audio_packs(&self) -> Result<Vec<(String, AudioPack)>, StoreError> {
-        Ok(scan_audio_packs_with_storage_ids(&self.audios_dir())?)
+    fn scan_user_sound_packs(&self) -> Result<Vec<(String, SoundPack)>, StoreError> {
+        Ok(scan_sound_packs_with_storage_ids(&self.sounds_dir())?)
     }
 
-    fn scan_builtin_audio_packs(&self) -> Result<Vec<(String, AudioPack)>, StoreError> {
-        let Some(dir) = self.builtin_audios_dir.as_ref() else {
+    fn scan_builtin_sound_packs(&self) -> Result<Vec<(String, SoundPack)>, StoreError> {
+        let Some(dir) = self.builtin_sounds_dir.as_ref() else {
             return Ok(Vec::new());
         };
-        Ok(scan_audio_packs_with_storage_ids(dir)?)
+        Ok(scan_sound_packs_with_storage_ids(dir)?)
     }
 
     fn remove_legacy_pet_index(&self) -> Result<(), StoreError> {
@@ -275,18 +275,18 @@ impl ConfigStore {
         self.app_state()
     }
 
-    pub fn select_audio_pack(&self, audio_pack_id: &str) -> Result<AppState, StoreError> {
+    pub fn select_sound_pack(&self, sound_pack_id: &str) -> Result<AppState, StoreError> {
         self.app_state()?;
-        if parse_runtime_audio_pack_id(audio_pack_id).is_none() {
-            return Err(StoreError::AudioPackNotFound(audio_pack_id.to_string()));
+        if parse_runtime_sound_pack_id(sound_pack_id).is_none() {
+            return Err(StoreError::SoundPackNotFound(sound_pack_id.to_string()));
         }
-        let audio_packs = self.list_audio_packs()?;
-        if !audio_packs.iter().any(|pack| pack.id == audio_pack_id) {
-            return Err(StoreError::AudioPackNotFound(audio_pack_id.to_string()));
+        let sound_packs = self.list_sound_packs()?;
+        if !sound_packs.iter().any(|pack| pack.id == sound_pack_id) {
+            return Err(StoreError::SoundPackNotFound(sound_pack_id.to_string()));
         }
 
         let mut config = self.load_or_create_config()?;
-        config.current_audio_pack_id = audio_pack_id.to_string();
+        config.current_sound_pack_id = sound_pack_id.to_string();
         self.save_config(&config)?;
         self.app_state()
     }
@@ -566,7 +566,7 @@ impl ConfigStore {
     fn ensure_dirs(&self) -> Result<(), StoreError> {
         fs::create_dir_all(self.runtime_dir())?;
         fs::create_dir_all(self.pets_dir())?;
-        fs::create_dir_all(self.audios_dir())?;
+        fs::create_dir_all(self.sounds_dir())?;
         fs::create_dir_all(self.root.join("backups"))?;
         fs::create_dir_all(self.root.join("adapters"))?;
         Ok(())
@@ -616,8 +616,8 @@ impl ConfigStore {
         self.root.join("pets")
     }
 
-    pub fn audios_dir(&self) -> PathBuf {
-        self.root.join("audios")
+    pub fn sounds_dir(&self) -> PathBuf {
+        self.root.join("sounds")
     }
 }
 
@@ -628,8 +628,8 @@ impl StoreError {
             Locale::ZhCn => match self {
                 StoreError::MissingHome => "未找到用户主目录".to_string(),
                 StoreError::PetNotFound(pet_id) => format!("未找到宠物 '{pet_id}'"),
-                StoreError::AudioPackNotFound(audio_pack_id) => {
-                    format!("未找到音频包 '{audio_pack_id}'")
+                StoreError::SoundPackNotFound(sound_pack_id) => {
+                    format!("未找到音效包 '{sound_pack_id}'")
                 }
                 StoreError::BuiltInPetCannotBeRemoved(pet_id) => {
                     format!("内置宠物 '{pet_id}' 不能被移除")
@@ -692,17 +692,17 @@ fn sort_pet_summaries(pets: &mut [PetSummary]) {
     });
 }
 
-fn sort_audio_pack_summaries(packs: &mut [AudioPackSummary]) {
+fn sort_sound_pack_summaries(packs: &mut [SoundPackSummary]) {
     packs.sort_by(|left, right| {
-        audio_pack_sort_group(left)
-            .cmp(&audio_pack_sort_group(right))
+        sound_pack_sort_group(left)
+            .cmp(&sound_pack_sort_group(right))
             .then_with(|| left.display_name.cmp(&right.display_name))
             .then_with(|| left.id.cmp(&right.id))
     });
 }
 
-fn audio_pack_sort_group(pack: &AudioPackSummary) -> u8 {
-    if pack.id == system_audio_pack_id(BUILTIN_PET_ID) {
+fn sound_pack_sort_group(pack: &SoundPackSummary) -> u8 {
+    if pack.id == system_sound_pack_id(BUILTIN_PET_ID) {
         0
     } else if pack.built_in {
         1
@@ -738,26 +738,26 @@ fn resolve_current_pet_id(current_pet_id: &str, pets: &[PetSummary]) -> Option<S
     pets.iter().any(|pet| pet.id == user_id).then_some(user_id)
 }
 
-fn resolve_current_audio_pack_id(
-    current_audio_pack_id: &str,
-    audio_packs: &[AudioPackSummary],
+fn resolve_current_sound_pack_id(
+    current_sound_pack_id: &str,
+    sound_packs: &[SoundPackSummary],
 ) -> Option<String> {
-    if audio_packs.is_empty() {
+    if sound_packs.is_empty() {
         return None;
     }
-    if audio_packs
+    if sound_packs
         .iter()
-        .any(|pack| pack.id == current_audio_pack_id)
+        .any(|pack| pack.id == current_sound_pack_id)
     {
-        return Some(current_audio_pack_id.to_string());
+        return Some(current_sound_pack_id.to_string());
     }
 
-    let default_id = system_audio_pack_id(BUILTIN_PET_ID);
-    if audio_packs.iter().any(|pack| pack.id == default_id) {
+    let default_id = system_sound_pack_id(BUILTIN_PET_ID);
+    if sound_packs.iter().any(|pack| pack.id == default_id) {
         return Some(default_id);
     }
 
-    audio_packs.first().map(|pack| pack.id.clone())
+    sound_packs.first().map(|pack| pack.id.clone())
 }
 
 pub(crate) fn safe_pet_storage_id(raw: &str) -> bool {
@@ -873,8 +873,8 @@ fn sibling_work_dir(target_dir: &Path, suffix: &str) -> Result<PathBuf, StoreErr
 #[serde(rename_all = "camelCase")]
 struct StoredConfig {
     current_pet_id: String,
-    #[serde(default = "default_current_audio_pack_id")]
-    current_audio_pack_id: String,
+    #[serde(default = "default_current_sound_pack_id")]
+    current_sound_pack_id: String,
     onboarding_complete: bool,
     #[serde(default)]
     agent_auto_install_complete: bool,
@@ -901,7 +901,7 @@ impl Default for StoredConfig {
     fn default() -> Self {
         Self {
             current_pet_id: system_pet_id(BUILTIN_PET_ID),
-            current_audio_pack_id: default_current_audio_pack_id(),
+            current_sound_pack_id: default_current_sound_pack_id(),
             onboarding_complete: false,
             agent_auto_install_complete: false,
             locale_preference: LocalePreference::System,
@@ -913,8 +913,8 @@ impl Default for StoredConfig {
     }
 }
 
-fn default_current_audio_pack_id() -> String {
-    system_audio_pack_id(BUILTIN_PET_ID)
+fn default_current_sound_pack_id() -> String {
+    system_sound_pack_id(BUILTIN_PET_ID)
 }
 
 fn default_agent_message_visible() -> bool {

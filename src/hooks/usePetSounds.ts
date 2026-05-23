@@ -40,12 +40,12 @@ export function usePetSounds({
   enabled: boolean;
   sounds?: PetSounds;
 }) {
-  const audioCacheRef = useRef(new Map<string, HTMLAudioElement>());
+  const soundCacheRef = useRef(new Map<string, HTMLAudioElement>());
 
   const stopAllSounds = useCallback(() => {
-    for (const audio of audioCacheRef.current.values()) {
-      audio.pause();
-      audio.currentTime = 0;
+    for (const sound of soundCacheRef.current.values()) {
+      sound.pause();
+      sound.currentTime = 0;
     }
   }, []);
 
@@ -56,16 +56,16 @@ export function usePetSounds({
       }
 
       const url = convertFileSrc(path);
-      let audio = audioCacheRef.current.get(url);
-      if (!audio) {
-        audio = new Audio(url);
-        audio.preload = "auto";
-        audioCacheRef.current.set(url, audio);
+      let sound = soundCacheRef.current.get(url);
+      if (!sound) {
+        sound = new Audio(url);
+        sound.preload = "auto";
+        soundCacheRef.current.set(url, sound);
       }
 
-      audio.currentTime = 0;
+      sound.currentTime = 0;
       try {
-        void audio.play().catch((error: unknown) => {
+        void sound.play().catch((error: unknown) => {
           copetDevLog("frontend.pet-sound.play-failed", {
             message: error instanceof Error ? error.message : String(error),
             url,
@@ -97,13 +97,13 @@ export function usePetSounds({
 
   useEffect(() => {
     stopAllSounds();
-    audioCacheRef.current.clear();
+    soundCacheRef.current.clear();
   }, [enabled, sounds, stopAllSounds]);
 
   useEffect(() => {
     return () => {
       stopAllSounds();
-      audioCacheRef.current.clear();
+      soundCacheRef.current.clear();
     };
   }, [stopAllSounds]);
 

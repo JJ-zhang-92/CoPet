@@ -3,13 +3,13 @@ import type { Page } from "@playwright/test";
 
 import {
   copet,
-  copetAudioPack,
+  copetSoundPack,
   createAppHarness,
-  retroAudioPack,
+  retroSoundPack,
 } from "./app-harness";
 
-const customRetroAudioPack = {
-  ...retroAudioPack,
+const customRetroSoundPack = {
+  ...retroSoundPack,
   id: "user:retro",
   builtIn: false,
 };
@@ -25,10 +25,10 @@ test("settings groups built-in and custom sound packs", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: copetAudioPack.id,
+      currentSoundPackId: copetSoundPack.id,
       locale: "en-US",
       pets: [copet],
-      audioPacks: [copetAudioPack, customRetroAudioPack],
+      soundPacks: [copetSoundPack, customRetroSoundPack],
       onboardingComplete: false,
       petInteractions: { enableClickSounds: false, cooldownStyle: "normal" },
     },
@@ -51,10 +51,10 @@ test("settings groups Chinese built-in and custom sound packs", async ({
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: copetAudioPack.id,
+      currentSoundPackId: copetSoundPack.id,
       locale: "zh-CN",
       pets: [copet],
-      audioPacks: [copetAudioPack, customRetroAudioPack],
+      soundPacks: [copetSoundPack, customRetroSoundPack],
       onboardingComplete: false,
     },
   });
@@ -77,10 +77,10 @@ test("sound pack dropdown opens with keyboard and closes with escape", async ({
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: copetAudioPack.id,
+      currentSoundPackId: copetSoundPack.id,
       locale: "en-US",
       pets: [copet],
-      audioPacks: [copetAudioPack, customRetroAudioPack],
+      soundPacks: [copetSoundPack, customRetroSoundPack],
       onboardingComplete: false,
     },
   });
@@ -105,10 +105,10 @@ test("selecting a sound pack persists runtime id", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: copetAudioPack.id,
+      currentSoundPackId: copetSoundPack.id,
       locale: "en-US",
       pets: [copet],
-      audioPacks: [copetAudioPack, customRetroAudioPack],
+      soundPacks: [copetSoundPack, customRetroSoundPack],
       onboardingComplete: false,
     },
   });
@@ -122,8 +122,8 @@ test("selecting a sound pack persists runtime id", async ({ browser }) => {
 
   await expect(soundPack).toContainText("Retro");
   expect(harness.calls).toContainEqual({
-    command: "select_audio_pack",
-    args: { audioPackId: "user:retro" },
+    command: "select_sound_pack",
+    args: { soundPackId: "user:retro" },
   });
 });
 
@@ -131,13 +131,13 @@ test("sound pack selection blocks duplicate selections while pending", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
-    commandDelayMs: { select_audio_pack: 300 },
+    commandDelayMs: { select_sound_pack: 300 },
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: copetAudioPack.id,
+      currentSoundPackId: copetSoundPack.id,
       locale: "en-US",
       pets: [copet],
-      audioPacks: [copetAudioPack, customRetroAudioPack],
+      soundPacks: [copetSoundPack, customRetroSoundPack],
       onboardingComplete: false,
     },
   });
@@ -150,20 +150,20 @@ test("sound pack selection blocks duplicate selections while pending", async ({
   await page.getByRole("option", { name: "Retro" }).click();
 
   await expect(soundPack).toBeDisabled();
-  expect(harness.calls.filter((call) => call.command === "select_audio_pack")).toHaveLength(1);
+  expect(harness.calls.filter((call) => call.command === "select_sound_pack")).toHaveLength(1);
 
   await expect(soundPack).toBeEnabled();
-  expect(harness.calls.filter((call) => call.command === "select_audio_pack")).toHaveLength(1);
+  expect(harness.calls.filter((call) => call.command === "select_sound_pack")).toHaveLength(1);
 });
 
 test("no sound packs disables dropdown", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
-      currentAudioPackId: "",
+      currentSoundPackId: "",
       locale: "en-US",
       pets: [copet],
-      audioPacks: [],
+      soundPacks: [],
       onboardingComplete: false,
     },
   });

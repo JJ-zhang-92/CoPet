@@ -52,7 +52,7 @@ export type PetSummary = {
   sounds?: PetSounds;
 };
 
-export type AudioPackSummary = {
+export type SoundPackSummary = {
   id: string;
   slug: string;
   displayName: string;
@@ -79,11 +79,11 @@ export const defaultPetInteractionPrefs: PetInteractionPrefs = {
 
 export type AppState = {
   currentPetId: string;
-  currentAudioPackId: string;
+  currentSoundPackId: string;
   locale: Locale;
   localePreference: LocalePreference;
   pets: PetSummary[];
-  audioPacks: AudioPackSummary[];
+  soundPacks: SoundPackSummary[];
   onboardingComplete: boolean;
   petWindowSize: PetWindowSize;
   agentMessageDisplay: AgentMessageDisplay;
