@@ -608,36 +608,36 @@ fn install_codex_pet_rejects_unsafe_manifest_id_without_writing() {
 }
 
 #[test]
-fn response_paused_defaults_to_false() {
+fn agent_message_visible_defaults_to_true() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
 
     let state = store.ensure_ready().unwrap();
 
-    assert!(!state.response_paused);
+    assert!(state.agent_message_visible);
 }
 
 #[test]
-fn set_response_paused_persists_and_round_trips() {
+fn set_agent_message_visible_persists_and_round_trips() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
 
-    let updated = store.set_response_paused(true).unwrap();
-    assert!(updated.response_paused);
+    let updated = store.set_agent_message_visible(false).unwrap();
+    assert!(!updated.agent_message_visible);
 
     // Open a fresh handle pointed at the same root; field must survive.
     let reopened = ConfigStore::with_builtin_dir(temp.path().join(".copet"), builtin_pets_dir());
     let state = reopened.app_state().unwrap();
-    assert!(state.response_paused);
+    assert!(!state.agent_message_visible);
 }
 
 #[test]
-fn legacy_config_missing_response_paused_defaults_to_false() {
+fn legacy_config_missing_agent_message_visible_defaults_to_true() {
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join(".copet");
     fs::create_dir_all(&root).unwrap();
-    // Write a config.json that resembles the old schema — no responsePaused key.
+    // Write a config.json that resembles the old schema — no agentMessageVisible key.
     fs::write(
         root.join("config.json"),
         r#"{"currentPetId":"copet","onboardingComplete":false,"petWindowSize":30}"#,
@@ -647,7 +647,7 @@ fn legacy_config_missing_response_paused_defaults_to_false() {
     let store = ConfigStore::with_builtin_dir(root, builtin_pets_dir());
     let state = store.app_state().unwrap();
 
-    assert!(!state.response_paused);
+    assert!(state.agent_message_visible);
 }
 
 #[test]

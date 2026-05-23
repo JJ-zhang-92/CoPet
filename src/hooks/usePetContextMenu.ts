@@ -5,12 +5,12 @@ import { useCallback, useEffect, useRef } from "react";
 export const PET_CONTEXT_MENU_ACTION_EVENT = "copet-pet-context-menu-action";
 
 export type PetContextMenuLabels = {
-  pause: string;
+  messages: string;
   openSettings: string;
   hidePet: string;
 };
 
-export type PetContextMenuAction = "togglePause" | "openSettings" | "hidePet";
+export type PetContextMenuAction = "toggleMessages" | "openSettings" | "hidePet";
 
 const NATIVE_MENU_VERTICAL_GAP_PX = 4;
 const NATIVE_MENU_MIN_WIDTH_PX = 148;
@@ -19,7 +19,7 @@ const NATIVE_MENU_AVERAGE_CHAR_WIDTH_PX = 7;
 
 type UsePetContextMenuOptions = {
   labels: PetContextMenuLabels;
-  onTogglePause: () => void | Promise<void>;
+  onToggleMessages: () => void | Promise<void>;
   onOpenSettings: () => void | Promise<void>;
   onHidePet: () => void | Promise<void>;
   onPopupFailed: () => void;
@@ -27,7 +27,7 @@ type UsePetContextMenuOptions = {
 
 function estimateNativeMenuWidth(labels: PetContextMenuLabels) {
   const longestLabelLength = Math.max(
-    labels.pause.length,
+    labels.messages.length,
     labels.openSettings.length,
     labels.hidePet.length,
   );
@@ -80,8 +80,8 @@ export function usePetContextMenu(options: UsePetContextMenuOptions) {
     void getCurrentWebviewWindow()
       .listen<PetContextMenuAction>(PET_CONTEXT_MENU_ACTION_EVENT, async (event) => {
         const current = optionsRef.current;
-        if (event.payload === "togglePause") {
-          await current.onTogglePause();
+        if (event.payload === "toggleMessages") {
+          await current.onToggleMessages();
         } else if (event.payload === "openSettings") {
           await current.onOpenSettings();
         } else if (event.payload === "hidePet") {

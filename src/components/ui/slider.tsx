@@ -16,16 +16,35 @@ export function Slider({
   value,
   ...props
 }: SliderProps) {
+  const minNumber = Number(min);
+  const maxNumber = Number(max);
+  const valueNumber = Number(value);
+  const progress =
+    Number.isFinite(minNumber) &&
+    Number.isFinite(maxNumber) &&
+    Number.isFinite(valueNumber) &&
+    maxNumber > minNumber
+      ? Math.min(
+          100,
+          Math.max(0, ((valueNumber - minNumber) / (maxNumber - minNumber)) * 100),
+        )
+      : 0;
+
   return (
-    <input
-      className={cn("ui-slider", className)}
-      max={max}
-      min={min}
-      onChange={(event) => onValueChange?.(Number(event.currentTarget.value))}
-      step={step}
-      type="range"
-      value={value}
-      {...props}
-    />
+    <span className="ui-slider-shell">
+      <span className="ui-slider-track" aria-hidden="true">
+        <span className="ui-slider-progress" style={{ width: `${progress}%` }} />
+      </span>
+      <input
+        className={cn("ui-slider", className)}
+        max={max}
+        min={min}
+        onChange={(event) => onValueChange?.(Number(event.currentTarget.value))}
+        step={step}
+        type="range"
+        value={value}
+        {...props}
+      />
+    </span>
   );
 }

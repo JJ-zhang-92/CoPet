@@ -157,12 +157,11 @@ export function SettingsPetImportDrawer({
                 {t("importSelected")}
               </Button>
               <Button
-                className="pet-import-secondary-action"
+                className="pet-import-primary-action"
                 disabled={petImport.isBusy || !hasPreviews}
                 onClick={() => void runImportAction(petImport.importAll)}
                 size="sm"
                 type="button"
-                variant="ghost"
               >
                 {t("importAll")}
               </Button>

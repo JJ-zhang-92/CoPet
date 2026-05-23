@@ -50,7 +50,7 @@ export type AppState = {
   onboardingComplete: boolean;
   petWindowSize?: number;
   agentMessageDisplay?: "all" | "latest";
-  responsePaused?: boolean;
+  agentMessageVisible?: boolean;
   petInteractions?: PetInteractionPrefs;
 };
 
@@ -219,13 +219,13 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     onboardingComplete: false,
     petWindowSize: 30,
     agentMessageDisplay: "all",
-    responsePaused: false,
+    agentMessageVisible: true,
   };
   if (state.agentMessageDisplay === undefined) {
     state = { ...state, agentMessageDisplay: "all" };
   }
-  if (state.responsePaused === undefined) {
-    state = { ...state, responsePaused: false };
+  if (state.agentMessageVisible === undefined) {
+    state = { ...state, agentMessageVisible: true };
   }
   if (state.petInteractions === undefined) {
     state = {
@@ -484,8 +484,8 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
           await emitAppState();
           return state;
         }
-        if (command === "set_response_paused") {
-          state = { ...state, responsePaused: Boolean(args.paused) };
+        if (command === "set_agent_message_visible") {
+          state = { ...state, agentMessageVisible: Boolean(args.visible) };
           await emitAppState();
           return state;
         }
@@ -690,7 +690,7 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     context,
     clearPlayedAudioUrls,
     emitPetContextMenuAction: async (
-      action: "togglePause" | "openSettings" | "hidePet",
+      action: "toggleMessages" | "openSettings" | "hidePet",
     ) => {
       await Promise.all(
         pages.map((targetPage) =>

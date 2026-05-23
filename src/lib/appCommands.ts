@@ -106,11 +106,11 @@ export async function setAgentMessageDisplay(
   }
 }
 
-export async function setResponsePaused(
-  paused: boolean,
+export async function setAgentMessageVisible(
+  visible: boolean,
 ): Promise<CommandResult> {
   try {
-    const next = await invoke<AppState>("set_response_paused", { paused });
+    const next = await invoke<AppState>("set_agent_message_visible", { visible });
     patchAppState(next);
     return { errorMessage: null };
   } catch (error) {

@@ -52,7 +52,7 @@ fn resolve_builtin_pets_dir(app: &tauri::App) -> Option<PathBuf> {
 
 const TRAY_MENU_BRAND_HEADER_ID: &str = "brand-header";
 const TRAY_MENU_VISIBILITY_ID: &str = "toggle-visibility";
-const TRAY_MENU_PAUSE_ID: &str = "toggle-pause";
+const TRAY_MENU_MESSAGES_ID: &str = "toggle-messages";
 const TRAY_MENU_RESET_POSITION_ID: &str = "reset-pet-position";
 const TRAY_MENU_PETS_ID: &str = "open-pets";
 const TRAY_MENU_AGENTS_ID: &str = "open-agents";
@@ -79,7 +79,7 @@ const SETTINGS_NAVIGATE_PAINT_DELAY: Duration = Duration::from_millis(20);
 struct TrayMenuHandles {
     brand: MenuItem<Wry>,
     visibility: MenuItem<Wry>,
-    pause: MenuItem<Wry>,
+    messages: MenuItem<Wry>,
     reset_position: MenuItem<Wry>,
     pets: MenuItem<Wry>,
     agents: MenuItem<Wry>,
@@ -262,12 +262,12 @@ pub fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
             MessageKey::TrayShowPet
         },
     ));
-    let _ = handles.pause.set_text(t(
+    let _ = handles.messages.set_text(t(
         locale,
-        if state.response_paused {
-            MessageKey::TrayResumeResponse
+        if state.agent_message_visible {
+            MessageKey::TrayHideMessages
         } else {
-            MessageKey::TrayPauseResponse
+            MessageKey::TrayShowMessages
         },
     ));
     let _ = handles
@@ -310,11 +310,11 @@ fn handle_toggle_visibility(app: &AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-fn handle_toggle_pause(app: &AppHandle) -> Result<(), String> {
+fn handle_toggle_messages(app: &AppHandle) -> Result<(), String> {
     let store = ConfigStore::from_home().map_err(localize_store_error)?;
     let current = store.app_state().map_err(localize_store_error)?;
     let new_state = store
-        .set_response_paused(!current.response_paused)
+        .set_agent_message_visible(!current.agent_message_visible)
         .map_err(localize_store_error)?;
     emit_app_state_changed(app, &new_state)?;
     refresh_tray_menu(app, &new_state);
@@ -355,9 +355,9 @@ fn spawn_navigate_to_settings_section(app: &AppHandle, section: &'static str) {
 }
 
 #[tauri::command]
-fn set_response_paused(app: tauri::AppHandle, paused: bool) -> Result<AppState, String> {
+fn set_agent_message_visible(app: tauri::AppHandle, visible: bool) -> Result<AppState, String> {
     let state = ConfigStore::from_home()
-        .and_then(|store| store.set_response_paused(paused))
+        .and_then(|store| store.set_agent_message_visible(visible))
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
     refresh_tray_menu(&app, &state);
@@ -642,10 +642,10 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let pause = MenuItem::with_id(
+    let messages = MenuItem::with_id(
         app,
-        TRAY_MENU_PAUSE_ID,
-        t(locale, MessageKey::TrayPauseResponse),
+        TRAY_MENU_MESSAGES_ID,
+        t(locale, MessageKey::TrayHideMessages),
         true,
         None::<&str>,
     )?;
@@ -735,7 +735,7 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
             &brand,
             &separator_after_brand,
             &visibility,
-            &pause,
+            &messages,
             &reset_position,
             &separator_after_reset,
             &pets,
@@ -761,8 +761,8 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
             TRAY_MENU_VISIBILITY_ID => {
                 let _ = handle_toggle_visibility(app);
             }
-            TRAY_MENU_PAUSE_ID => {
-                let _ = handle_toggle_pause(app);
+            TRAY_MENU_MESSAGES_ID => {
+                let _ = handle_toggle_messages(app);
             }
             TRAY_MENU_RESET_POSITION_ID => {
                 let _ = handle_reset_position(app);
@@ -805,7 +805,7 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
     app.manage::<TrayMenuHandles>(TrayMenuHandles {
         brand,
         visibility,
-        pause,
+        messages,
         reset_position,
         pets,
         agents,
@@ -967,7 +967,7 @@ pub fn run() {
             set_pet_window_size,
             set_locale_preference,
             set_agent_message_display,
-            set_response_paused,
+            set_agent_message_visible,
             set_pet_interactions,
             toggle_pet_window_visibility,
             get_pet_window_visible,

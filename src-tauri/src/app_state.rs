@@ -48,6 +48,10 @@ fn default_enable_click_sounds() -> bool {
     true
 }
 
+fn default_agent_message_visible() -> bool {
+    true
+}
+
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct PetInteractionPrefs {
@@ -78,8 +82,8 @@ pub struct AppState {
     pub onboarding_complete: bool,
     pub pet_window_size: PetWindowSize,
     pub agent_message_display: AgentMessageDisplay,
-    #[serde(default)]
-    pub response_paused: bool,
+    #[serde(default = "default_agent_message_visible")]
+    pub agent_message_visible: bool,
     #[serde(default)]
     pub pet_interactions: PetInteractionPrefs,
 }

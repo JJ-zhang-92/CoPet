@@ -96,11 +96,8 @@ export function useBootstrapAppStore(): void {
       copetDevLog("frontend.event.pet-state-changed", {
         currentState: payload.currentState,
         messages: payload.messages,
-        paused: appStore.get().appState?.responsePaused ?? false,
+        agentMessageVisible: appStore.get().appState?.agentMessageVisible ?? true,
       });
-      if (appStore.get().appState?.responsePaused) {
-        return;
-      }
       appStore.patch({
         petState: payload.currentState.state,
         agentMessages: payload.messages,
@@ -143,10 +140,12 @@ export function useAgentMessages(): AgentMessage[] {
   const messages = useAppSlice((s) => s.agentMessages);
   const dismissed = useAppSlice((s) => s.dismissedAgentMessageKeys);
   const display = useAppSlice((s) => s.appState?.agentMessageDisplay ?? "all");
-  const paused = useAppSlice((s) => s.appState?.responsePaused ?? false);
+  const agentMessageVisible = useAppSlice(
+    (s) => s.appState?.agentMessageVisible ?? true,
+  );
 
   return useMemo(() => {
-    if (paused) return [];
+    if (!agentMessageVisible) return [];
     const visible = messages.filter(
       (m) => !dismissed.has(agentMessageKey(m)),
     );
@@ -156,7 +155,7 @@ export function useAgentMessages(): AgentMessage[] {
         m.updatedAtMs > latest.updatedAtMs ? m : latest,
       ),
     ];
-  }, [messages, dismissed, display, paused]);
+  }, [messages, dismissed, display, agentMessageVisible]);
 }
 
 export function useSelectedPet(): PetSummary | null {
@@ -175,8 +174,8 @@ export function useLocale(): "en-US" | "zh-CN" {
   return useAppSlice((s) => s.appState?.locale ?? "en-US");
 }
 
-export function useResponsePaused(): boolean {
-  return useAppSlice((s) => s.appState?.responsePaused ?? false);
+export function useAgentMessageVisible(): boolean {
+  return useAppSlice((s) => s.appState?.agentMessageVisible ?? true);
 }
 
 export function usePetInteractions(): PetInteractionPrefs {

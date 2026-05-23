@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { createAppHarness, copet } from "./app-harness";
 
-test("pet window suppresses agent messages while responsePaused is true", async ({ browser }) => {
+test("pet window hides agent messages when agentMessageVisible is false", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
@@ -11,7 +11,7 @@ test("pet window suppresses agent messages while responsePaused is true", async 
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: true,
+      agentMessageVisible: false,
     },
   });
 
@@ -20,7 +20,7 @@ test("pet window suppresses agent messages while responsePaused is true", async 
   await expect(petPage.locator(".pet-window-stack")).toBeVisible();
   await expect(petPage.locator('[data-testid="pet-agent-message"]')).toHaveCount(0);
 
-  // Emit a runtime update while paused — must be ignored.
+  // Emit a runtime update while messages are hidden — the bubble must stay hidden.
   await petPage.evaluate(({ event, payload }) => {
     (window as unknown as { __copetTestEmit: (e: string, p: unknown) => void })
       .__copetTestEmit(event, payload);
@@ -43,7 +43,7 @@ test("pet window suppresses agent messages while responsePaused is true", async 
   await petPage.waitForTimeout(150);
   await expect(petPage.locator('[data-testid="pet-agent-message"]')).toHaveCount(0);
 
-  // Unpause via app-state-changed, then emit another runtime update — must render now.
+  // Show messages via app-state-changed, then emit another runtime update — must render now.
   await petPage.evaluate(({ event, payload }) => {
     (window as unknown as { __copetTestEmit: (e: string, p: unknown) => void })
       .__copetTestEmit(event, payload);
@@ -56,7 +56,7 @@ test("pet window suppresses agent messages while responsePaused is true", async 
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 
@@ -82,7 +82,7 @@ test("pet window suppresses agent messages while responsePaused is true", async 
   await expect(petPage.locator('.pet-agent-text')).toHaveText("thinking");
 });
 
-test("pausing messages hides already visible pet message bubbles", async ({ browser }) => {
+test("hiding messages removes already visible pet message bubbles immediately", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
@@ -91,7 +91,7 @@ test("pausing messages hides already visible pet message bubbles", async ({ brow
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 
@@ -124,7 +124,7 @@ test("pausing messages hides already visible pet message bubbles", async ({ brow
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: true,
+      agentMessageVisible: false,
     },
   });
 

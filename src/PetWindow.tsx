@@ -18,16 +18,16 @@ import {
   useAgentMessages,
   useLoadState,
   useLocale,
+  useAgentMessageVisible,
   usePetInteractions,
   usePetState,
   usePetWindowSize,
-  useResponsePaused,
   useSelectedPet,
 } from "./hooks/useAppStore";
 import {
   dismissAgentMessage,
   reloadAppStore,
-  setResponsePaused as setResponsePausedCommand,
+  setAgentMessageVisible as setAgentMessageVisibleCommand,
 } from "./lib/appCommands";
 import { usePetContextMenu } from "./hooks/usePetContextMenu";
 import { agentSoundKeyForPetState, usePetSounds } from "./hooks/usePetSounds";
@@ -52,15 +52,15 @@ export function PetWindow() {
   const agentMessages = useAgentMessages();
   const selectedPet = useSelectedPet();
   const petState = usePetState();
-  const pauseEnabled = useResponsePaused();
+  const agentMessageVisible = useAgentMessageVisible();
   const petInteractions = usePetInteractions();
   const soundEnabled = petInteractions.enableClickSounds;
   const petWindowSize = usePetWindowSize();
   const locale = useLocale();
   const t = createTranslator(locale);
 
-  const setResponsePaused = async (paused: boolean) => {
-    const { errorMessage } = await setResponsePausedCommand(paused);
+  const setAgentMessageVisible = async (visible: boolean) => {
+    const { errorMessage } = await setAgentMessageVisibleCommand(visible);
     if (errorMessage) toast.error(errorMessage);
   };
   const { playInteractionSound, playAgentSound, stopAllSounds } = usePetSounds({
@@ -104,12 +104,14 @@ export function PetWindow() {
 
   const { openMenu: openPetContextMenu } = usePetContextMenu({
     labels: {
-      pause: pauseEnabled ? t("contextMenuPauseOff") : t("contextMenuPauseOn"),
+      messages: agentMessageVisible
+        ? t("contextMenuHideMessages")
+        : t("contextMenuShowMessages"),
       openSettings: t("contextMenuOpenSettings"),
       hidePet: t("contextMenuHidePet"),
     },
-    onTogglePause: () => {
-      void setResponsePaused(!pauseEnabled);
+    onToggleMessages: () => {
+      void setAgentMessageVisible(!agentMessageVisible);
     },
     onOpenSettings: () => invoke("open_settings_window"),
     onHidePet: () => invoke("toggle_pet_window_visibility"),
@@ -170,7 +172,7 @@ export function PetWindow() {
     }
 
     const soundKey = agentSoundKeyForPetState(petState);
-    if (!soundEnabled || pauseEnabled || soundKey === null) {
+    if (!soundEnabled || !agentMessageVisible || soundKey === null) {
       lastAgentSoundKeyRef.current = null;
       return;
     }
@@ -182,7 +184,14 @@ export function PetWindow() {
     }
     lastAgentSoundKeyRef.current = soundKey;
     playAgentSound(soundKey);
-  }, [pauseEnabled, petState, playAgentSound, selectedPet?.id, soundEnabled, stopAllSounds]);
+  }, [
+    agentMessageVisible,
+    petState,
+    playAgentSound,
+    selectedPet?.id,
+    soundEnabled,
+    stopAllSounds,
+  ]);
 
   useEffect(() => {
     const animationFrame = window.requestAnimationFrame(() => {

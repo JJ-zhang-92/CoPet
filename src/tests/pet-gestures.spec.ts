@@ -401,7 +401,7 @@ test("right-click opens the native pet context menu command", async ({ browser }
   });
   const args = harness.invocations("open_pet_context_menu")[0].args;
   expect(args?.labels).toEqual({
-    pause: "Pause messages",
+    messages: "Hide messages",
     openSettings: "Open Settings",
     hidePet: "Hide pet",
   });
@@ -416,7 +416,7 @@ test("right-click opens the native pet context menu command", async ({ browser }
   expect(position.y).toBeLessThanOrEqual(box.y + box.height + 5);
   expect(args).toMatchObject({
     labels: {
-      pause: "Pause messages",
+      messages: "Hide messages",
       openSettings: "Open Settings",
       hidePet: "Hide pet",
     },
@@ -456,15 +456,15 @@ test("native pet context menu action events run pet commands", async ({ browser 
       currentPetId: copet.id,
       pets: [copet],
       onboardingComplete: false,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
   await harness.openPage("pet");
 
-  await harness.emitPetContextMenuAction("togglePause");
-  await expect.poll(() => harness.state().responsePaused).toBe(true);
-  expect(harness.invocations("set_response_paused").at(-1)?.args).toEqual({
-    paused: true,
+  await harness.emitPetContextMenuAction("toggleMessages");
+  await expect.poll(() => harness.state().agentMessageVisible).toBe(false);
+  expect(harness.invocations("set_agent_message_visible").at(-1)?.args).toEqual({
+    visible: false,
   });
 
   await harness.emitPetContextMenuAction("openSettings");

@@ -66,36 +66,38 @@ export function SettingsPetsSection({
   return (
     <div className="settings-pets">
       <h2 id="settings-section-panel-heading">{t("pets")}</h2>
-      <p className="settings-section-description">{t("petsDescription")}</p>
+      <div className="settings-pets-description-row">
+        <p className="settings-section-description">{t("petsDescription")}</p>
 
-      <div className="pet-toolbar">
-        <Button
-          aria-busy={refreshing}
-          className="pet-toolbar-button"
-          disabled={refreshing}
-          onClick={() => void handleRefresh()}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <RefreshCw
-            aria-hidden="true"
-            className={refreshing ? "spin" : undefined}
-            data-loading={String(refreshing)}
-          />
-          {t("refreshList")}
-        </Button>
-        <Button
-          className="pet-toolbar-button"
-          disabled={petBusyId === "import-preview" || petBusyId === "import-commit"}
-          onClick={() => setImportDrawerOpen(true)}
-          size="sm"
-          type="button"
-          variant="outline"
-        >
-          <Import aria-hidden="true" />
-          {t("importPets")}
-        </Button>
+        <div className="pet-toolbar">
+          <Button
+            aria-busy={refreshing}
+            className="pet-toolbar-button"
+            disabled={refreshing}
+            onClick={() => void handleRefresh()}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <RefreshCw
+              aria-hidden="true"
+              className={refreshing ? "spin" : undefined}
+              data-loading={String(refreshing)}
+            />
+            {t("refreshList")}
+          </Button>
+          <Button
+            className="pet-toolbar-button"
+            disabled={petBusyId === "import-preview" || petBusyId === "import-commit"}
+            onClick={() => setImportDrawerOpen(true)}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <Import aria-hidden="true" />
+            {t("importPets")}
+          </Button>
+        </div>
       </div>
 
       <PetPackageGrid

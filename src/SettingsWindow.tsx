@@ -84,8 +84,8 @@ export function SettingsWindow() {
     const r = await commands.setAgentMessageDisplay(display);
     reportErr(r.errorMessage);
   };
-  const setResponsePaused = async (paused: boolean) => {
-    const r = await commands.setResponsePaused(paused);
+  const setAgentMessageVisible = async (visible: boolean) => {
+    const r = await commands.setAgentMessageVisible(visible);
     reportErr(r.errorMessage);
   };
   const setPetInteractions = async (
@@ -261,17 +261,17 @@ export function SettingsWindow() {
             <SettingsPreferencesSection
               agentMessageDisplay={appState.agentMessageDisplay}
               locale={appState.localePreference === "zh-CN" ? "zh-CN" : "en-US"}
+              agentMessageVisible={appState.agentMessageVisible}
               petInteractions={appState.petInteractions ?? defaultPetInteractionPrefs}
               petVisible={petVisible}
               petWindowSize={petWindowSize}
               resetPetWindowPosition={resetPetWindowPosition}
-              responsePaused={appState.responsePaused}
               setAgentMessageDisplay={setAgentMessageDisplay}
+              setAgentMessageVisible={setAgentMessageVisible}
               setLocalePreference={setLocalePreference}
               setPetInteractions={setPetInteractions}
               setPetVisible={setPetVisible}
               setPetWindowSize={setPetWindowSize}
-              setResponsePaused={setResponsePaused}
               t={t}
             />
           )}

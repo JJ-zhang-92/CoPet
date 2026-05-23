@@ -141,7 +141,7 @@ impl ConfigStore {
             onboarding_complete: config.onboarding_complete,
             pet_window_size: normalized_pet_window_size,
             agent_message_display: config.agent_message_display,
-            response_paused: config.response_paused,
+            agent_message_visible: config.agent_message_visible,
             pet_interactions: config.pet_interactions.clone(),
         })
     }
@@ -240,10 +240,10 @@ impl ConfigStore {
         self.app_state()
     }
 
-    pub fn set_response_paused(&self, paused: bool) -> Result<AppState, StoreError> {
+    pub fn set_agent_message_visible(&self, visible: bool) -> Result<AppState, StoreError> {
         self.app_state()?;
         let mut config = self.load_or_create_config()?;
-        config.response_paused = paused;
+        config.agent_message_visible = visible;
         self.save_config(&config)?;
         self.app_state()
     }
@@ -747,8 +747,8 @@ struct StoredConfig {
     pet_window_size: PetWindowSize,
     #[serde(default)]
     agent_message_display: AgentMessageDisplay,
-    #[serde(default)]
-    response_paused: bool,
+    #[serde(default = "default_agent_message_visible")]
+    agent_message_visible: bool,
     // Flatten so the on-disk schema stays flat: `enableClickSounds` and
     // `cooldownStyle` sit alongside `currentPetId` rather than nested under
     // `petInteractions`. Legacy nested configs are migrated in
@@ -766,10 +766,14 @@ impl Default for StoredConfig {
             locale_preference: LocalePreference::System,
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
             agent_message_display: AgentMessageDisplay::All,
-            response_paused: false,
+            agent_message_visible: true,
             pet_interactions: PetInteractionPrefs::default(),
         }
     }
+}
+
+fn default_agent_message_visible() -> bool {
+    true
 }
 
 fn deserialize_stored_pet_window_size<'de, D>(deserializer: D) -> Result<PetWindowSize, D::Error>

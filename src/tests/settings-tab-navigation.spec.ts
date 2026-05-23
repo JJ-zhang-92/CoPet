@@ -18,7 +18,7 @@ test("navigate-to-section event activates each settings tab", async ({ browser }
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 

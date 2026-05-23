@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { createAppHarness, copet } from "./app-harness";
 
-test("pause toggle calls set_response_paused and syncs across windows", async ({ browser }) => {
+test("show messages switch calls set_agent_message_visible and syncs across windows", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
@@ -11,33 +11,33 @@ test("pause toggle calls set_response_paused and syncs across windows", async ({
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 
   const settingsPage = await harness.openPage("settings");
   await settingsPage.getByRole("tab", { name: "General" }).click();
 
-  const pauseToggle = settingsPage.getByRole("switch", { name: "Pause messages" });
-  await expect(pauseToggle).toHaveAttribute("aria-checked", "false");
+  const showMessagesToggle = settingsPage.getByRole("switch", { name: "Show messages" });
+  await expect(showMessagesToggle).toHaveAttribute("aria-checked", "true");
 
-  await pauseToggle.click();
+  await showMessagesToggle.click();
 
   expect(harness.calls).toContainEqual({
-    command: "set_response_paused",
-    args: { paused: true },
+    command: "set_agent_message_visible",
+    args: { visible: false },
   });
-  await expect(pauseToggle).toHaveAttribute("aria-checked", "true");
+  await expect(showMessagesToggle).toHaveAttribute("aria-checked", "false");
 
-  await pauseToggle.click();
+  await showMessagesToggle.click();
 
   expect(
-    harness.calls.filter((call) => call.command === "set_response_paused"),
+    harness.calls.filter((call) => call.command === "set_agent_message_visible"),
   ).toEqual([
-    { command: "set_response_paused", args: { paused: true } },
-    { command: "set_response_paused", args: { paused: false } },
+    { command: "set_agent_message_visible", args: { visible: false } },
+    { command: "set_agent_message_visible", args: { visible: true } },
   ]);
-  await expect(pauseToggle).toHaveAttribute("aria-checked", "false");
+  await expect(showMessagesToggle).toHaveAttribute("aria-checked", "true");
 });
 
 test("pet visibility switch toggles the pet window", async ({ browser }) => {
@@ -49,7 +49,7 @@ test("pet visibility switch toggles the pet window", async ({ browser }) => {
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 
@@ -84,7 +84,7 @@ test("pet visibility switch follows system menu visibility changes", async ({ br
       pets: [copet],
       onboardingComplete: false,
       petWindowSize: 30,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
 

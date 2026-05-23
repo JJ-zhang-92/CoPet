@@ -120,6 +120,80 @@ fn runtime_core_tracks_latest_message_per_agent() {
 }
 
 #[test]
+fn runtime_core_includes_prompt_subject_in_user_prompt_message() {
+    let mut core = RuntimeCore::new("secret".to_string());
+
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "copilot".to_string(),
+            kind: "user.prompt".to_string(),
+            tool: None,
+            tool_input: Some(json!({ "subject": "add copilot cli integration messages" })),
+            session_id: None,
+            timestamp: None,
+        },
+        100,
+    )
+    .unwrap();
+
+    let status = core.status();
+    let message = status
+        .messages
+        .iter()
+        .find(|message| message.agent == "copilot")
+        .unwrap();
+
+    assert_eq!(message.display_name, "Copilot CLI");
+    assert_eq!(
+        message.text,
+        "Thinking: add copilot cli integration messages"
+    );
+}
+
+#[test]
+fn runtime_core_formats_copilot_official_tool_names() {
+    let mut core = RuntimeCore::new("secret".to_string());
+
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "copilot".to_string(),
+            kind: "tool.before".to_string(),
+            tool: Some("view".to_string()),
+            tool_input: Some(json!({ "path": "/repo/src/App.tsx" })),
+            session_id: None,
+            timestamp: None,
+        },
+        100,
+    )
+    .unwrap();
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "copilot".to_string(),
+            kind: "tool.before".to_string(),
+            tool: Some("web_fetch".to_string()),
+            tool_input: Some(json!({ "url": "https://docs.github.com/copilot" })),
+            session_id: None,
+            timestamp: None,
+        },
+        200,
+    )
+    .unwrap();
+
+    let status = core.status();
+    let message = status
+        .messages
+        .iter()
+        .find(|message| message.agent == "copilot")
+        .unwrap();
+
+    assert_eq!(message.display_name, "Copilot CLI");
+    assert_eq!(message.text, "Fetching docs.github.com");
+}
+
+#[test]
 fn runtime_core_keeps_antigravity_tool_detail_when_post_tool_lacks_payload() {
     let mut core = RuntimeCore::new("secret".to_string());
 

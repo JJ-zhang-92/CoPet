@@ -462,6 +462,7 @@ fn agent_display_name(agent: &str) -> &str {
         "antigravity" => "Antigravity",
         "codex" => "Codex",
         "claude-code" => "Claude Code",
+        "copilot" => "Copilot CLI",
         "gemini" => "Gemini",
         "opencode" => "OpenCode",
         _ => agent,
@@ -470,10 +471,16 @@ fn agent_display_name(agent: &str) -> &str {
 
 fn format_agent_message(event: &RuntimeEvent) -> Option<String> {
     match event.kind.as_str() {
-        "user.prompt" => Some("Thinking...".to_string()),
+        "user.prompt" => Some(
+            subject_message("Thinking", event.tool_input.as_ref())
+                .unwrap_or_else(|| "Thinking...".to_string()),
+        ),
         "permission.waiting" | "session.waiting" => Some("Waiting for you...".to_string()),
         "session.stop" | "session.end" => Some("Done.".to_string()),
-        "session.error" => Some("Error.".to_string()),
+        "session.error" => Some(
+            subject_message("Error", event.tool_input.as_ref())
+                .unwrap_or_else(|| "Error.".to_string()),
+        ),
         "tool.after" if event.tool.is_none() && event.tool_input.is_none() => None,
         "tool.before" | "tool.after" => {
             let tool_name = event.tool.as_deref().unwrap_or("tool");
@@ -485,6 +492,14 @@ fn format_agent_message(event: &RuntimeEvent) -> Option<String> {
         }
         _ => None,
     }
+}
+
+fn subject_message(prefix: &str, tool_input: Option<&serde_json::Value>) -> Option<String> {
+    string_field(tool_input, "subject")
+        .or_else(|| string_field(tool_input, "prompt"))
+        .map(compact_whitespace)
+        .filter(|subject| !subject.is_empty())
+        .map(|subject| format!("{prefix}: {}", clip(&subject, 56)))
 }
 
 fn format_tool_message(
@@ -618,13 +633,13 @@ fn format_tool_message(
 
 fn canonical_tool_kind(tool_name: &str) -> &'static str {
     match tool_name.to_ascii_lowercase().as_str() {
-        "read" | "view_file" => "read",
+        "read" | "view" | "view_file" => "read",
         "edit" | "multiedit" | "replace_file_content" | "multi_replace_file_content" => "edit",
-        "write" | "write_to_file" => "write",
+        "write" | "create" | "write_to_file" => "write",
         "bash" | "shell" | "run_command" => "bash",
         "grep" | "grep_search" => "grep",
         "glob" | "list_dir" | "find_by_name" => "glob",
-        "webfetch" | "websearch" | "search_web" | "read_url_content" => "webfetch",
+        "web_fetch" | "webfetch" | "websearch" | "search_web" | "read_url_content" => "webfetch",
         "task" | "agent" | "invoke_subagent" | "define_subagent" | "manage_subagents"
         | "send_message" => "task",
         _ => "unknown",
@@ -634,6 +649,7 @@ fn canonical_tool_kind(tool_name: &str) -> &'static str {
 fn path_subject(tool_input: Option<&serde_json::Value>) -> Option<String> {
     string_field(tool_input, "file_path")
         .or_else(|| string_field(tool_input, "filePath"))
+        .or_else(|| string_field(tool_input, "file"))
         .or_else(|| string_field(tool_input, "path"))
         .map(|path| clip(&basename(path), 40))
 }

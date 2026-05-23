@@ -228,6 +228,97 @@ fn copilot_pre_tool_command_posts_camel_case_tool_payload() {
 }
 
 #[test]
+fn copilot_user_prompt_command_posts_prompt_summary() {
+    with_cleared_copilot_home(|| {
+        let temp = tempfile::tempdir().unwrap();
+        let home = temp.path().join("home");
+        let root = temp.path().join(".copet");
+        let runtime = temp.path().join("runtime");
+        let manager = manager_with_fake_agents(&root, &home);
+
+        manager.install("copilot").unwrap();
+
+        let listener = TcpListener::bind(("127.0.0.1", 0)).unwrap();
+        listener.set_nonblocking(true).unwrap();
+        let endpoint = format!(
+            "http://127.0.0.1:{}/v1/events",
+            listener.local_addr().unwrap().port()
+        );
+        fs::create_dir_all(&runtime).unwrap();
+        fs::write(runtime.join("event-endpoint"), &endpoint).unwrap();
+        fs::write(runtime.join("event-token"), "secret").unwrap();
+
+        let (sender, receiver) = mpsc::channel();
+        std::thread::spawn(move || {
+            let deadline = Instant::now() + Duration::from_secs(10);
+            loop {
+                match listener.accept() {
+                    Ok((mut stream, _addr)) => {
+                        stream.set_nonblocking(false).unwrap();
+                        stream
+                            .set_read_timeout(Some(Duration::from_secs(2)))
+                            .unwrap();
+                        let mut buffer = [0_u8; 4096];
+                        let size = stream.read(&mut buffer).unwrap();
+                        let request = String::from_utf8_lossy(&buffer[..size]).to_string();
+                        let _ = stream
+                            .write_all(b"HTTP/1.1 202 Accepted\r\nContent-Length: 2\r\n\r\n{}");
+                        sender.send(Some(request)).unwrap();
+                        return;
+                    }
+                    Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => {
+                        if Instant::now() >= deadline {
+                            sender.send(None).unwrap();
+                            return;
+                        }
+                        std::thread::sleep(Duration::from_millis(10));
+                    }
+                    Err(_) => {
+                        sender.send(None).unwrap();
+                        return;
+                    }
+                }
+            }
+        });
+
+        let hooks = read_json(home.join(".copilot/hooks/copet.json"));
+        let command = single_event_hook(&hooks, "userPromptSubmitted")["bash"]
+            .as_str()
+            .unwrap();
+        let mut child = Command::new("bash")
+            .args(["-c", command])
+            .env("COPET_RUNTIME_DIR", &runtime)
+            .stdin(Stdio::piped())
+            .stdout(Stdio::piped())
+            .spawn()
+            .unwrap();
+
+        child
+            .stdin
+            .as_mut()
+            .unwrap()
+            .write_all(
+                br#"{"sessionId":"s1","timestamp":1,"cwd":"/repo","prompt":"add copilot cli integration messages"}"#,
+            )
+            .unwrap();
+        let output = child.wait_with_output().unwrap();
+        assert!(output.status.success());
+        assert_eq!(String::from_utf8_lossy(&output.stdout), "{}\n");
+
+        let request = receiver
+            .recv_timeout(Duration::from_secs(11))
+            .unwrap()
+            .expect("runtime server should receive the Copilot prompt event");
+        assert!(request.contains("POST /v1/events"));
+        assert!(request.contains(r#""agent":"copilot""#));
+        assert!(request.contains(r#""kind":"user.prompt""#));
+        assert!(
+            request.contains(r#""toolInput":{"subject":"add copilot cli integration messages"}"#)
+        );
+    });
+}
+
+#[test]
 fn forged_copilot_helper_mentions_are_not_current_install() {
     with_cleared_copilot_home(|| {
         let temp = tempfile::tempdir().unwrap();

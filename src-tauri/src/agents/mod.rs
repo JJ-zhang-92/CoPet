@@ -570,7 +570,7 @@ if [ -z "$tool" ]; then
   tool="$(json_string_field_after_key toolCall name)"
 fi
 tool_input=""
-for field in file_path:file_path filePath:filePath path:path command:command CommandLine:command pattern:pattern url:url description:description subject:subject AbsolutePath:filePath TargetFile:filePath DirectoryPath:path SearchDirectory:path SearchPath:path Cwd:path Query:pattern query:pattern Pattern:pattern Url:url Description:description Instruction:subject Prompt:subject Input:subject Message:subject Reason:subject Action:subject Target:subject ImageName:subject; do
+for field in file_path:file_path filePath:filePath file:file path:path command:command CommandLine:command pattern:pattern url:url description:description subject:subject prompt:subject message:subject error:subject initialPrompt:subject AbsolutePath:filePath TargetFile:filePath DirectoryPath:path SearchDirectory:path SearchPath:path Cwd:path Query:pattern query:pattern Pattern:pattern Url:url Description:description Instruction:subject Prompt:subject Input:subject Message:subject Reason:subject Action:subject Target:subject ImageName:subject; do
   source_key="${field%%:*}"
   output_key="${field#*:}"
   value="$(json_string_field "$source_key")"

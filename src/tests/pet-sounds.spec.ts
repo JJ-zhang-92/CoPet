@@ -3,17 +3,17 @@ import { expect, test } from "@playwright/test";
 import { createAppHarness, copetWithSounds } from "./app-harness";
 
 function soundState({
-  responsePaused = false,
+  agentMessageVisible = true,
   enableClickSounds = true,
 }: {
-  responsePaused?: boolean;
+  agentMessageVisible?: boolean;
   enableClickSounds?: boolean;
 } = {}) {
   return {
     currentPetId: copetWithSounds.id,
     pets: [copetWithSounds],
     onboardingComplete: false,
-    responsePaused,
+    agentMessageVisible,
     petInteractions: { enableClickSounds, cooldownStyle: "normal" as const },
   };
 }
@@ -37,7 +37,7 @@ test("pet sounds default to enabled when interaction prefs are missing", async (
       currentPetId: copetWithSounds.id,
       pets: [copetWithSounds],
       onboardingComplete: false,
-      responsePaused: false,
+      agentMessageVisible: true,
     },
   });
   const page = await harness.openPage("pet");
@@ -108,9 +108,9 @@ test("agent state transition plays mapped agent sound once", async ({ browser })
   expect(await harness.playedAudioUrls(page)).toEqual([]);
 });
 
-test("paused response updates do not play agent sounds", async ({ browser }) => {
+test("hidden agent messages do not play agent sounds", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
-    state: soundState({ responsePaused: true }),
+    state: soundState({ agentMessageVisible: false }),
   });
   const page = await harness.openPage("pet");
   await expect(page.locator(".pet-sprite")).toHaveAttribute("data-pet-state", "idle");
@@ -182,7 +182,7 @@ test("enabling sounds while already non-silent waits for next state transition",
   ]);
 });
 
-test("paused initial non-silent runtime state does not play agent sound", async ({
+test("hidden initial non-silent runtime state does not play agent sound", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
@@ -194,7 +194,7 @@ test("paused initial non-silent runtime state does not play agent sound", async 
       acceptedEvents: 0,
       rejectedEvents: 0,
     },
-    state: soundState({ responsePaused: true }),
+    state: soundState({ agentMessageVisible: false }),
   });
   const page = await harness.openPage("pet");
 

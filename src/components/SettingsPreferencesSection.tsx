@@ -37,8 +37,8 @@ interface SettingsPreferencesSectionProps {
   petWindowSize: PetWindowSize;
   setPetWindowSize: (size: PetWindowSize) => void;
   resetPetWindowPosition: () => Promise<{ errorMessage?: string }>;
-  responsePaused: boolean;
-  setResponsePaused: (paused: boolean) => void;
+  agentMessageVisible: boolean;
+  setAgentMessageVisible: (visible: boolean) => void;
   petInteractions: PetInteractionPrefs;
   setPetInteractions: (prefs: PetInteractionPrefs) => void;
   t: Translator;
@@ -54,8 +54,8 @@ export function SettingsPreferencesSection({
   petWindowSize,
   setPetWindowSize,
   resetPetWindowPosition,
-  responsePaused,
-  setResponsePaused,
+  agentMessageVisible,
+  setAgentMessageVisible,
   petInteractions,
   setPetInteractions,
   t,
@@ -161,7 +161,7 @@ export function SettingsPreferencesSection({
                   className="settings-switch-state"
                   data-active={petVisible ? "true" : "false"}
                 >
-                  {t(petVisible ? "pauseStateOn" : "pauseStateOff")}
+                  {t(petVisible ? "switchStateOn" : "switchStateOff")}
                 </span>
               </div>
             </div>
@@ -234,7 +234,7 @@ export function SettingsPreferencesSection({
                   className="settings-switch-state"
                   data-active={petInteractions.enableClickSounds ? "true" : "false"}
                 >
-                  {t(petInteractions.enableClickSounds ? "pauseStateOn" : "pauseStateOff")}
+                  {t(petInteractions.enableClickSounds ? "switchStateOn" : "switchStateOff")}
                 </span>
               </div>
             </div>
@@ -273,28 +273,28 @@ export function SettingsPreferencesSection({
           <div className="settings-preferences-row">
             <div className="settings-preferences-row-text">
               <span className="settings-preferences-row-title">
-                {t("pauseResponse")}
+                {t("agentMessageVisible")}
               </span>
               <p className="settings-preferences-row-description">
-                {t("pauseResponseDescription")}
+                {t("agentMessageVisibleDescription")}
               </p>
             </div>
             <div className="settings-preferences-row-control">
               <div
                 className="settings-switch-row"
-                onClick={() => setResponsePaused(!responsePaused)}
+                onClick={() => setAgentMessageVisible(!agentMessageVisible)}
               >
                 <Switch
-                  aria-label={t("pauseResponse")}
-                  checked={responsePaused}
-                  onCheckedChange={setResponsePaused}
+                  aria-label={t("agentMessageVisible")}
+                  checked={agentMessageVisible}
+                  onCheckedChange={setAgentMessageVisible}
                 />
                 <span
                   aria-hidden="true"
                   className="settings-switch-state"
-                  data-active={responsePaused ? "true" : "false"}
+                  data-active={agentMessageVisible ? "true" : "false"}
                 >
-                  {t(responsePaused ? "pauseStateOn" : "pauseStateOff")}
+                  {t(agentMessageVisible ? "switchStateOn" : "switchStateOff")}
                 </span>
               </div>
             </div>

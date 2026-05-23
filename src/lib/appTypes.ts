@@ -77,7 +77,7 @@ export type AppState = {
   onboardingComplete: boolean;
   petWindowSize: PetWindowSize;
   agentMessageDisplay: AgentMessageDisplay;
-  responsePaused: boolean;
+  agentMessageVisible: boolean;
   petInteractions: PetInteractionPrefs;
 };
 
