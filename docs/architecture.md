@@ -2,153 +2,89 @@
 
 [简体中文](./architecture.zh.md)
 
-CoPet is a Tauri-based desktop pet client for AI Agent CLI workflows including Claude Code, Codex, Gemini, and OpenCode. The app ships with a built-in pet that's available on first launch. On first startup, CoPet checks for supported Agent CLI executables and automatically writes hooks for detected agents; after that, Settings remains the manual source of truth for enabling, disabling, and repairing hooks. CoPet maps Agent lifecycle events into a layered pet state.
+CoPet is a local-first desktop companion for AI Agent CLI workflows. Its core idea is simple: Agent CLIs emit small lifecycle events, CoPet turns those events into pet behavior, and users can replace the pet and sound assets without changing the runtime.
 
-## Overall structure
+The architecture is intentionally modular. Agent integrations, pet packages, sound packs, and Skill-generated assets all connect through stable contracts rather than hardcoded assumptions.
 
-```text
-Tauri Web UI (React 18 + Vite + TypeScript)
-  ├── pet window      transparent, always-on-top, non-focusable
-  └── settings window resizable, hides on close
-        │ Tauri commands / events
-        ▼
-Rust Core (copet_lib)
-  ├── config & persistence (app_state, config_store)
-  ├── pet packages (pet_package, pet_registry)
-  ├── Agent adapters (Claude / Codex / Gemini / OpenCode)
-  ├── runtime server   local HTTP endpoint + token + event queue
-  ├── runtime state    event → pet state mapping
-  ├── windows, tray, i18n, diagnostics
-        │ localhost event posts (short-lived hook commands)
-        ▼
-Agent CLI Hooks
-```
+## Design Principles
 
-The Tauri app is the only long-running process; Agent CLI hooks are short-lived commands. When CoPet is not running, hooks must exit silently and never block an Agent session.
+- **Local-first by default** — runtime state, user packages, generated hooks, and preferences live on the user's machine. CoPet does not need a cloud service to observe Agent activity.
+- **Agent sessions must never block on CoPet** — hooks are short-lived, timeout quickly, and fail silently when CoPet is not running.
+- **Normalize at the boundary** — every Agent has different hook names and payload shapes, but the rest of the app sees a small shared event vocabulary.
+- **Packages over built-ins** — built-in pets and sounds use the same package model as user-installed assets. The app scans packages instead of compiling a fixed asset list into the UI.
+- **Skills are first-class creation tools** — pet and sound generation is documented as CoPet Skills, so new assets can be produced by agents and installed into the same runtime directories used by the app.
+- **UI state is derived, not streamed raw** — the frontend consumes app state, derived pet state, and messages; it does not interpret raw Agent payloads.
+- **Security is a design boundary** — external inputs are configuration files, local HTTP events, JSON manifests, images, and MP3s. Each one is parsed, scoped, and validated before use.
 
-Top-level layout: `src-tauri/src/` (Rust Core), `src/` (React UI), `docs/` (this document). See [AGENTS.md](../AGENTS.md) for file-naming conventions.
-
-## Processes and windows
-
-The app registers two webviews:
-
-- **`pet`** — floating desktop pet. Transparent, undecorated, non-focusable. Closing it exits the app.
-- **`settings`** — settings center. Closing it only hides the window.
-
-On macOS, `tauri_nspanel` converts `pet` into an accessory NSPanel, and the `window_placement` module keeps the z-order stable. The tray menu provides project homepage, settings, and quit, with copy that follows the active locale.
-
-## Data layout
-
-All CoPet-owned data lives under `~/.copet`:
+## System Shape
 
 ```text
-~/.copet/
-  config.json          # preferences and one-time migration flags
-  runtime/             # volatile runtime (token, logs, diagnostics) — rebuildable
-  pets/                # user-installed pets (incl. copies imported from ~/.codex/pets)
-  backups/<adapter>/   # original bytes captured before any CLI config edit
-  adapters/<id>.json   # CoPet-owned hook metadata
+Agent CLI hooks
+  └─ short-lived shell/plugin calls
+      └─ localhost event endpoint
+          └─ Rust runtime core
+              ├─ Agent adapter manager
+              ├─ event normalization and pet-state derivation
+              ├─ config, package, and sound scanning
+              └─ Tauri commands/events
+                  └─ React pet window + settings window
 ```
 
-**Built-in pets are not written to `~/.copet/pets`** — they're loaded from the bundle resource `assets/pets`, so deleting `~/.copet` cannot break them. The `assetProtocol.scope` in `tauri.conf.json` limits webview-readable paths to `~/.copet/pets`, `~/.codex/pets`, and the bundle resource dir.
+The Tauri app is the only long-running process. Agent CLIs only know how to call a local helper or plugin. If the app is unavailable, the Agent session continues as if CoPet did not exist.
 
-## Pet packages
+## Runtime Event Model
 
-CoPet uses Codex-compatible pet packages: `pet.json` + `spritesheet.webp` (or `.png`), default 8×9 grid. The nine state rows are `idle`, `running-right`, `running-left`, `waving`, `jumping`, `failed`, `waiting`, `running`, `review`.
+CoPet treats Agent activity as a small event stream: prompt submitted, tool started, tool finished, permission waiting, session stopped, and session errored. Adapter-specific event names are converted into this common vocabulary at the runtime boundary.
 
-Validation: `pet.json` must be valid JSON within a size cap; spritesheet capped at 16 MB; corrupted packages are hidden from the list and surfaced in diagnostics — they must not crash startup.
+The Rust core owns state derivation. It maps events to durable UI concepts such as thinking, editing, inspecting, waiting, celebrating, or failed. The frontend then composes those Agent-derived states with local interaction state such as hover, click, long-press, drag, and idle behavior.
 
-Pet sources: built-in (bundle resource, cannot be uninstalled), import from `~/.codex/pets`, or import a local folder/file.
+This separation keeps hook code small and replaceable. Hooks report facts; the app decides what those facts mean.
 
-## Runtime event model
+## Agent Integrations
 
-`RuntimeManager` binds an HTTP endpoint on `127.0.0.1:<port>`. Hooks send compact events with a bearer token:
+Each supported Agent is implemented as an adapter. The adapter knows where that Agent stores hook configuration, how to detect whether CoPet is installed, and how to add or remove only CoPet-owned entries.
 
-```json
-{ "agent": "codex", "kind": "tool.before", "tool": "Read", "timestamp": 1778834400000 }
-```
+The shared manager handles the engineering policy around adapters: safe backups, atomic writes where possible, executable detection, repair as reinstall, and one-time auto-install on first launch. Adding a new Agent should mean adding one adapter and tests, not changing the pet renderer or settings architecture.
 
-`runtime_state::EventStateEngine` maps events to pet states (`user.prompt → jumping`, `tool.before → running`/`review`, `tool.after → idle`, `permission.waiting → waiting`, `session.stop → waving`, `session.error → failed`) and broadcasts the result through `pet-state-changed` to both windows. State mapping lives in the Rust Core — hooks only carry metadata.
+Current adapters cover Claude Code, Codex, Antigravity, OpenCode, Copilot CLI, and Gemini.
 
-## Layered pet state
+## Resource Packages
 
-The frontend composes several concurrent dimensions into a spritesheet row (`composeLayers` in `src/lib/petAnimation.ts`), in priority order:
+Pets are Codex-compatible packages: a manifest plus a spritesheet. CoPet does not require the pet to be pixel art; any package that follows the Codex pet format and provides the expected animation rows can be selected.
 
-1. `motion` (dragging)
-2. `input` (immediate user input)
-3. `agent` (Agent CLI-derived state)
-4. `base` (idle fallback)
-5. `emotion` overlay, drawn above whichever layer wins
+Sound is modeled separately from visuals. A pet may carry its own sounds, or the user can choose a global sound pack. This lets one visual pet use different sound identities, and lets generated sound packs be reused across pets.
 
-This lets the pet reflect Agent state and immediate user interaction simultaneously, without one source overwriting the other.
+Built-in assets are bundled as packages. User assets live under `~/.copet`, and imports are staged before promotion so broken packages do not become active state.
 
-## Agent adapter contract
+## Skill Support
 
-Every adapter implements the same Rust trait (`src-tauri/src/agents/mod.rs`):
+The `skills/` directory documents CoPet's asset-creation surface for agentic workflows:
 
-```rust
-trait AgentAdapter {
-    fn id(&self) -> &'static str;
-    fn display_name(&self) -> &'static str;
-    fn executable_names(&self) -> &'static [&'static str];
-    fn detect(&self) -> DetectResult;
-    fn inspect(&self) -> InspectResult;
-    fn install(&self, hook: HookCommand) -> InstallResult;
-    fn uninstall(&self) -> UninstallResult;
-    fn repair(&self, hook: HookCommand) -> InstallResult;
-}
-```
+- `copet-gen` creates a CoPet pet package by delegating generation and visual QA to `$hatch-pet`, then installing the finished package into `~/.copet/pets`.
+- `copet-sound` creates a global 11-clip MP3 sound pack under `~/.copet/sounds`.
 
-Adapters are responsible for: resolving platform-specific config paths; parsing existing config without dropping user settings; writing only CoPet-owned entries (with a stable id); backing originals up to `~/.copet/backups/<adapter-id>/` before modification; and recording metadata to `~/.copet/adapters/<id>.json`. Core is responsible for: generating the hook command, providing the runtime endpoint/token, mapping events to state, and localizing errors.
+This keeps creative generation outside the application runtime. The app only needs to understand package contracts; Skills own generation quality, collision-safe ids, validation workflow, and installation. As a result, CoPet can support new generated characters and sound styles without adding app-specific generation code.
 
-Startup auto-install is executable-based, not config-file-based: until `agentAutoInstallComplete` is set in CoPet's `config.json`, CoPet checks adapter `executable_names()`, installs hooks for detected CLIs that are not already installed, records completion in `config.json`, and does not auto-install again after a user manually disables an adapter.
+## Frontend Model
 
-Default config locations: Claude Code → `~/.claude/settings.json`; Codex → `~/.codex/hooks.json` + `config.toml`; Gemini → per the official docs; OpenCode honors `OPENCODE_CONFIG_DIR` / `XDG_CONFIG_HOME`.
+The frontend has two windows: the floating pet and the settings center. They share one app store populated from Tauri commands and kept current through Tauri events.
 
-## Long-running performance
+The pet window is deliberately lightweight: it renders the selected package, composes animation layers, plays selected sounds, and handles direct interaction. The settings window owns management workflows: choosing pets, importing packages, toggling Agent integrations, selecting sound packs, and changing preferences.
 
-Agent CLIs may run for hours. Constraints:
+Presentational components do not own Rust IPC. Stateful app operations go through hooks or command wrappers so tests can mock the Tauri layer cleanly.
 
-- Hook commands: 500–1000 ms timeout, no UI wait, exit silently when CoPet isn't running, avoid heavy interpreters.
-- Runtime: bind only to `127.0.0.1`; generate a fresh `RuntimeToken` per launch; `TokenBucket` rate-limit (30/s sustained, 60 burst); `BoundedEventQueue` capped at 50; coalesce high-frequency thrash; minimum dwell time 200–300 ms; logs rotate by size, memory does not grow with session length.
-- UI: sprite animation driven by CSS/canvas. The UI subscribes to derived layers, not raw event streams. Honors system reduced-motion.
+## Engineering Boundaries
 
-## Security model
+Rust owns OS integration, persistence, Agent hook mutation, runtime event handling, package scanning, and native window behavior. React owns interaction ergonomics, settings workflows, animation composition, and user feedback.
 
-- The event server binds only to `127.0.0.1`, requires a bearer token, caps body at 16 KB, ignores unknown event kinds, and never executes event payloads as commands.
-- Hook config writes only target adapter-known paths, parse before writing, refuse to overwrite malformed files (unless the user explicitly repairs), back up before first write, and on uninstall remove only entries tagged with CoPet metadata. Writes are atomic where possible.
-- `assetProtocol.scope` strictly whitelists webview-readable resources.
-- `pet.json` is treated as untrusted input; pet packages never execute scripts; images go through the browser or native safe decoders.
+Cross-boundary communication is kept narrow: typed Tauri commands for requests, Tauri events for state changes, and package manifests for assets. This makes the codebase easier to test because each boundary has a small contract.
 
-## Internationalization
+## Quality Strategy
 
-`Locale::EnUs` / `Locale::ZhCn`, either explicit or system-following. The Rust-side `MessageKey` enum and the frontend `src/lib/i18n.ts` mirror the same key set; locale changes trigger immediate refresh via the `copet-app-state-changed` event.
+The test layout mirrors the architecture:
 
-## Cross-platform
+- Rust integration tests cover runtime behavior, Agent adapters, config persistence, package import, sound scanning, i18n, and window policy.
+- Playwright tests cover frontend workflows, cross-window sync, gestures, animation layering, sounds, and settings behavior.
+- Package and Skill documentation describe the input/output contract for generated assets so new content can be validated without changing application code.
 
-- Paths: use Rust path APIs (no string concatenation); resolve home via the `dirs` crate; OpenCode honors `OPENCODE_CONFIG_DIR` / `XDG_CONFIG_HOME`.
-- Windows: macOS uses `tauri_nspanel` + `macos-private-api`; Windows uses the `windows` crate; on Linux, transparency/always-on-top depend on the compositor — degrade and surface the limitation in diagnostics when unavailable.
-- Packaged hook commands prefer absolute paths to CoPet helpers and handle spaces in install paths correctly.
-
-## Testing
-
-- **Rust integration tests** live under `src-tauri/tests/`: config persistence, runtime HTTP/state machine, agent adapters, windowing/diagnostics/i18n.
-- **Frontend Playwright** lives under `src/tests/`: layered animation, gestures, cross-window events, settings workflows. Shared `app-harness.ts` factory.
-
-Verification commands:
-
-```sh
-pnpm test:frontend
-pnpm test:rust
-pnpm build
-cargo fmt --manifest-path src-tauri/Cargo.toml --check
-pnpm verify:hardening   # full smoke: build + cargo test + tauri build --bundles app
-```
-
-## References
-
-- Tauri: https://tauri.app/
-- tauri-nspanel: https://github.com/ahkohd/tauri-nspanel
-- Claude Code hooks: https://docs.anthropic.com/en/docs/claude-code/hooks
-- Codex hooks: https://developers.openai.com/codex/hooks
-- OpenCode: https://opencode.ai/docs/config/ · https://opencode.ai/docs/plugins/
+When changing the architecture, prefer strengthening one of these contracts over adding a special case. CoPet stays maintainable when Agent-specific details remain in adapters, generated-asset details remain in Skills, and the runtime keeps a small, stable event language.

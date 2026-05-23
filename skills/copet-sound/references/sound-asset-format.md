@@ -35,4 +35,4 @@ Trim leading and trailing silence at authoring time. Latency between the gesture
 
 ## Validation
 
-No automated validator in v1. If a script is added later, it lives under the skill folder. Until then, validation is by review.
+No automated validator in v1. If a script is added later, it lives under the Skill folder. Until then, validation is by review.

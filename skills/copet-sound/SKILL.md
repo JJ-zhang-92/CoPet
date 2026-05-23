@@ -7,7 +7,7 @@ description: Use when generating CoPet global 11-clip MP3 sound packs from a use
 
 ## Overview
 
-Create one self-contained CoPet global sound pack under `$HOME/.copet/sounds/<sound-pack-id>/`. This skill never creates sprite atlases, omni directional body atlases, pet packages, or `pet.json`.
+Create one self-contained CoPet global sound pack under `$HOME/.copet/sounds/<sound-pack-id>/`. This Skill never creates sprite atlases, omni directional body atlases, pet packages, or `pet.json`.
 
 Every shipped MP3 must come from a real sound-generation backend, text-to-speech backend, sound-effect generation backend, field recording library, curated sample library, or another authored sound source selected to match the inferred character. Procedural substitutes are failed runs even when structural validation passes.
 

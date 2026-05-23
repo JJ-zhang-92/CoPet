@@ -9,7 +9,7 @@ description: Use when generating a custom pet for the CoPet app from a concept, 
 
 Create one CoPet pet package under `$HOME/.copet/pets/<pet-id>/` by delegating pet generation to `$hatch-pet`, then copying the finished package into CoPet's app config directory.
 
-This skill does not generate sprites, assemble atlases, run visual QA, or repair pet rows directly. `$hatch-pet` owns the full pet generation workflow.
+This Skill does not generate sprites, assemble atlases, run visual QA, or repair pet rows directly. `$hatch-pet` owns the full pet generation workflow.
 
 Using `$copet-gen` is explicit permission to use the subagents and lightweight workers required by `$hatch-pet`. Do not downgrade to main-session sequential generation solely because `$hatch-pet` delegates visual jobs.
 
