@@ -120,3 +120,69 @@ fn filters_unsafe_audio_pack_sound_entries() {
     assert!(sounds.agent_sounds.thinking.is_some());
     assert!(sounds.agent_sounds.failed.is_none());
 }
+
+#[test]
+fn skips_audio_pack_when_all_sound_entries_are_invalid() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let dir = store.root().join("audios/broken");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("audio.json"),
+        r#"{
+  "id": "broken",
+  "displayName": "Broken",
+  "interactionSounds": {
+    "click": "../outside.mp3",
+    "doubleClick": "nested/surprised.mp3",
+    "petted": "purr.ogg"
+  },
+  "agentSounds": {
+    "thinking": "/tmp/hmm.mp3"
+  }
+}"#,
+    )
+    .unwrap();
+    fs::create_dir_all(dir.join("nested")).unwrap();
+    fs::write(dir.join("nested/surprised.mp3"), b"surprised").unwrap();
+    fs::write(dir.join("purr.ogg"), b"purr").unwrap();
+
+    let state = store.ensure_ready().unwrap();
+
+    assert!(!state
+        .audio_packs
+        .iter()
+        .any(|pack| pack.id == "user:broken"));
+}
+
+#[cfg(unix)]
+#[test]
+fn skips_audio_pack_when_only_sound_entry_is_symlinked() {
+    use std::os::unix::fs::symlink;
+
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let dir = store.root().join("audios/symlinked");
+    fs::create_dir_all(&dir).unwrap();
+    fs::write(
+        dir.join("audio.json"),
+        r#"{
+  "id": "symlinked",
+  "displayName": "Symlinked",
+  "interactionSounds": {
+    "click": "click.mp3"
+  }
+}"#,
+    )
+    .unwrap();
+    let outside_sound = temp.path().join("outside.mp3");
+    fs::write(&outside_sound, b"outside").unwrap();
+    symlink(outside_sound, dir.join("click.mp3")).unwrap();
+
+    let state = store.ensure_ready().unwrap();
+
+    assert!(!state
+        .audio_packs
+        .iter()
+        .any(|pack| pack.id == "user:symlinked"));
+}

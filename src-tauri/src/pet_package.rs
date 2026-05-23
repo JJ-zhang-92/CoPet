@@ -1,3 +1,4 @@
+use crate::audio_pack::collect_valid_audio_pack_sounds;
 use serde::{Deserialize, Serialize};
 use std::{
     collections::BTreeMap,
@@ -277,114 +278,13 @@ fn collect_audio_pack_sounds(manifest: &PetManifest, package_dir: &Path) -> Opti
         return None;
     }
 
-    let sounds = PetSounds {
-        interaction_sounds: PetInteractionSounds {
-            click: valid_audio_pack_sound_path(
-                pack.sounds.interaction_sounds.click.as_deref(),
-                &pack_dir,
-            ),
-            double_click: valid_audio_pack_sound_path(
-                pack.sounds.interaction_sounds.double_click.as_deref(),
-                &pack_dir,
-            ),
-            petted: valid_audio_pack_sound_path(
-                pack.sounds.interaction_sounds.petted.as_deref(),
-                &pack_dir,
-            ),
-            petted_slow: valid_audio_pack_sound_path(
-                pack.sounds.interaction_sounds.petted_slow.as_deref(),
-                &pack_dir,
-            ),
-            drag_land: valid_audio_pack_sound_path(
-                pack.sounds.interaction_sounds.drag_land.as_deref(),
-                &pack_dir,
-            ),
-        },
-        agent_sounds: PetAgentSounds {
-            thinking: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.thinking.as_deref(),
-                &pack_dir,
-            ),
-            editing: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.editing.as_deref(),
-                &pack_dir,
-            ),
-            inspecting: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.inspecting.as_deref(),
-                &pack_dir,
-            ),
-            awaiting_approval: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.awaiting_approval.as_deref(),
-                &pack_dir,
-            ),
-            celebrating: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.celebrating.as_deref(),
-                &pack_dir,
-            ),
-            failed: valid_audio_pack_sound_path(
-                pack.sounds.agent_sounds.failed.as_deref(),
-                &pack_dir,
-            ),
-        },
-    };
-
-    if has_any_sound(&sounds) {
-        Some(sounds)
-    } else {
-        None
-    }
+    collect_valid_audio_pack_sounds(&pack.sounds, &pack_dir)
 }
 
 fn audio_pack_dir(manifest: &PetManifest, package_dir: &Path) -> Option<PathBuf> {
     let pets_dir = package_dir.parent()?;
     let root = pets_dir.parent()?;
     Some(root.join("audios").join(&manifest.id))
-}
-
-fn valid_audio_pack_sound_path(raw: Option<&str>, pack_dir: &Path) -> Option<String> {
-    let raw = raw?;
-    if raw.contains('\\') {
-        return None;
-    }
-
-    let relative_path = Path::new(raw);
-    if relative_path.is_absolute()
-        || relative_path
-            .extension()
-            .and_then(|extension| extension.to_str())
-            != Some("mp3")
-        || relative_path.components().count() != 1
-        || relative_path.components().any(|component| {
-            matches!(
-                component,
-                Component::Prefix(_)
-                    | Component::RootDir
-                    | Component::ParentDir
-                    | Component::CurDir
-            )
-        })
-    {
-        return None;
-    }
-
-    let pack_root = canonical_package_root(pack_dir)?;
-    let sound_path = pack_root.join(relative_path);
-    if has_symlink_component(&pack_root, relative_path) {
-        return None;
-    }
-
-    let canonical_sound_path = fs::canonicalize(&sound_path).ok()?;
-    if !canonical_sound_path.starts_with(&pack_root) {
-        return None;
-    }
-
-    let metadata = fs::symlink_metadata(&sound_path).ok()?;
-    let file_type = metadata.file_type();
-    if !file_type.is_file() || file_type.is_symlink() || metadata.len() > MAX_PET_SOUND_BYTES {
-        return None;
-    }
-
-    Some(canonical_sound_path.to_string_lossy().into_owned())
 }
 
 fn valid_sound_path(raw: Option<&str>, package_dir: &Path) -> Option<String> {

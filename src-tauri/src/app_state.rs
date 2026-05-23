@@ -1,5 +1,6 @@
 use serde::{Deserialize, Serialize};
 
+use crate::audio_pack::AudioPackSummary;
 use crate::i18n::{Locale, LocalePreference};
 use crate::pet_package::PetSummary;
 
@@ -76,9 +77,11 @@ impl Default for PetInteractionPrefs {
 #[serde(rename_all = "camelCase")]
 pub struct AppState {
     pub current_pet_id: String,
+    pub current_audio_pack_id: String,
     pub locale: Locale,
     pub locale_preference: LocalePreference,
     pub pets: Vec<PetSummary>,
+    pub audio_packs: Vec<AudioPackSummary>,
     pub onboarding_complete: bool,
     pub pet_window_size: PetWindowSize,
     pub agent_message_display: AgentMessageDisplay,

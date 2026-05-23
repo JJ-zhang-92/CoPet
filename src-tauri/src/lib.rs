@@ -1,5 +1,6 @@
 pub mod agents;
 pub mod app_state;
+pub mod audio_pack;
 pub mod commands;
 pub mod config_store;
 pub mod diagnostics;
@@ -14,7 +15,7 @@ pub mod window_placement;
 
 use agents::{AdapterError, AdapterOperationResult, AdapterSummary, AgentManager};
 use app_state::{AgentMessageDisplay, AppState, PetInteractionPrefs, PetWindowSize};
-use config_store::{set_builtin_pets_dir, ConfigStore, PetImportResult};
+use config_store::{set_builtin_audios_dir, set_builtin_pets_dir, ConfigStore, PetImportResult};
 use i18n::{default_locale, t, Locale, LocalePreference, MessageKey};
 use pet_import::{PetImportCommitResult, PetImportPreviewBatch, PetImportSession};
 use pet_package::PetSummary;
@@ -47,6 +48,18 @@ fn resolve_builtin_pets_dir(app: &tauri::App) -> Option<PathBuf> {
     // Fallback for `tauri dev` and other ad-hoc launches where the bundle layout
     // isn't installed: the manifest-relative path is the source of truth.
     let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets");
+    dev_path.is_dir().then_some(dev_path)
+}
+
+fn resolve_builtin_audios_dir(app: &tauri::App) -> Option<PathBuf> {
+    if let Ok(path) = app.path().resolve("assets/audios", BaseDirectory::Resource) {
+        if path.is_dir() {
+            return Some(path);
+        }
+    }
+    // Fallback for `tauri dev` and other ad-hoc launches where the bundle layout
+    // isn't installed: the manifest-relative path is the source of truth.
+    let dev_path = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/audios");
     dev_path.is_dir().then_some(dev_path)
 }
 
@@ -136,6 +149,15 @@ fn get_app_state() -> Result<AppState, String> {
 fn select_pet(app: tauri::AppHandle, pet_id: String) -> Result<AppState, String> {
     let state = ConfigStore::from_home()
         .and_then(|store| store.select_pet(&pet_id))
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(&app, &state)?;
+    Ok(state)
+}
+
+#[tauri::command]
+fn select_audio_pack(app: tauri::AppHandle, audio_pack_id: String) -> Result<AppState, String> {
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.select_audio_pack(&audio_pack_id))
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
     Ok(state)
@@ -903,6 +925,9 @@ pub fn run() {
             if let Some(dir) = resolve_builtin_pets_dir(app) {
                 set_builtin_pets_dir(dir);
             }
+            if let Some(dir) = resolve_builtin_audios_dir(app) {
+                set_builtin_audios_dir(dir);
+            }
             let store = ConfigStore::from_home()?;
             store.ensure_ready()?;
             let manager = AgentManager::from_home(store.root())?;
@@ -964,6 +989,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             get_app_state,
             select_pet,
+            select_audio_pack,
             set_pet_window_size,
             set_locale_preference,
             set_agent_message_display,
