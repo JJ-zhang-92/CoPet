@@ -78,7 +78,7 @@ The frontend composes several concurrent dimensions into a spritesheet row (`com
 2. `input` (immediate user input)
 3. `agent` (Agent CLI-derived state)
 4. `base` (idle fallback)
-5. `emotion` sticker, overlaid on whichever layer wins
+5. `emotion` overlay, drawn above whichever layer wins
 
 This lets the pet reflect Agent state and immediate user interaction simultaneously, without one source overwriting the other.
 

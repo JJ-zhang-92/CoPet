@@ -51,7 +51,7 @@ export function SettingsWindow() {
   const loadState = useLoadState();
   const appState = useAppState();
   const { adapters, busyId: adapterBusyId } = useAdapters();
-  const { codexPets, busyId: petBusyId } = useCodexPets();
+  const { busyId: petBusyId } = useCodexPets();
   const isSelecting = useIsSelecting();
   const petVisible = usePetVisible();
   const reportedLoadErrorRef = useRef<string | null>(null);

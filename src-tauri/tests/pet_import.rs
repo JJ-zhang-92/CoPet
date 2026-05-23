@@ -105,6 +105,27 @@ fn preview_codex_imports_stages_valid_packages_without_installing() {
 }
 
 #[test]
+fn preview_codex_imports_treats_missing_or_invalid_path_as_empty_source() {
+    let temp = tempfile::tempdir().unwrap();
+    let store = make_store(&temp);
+    let session = create_import_session(&store).unwrap();
+
+    let missing_codex_pets = temp.path().join(".codex/pets");
+    let missing_batch =
+        preview_codex_imports(&store, &session.session_id, &missing_codex_pets).unwrap();
+    assert!(missing_batch.previews.is_empty());
+    assert_eq!(missing_batch.skipped, 0);
+    assert!(missing_batch.errors.is_empty());
+
+    let file_codex_pets = temp.path().join("codex-pets-file");
+    fs::write(&file_codex_pets, b"not a directory").unwrap();
+    let file_batch = preview_codex_imports(&store, &session.session_id, &file_codex_pets).unwrap();
+    assert!(file_batch.previews.is_empty());
+    assert_eq!(file_batch.skipped, 0);
+    assert!(file_batch.errors.is_empty());
+}
+
+#[test]
 fn preview_folder_imports_accepts_package_folder_and_child_packages() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);

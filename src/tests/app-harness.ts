@@ -778,6 +778,9 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     invocations: (command: string) => calls.filter((call) => call.command === command),
     openPage,
     playedSoundUrls,
+    setCodexPets: (nextCodexPets: PetSummary[]) => {
+      codexPets = nextCodexPets;
+    },
     state: () => state,
   };
 }

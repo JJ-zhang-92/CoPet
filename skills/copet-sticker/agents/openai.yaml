@@ -1,4 +1,0 @@
-interface:
-  display_name: "CoPet Sticker"
-  short_description: "Create CoPet sticker packs"
-  default_prompt: "Use $copet-sticker to create a CoPet decorative animated sticker pack."

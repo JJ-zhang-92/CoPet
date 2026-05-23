@@ -93,6 +93,16 @@ pub fn preview_codex_imports(
     session_id: &str,
     codex_pets_dir: &Path,
 ) -> Result<PetImportPreviewBatch, StoreError> {
+    if !codex_pets_dir.is_dir() {
+        store.ensure_ready()?;
+        let _ = existing_session_dir(store, session_id)?;
+        return Ok(PetImportPreviewBatch {
+            previews: Vec::new(),
+            skipped: 0,
+            errors: Vec::new(),
+        });
+    }
+
     preview_folder_imports(store, session_id, &[codex_pets_dir.to_path_buf()])
 }
 

@@ -52,6 +52,34 @@ fn capabilities_allow_pet_window_frontend_resizing() {
     );
 }
 
+#[test]
+fn copet_sticker_generation_skill_is_removed() {
+    let manifest_dir = Path::new(env!("CARGO_MANIFEST_DIR"));
+    let repo_root = manifest_dir
+        .parent()
+        .expect("src-tauri has a parent repo root");
+
+    assert!(
+        !repo_root.join("skills/copet-sticker").exists(),
+        "copet-sticker generation skill should not be shipped"
+    );
+
+    for path in [
+        "skills/README.md",
+        "docs/architecture.md",
+        "docs/architecture.zh.md",
+    ] {
+        let contents = fs::read_to_string(repo_root.join(path)).expect("read repo document");
+        assert!(
+            !contents.contains("copet-sticker")
+                && !contents.contains("stickers/")
+                && !contents.contains(".copet/stickers")
+                && !contents.contains("贴纸"),
+            "{path} should not document sticker generation"
+        );
+    }
+}
+
 fn collect_rs_test_offenders(repo_root: &Path, manifest_dir: &Path, offenders: &mut Vec<String>) {
     let skip_dirs = [
         repo_root.join(".git"),

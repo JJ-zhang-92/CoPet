@@ -655,6 +655,35 @@ select {
   min-width: 0;
 }
 
+.settings-sound-controls {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.settings-sound-controls .sound-pack-select {
+  flex: 0 1 136px;
+  width: 136px;
+}
+
+.settings-sound-controls .ui-select-trigger {
+  border-color: hsl(var(--primary) / 0.28);
+  background: hsl(var(--card) / 0.78);
+}
+
+.settings-sound-controls .ui-select-trigger:hover {
+  border-color: hsl(var(--primary) / 0.42);
+}
+
+.settings-sound-controls-separator {
+  width: 1px;
+  height: 18px;
+  flex: 0 0 auto;
+  background: hsl(var(--border) / 0.72);
+}
+
 /* Unified switch row pattern: the entire region (switch + state text) is one
    clickable toggle. The Switch's own click handler stops propagation, so the
    row-level onClick only fires for clicks on the text/gap area. */
@@ -1944,6 +1973,51 @@ select {
   min-width: 0;
   width: 100%;
   white-space: nowrap;
+}
+
+.pet-import-source-action {
+  position: relative;
+  display: inline-flex;
+  min-width: 0;
+}
+
+.pet-import-source-action:focus-visible {
+  outline: 2px solid hsl(var(--ring) / 0.34);
+  outline-offset: 2px;
+  border-radius: 8px;
+}
+
+.pet-import-source-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  width: max-content;
+  max-width: min(240px, 72vw);
+  padding: 6px 8px;
+  border: 1px solid hsl(var(--border) / 0.72);
+  border-radius: 8px;
+  color: hsl(var(--foreground));
+  background: hsl(var(--card));
+  box-shadow: 0 10px 24px hsl(220 20% 16% / 0.14);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.35;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-2px);
+  visibility: hidden;
+  transition:
+    opacity 120ms ease,
+    transform 120ms ease,
+    visibility 120ms ease;
+}
+
+.pet-import-source-action:hover .pet-import-source-tooltip,
+.pet-import-source-action:focus-within .pet-import-source-tooltip {
+  opacity: 1;
+  transform: translateY(0);
+  visibility: visible;
 }
 
 .pet-import-toolbar {

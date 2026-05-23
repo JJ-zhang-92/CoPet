@@ -1,7 +1,8 @@
 import { FolderOpen, PackageOpen } from "lucide-react";
-import { useId, useMemo } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 
+import { useCodexPets } from "../hooks/useAppStore";
 import { usePetImport } from "../hooks/usePetImport";
 import type { PetSummary } from "../lib/appTypes";
 import type { Translator } from "../lib/settingsTypes";
@@ -19,16 +20,22 @@ import {
 type SettingsPetImportDrawerProps = {
   onOpenChange: (open: boolean) => void;
   open: boolean;
+  refreshPetLists: () => Promise<unknown>;
   t: Translator;
 };
 
 export function SettingsPetImportDrawer({
   onOpenChange,
   open,
+  refreshPetLists,
   t,
 }: SettingsPetImportDrawerProps) {
   const titleId = useId();
   const descriptionId = useId();
+  const codexTooltipId = useId();
+  const { codexPets } = useCodexPets();
+  const refreshPetListsRef = useRef(refreshPetLists);
+  const [codexPetsChecked, setCodexPetsChecked] = useState(false);
   const petImport = usePetImport({
     onError: (message) => toast.error(message),
     strings: {
@@ -37,6 +44,29 @@ export function SettingsPetImportDrawer({
         t("petImportSkipped").replace("{count}", String(count)),
     },
   });
+
+  useEffect(() => {
+    refreshPetListsRef.current = refreshPetLists;
+  }, [refreshPetLists]);
+
+  useEffect(() => {
+    if (!open) {
+      setCodexPetsChecked(false);
+      return;
+    }
+
+    let cancelled = false;
+    setCodexPetsChecked(false);
+    void refreshPetListsRef.current().finally(() => {
+      if (!cancelled) {
+        setCodexPetsChecked(true);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open]);
 
   const previewByPreviewId = useMemo(
     () =>
@@ -87,6 +117,22 @@ export function SettingsPetImportDrawer({
   const hasPreviews = previewPets.length > 0;
   const allPreviewsSelected =
     hasPreviews && petImport.selectedCount === petImport.previews.length;
+  const codexPetsAvailable = codexPetsChecked && codexPets.length > 0;
+  const codexUnavailableHint =
+    codexPetsChecked && !codexPetsAvailable ? t("previewImportsEmpty") : null;
+  const codexButton = (
+    <Button
+      aria-describedby={codexUnavailableHint ? codexTooltipId : undefined}
+      disabled={petImport.isBusy || !codexPetsAvailable}
+      onClick={() => void runImportAction(petImport.previewCodex)}
+      size="sm"
+      type="button"
+      variant="outline"
+    >
+      <PackageOpen aria-hidden="true" />
+      {t("fromCodex")}
+    </Button>
+  );
 
   return (
     <Drawer
@@ -105,16 +151,22 @@ export function SettingsPetImportDrawer({
       </DrawerHeader>
       <DrawerBody className="pet-import-drawer-body">
         <div className="pet-import-actions">
-          <Button
-            disabled={petImport.isBusy}
-            onClick={() => void runImportAction(petImport.previewCodex)}
-            size="sm"
-            type="button"
-            variant="outline"
+          <span
+            className="pet-import-source-action"
+            tabIndex={codexUnavailableHint ? 0 : undefined}
+            title={codexUnavailableHint ?? undefined}
           >
-            <PackageOpen aria-hidden="true" />
-            {t("fromCodex")}
-          </Button>
+            {codexButton}
+            {codexUnavailableHint ? (
+              <span
+                className="pet-import-source-tooltip"
+                id={codexTooltipId}
+                role="tooltip"
+              >
+                {codexUnavailableHint}
+              </span>
+            ) : null}
+          </span>
           <Button
             disabled={petImport.isBusy}
             onClick={() => void runImportAction(petImport.previewFolders)}

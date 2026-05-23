@@ -227,40 +227,35 @@ export function SettingsPreferencesSection({
               </span>
             </div>
             <div className="settings-preferences-row-control">
-              <div
-                className="settings-switch-row"
-                onClick={() => setEnableClickSounds(!petInteractions.enableClickSounds)}
-              >
-                <Switch
-                  aria-label={t("enableClickSounds")}
-                  checked={petInteractions.enableClickSounds}
-                  onCheckedChange={setEnableClickSounds}
+              <div className="settings-sound-controls">
+                <SettingsSoundPackSelect
+                  soundPacks={soundPacks}
+                  currentSoundPackId={currentSoundPackId}
+                  selectSoundPack={selectSoundPack}
+                  t={t}
                 />
                 <span
                   aria-hidden="true"
-                  className="settings-switch-state"
-                  data-active={petInteractions.enableClickSounds ? "true" : "false"}
+                  className="settings-sound-controls-separator"
+                />
+                <div
+                  className="settings-switch-row"
+                  onClick={() => setEnableClickSounds(!petInteractions.enableClickSounds)}
                 >
-                  {t(petInteractions.enableClickSounds ? "switchStateOn" : "switchStateOff")}
-                </span>
+                  <Switch
+                    aria-label={t("enableClickSounds")}
+                    checked={petInteractions.enableClickSounds}
+                    onCheckedChange={setEnableClickSounds}
+                  />
+                  <span
+                    aria-hidden="true"
+                    className="settings-switch-state"
+                    data-active={petInteractions.enableClickSounds ? "true" : "false"}
+                  >
+                    {t(petInteractions.enableClickSounds ? "switchStateOn" : "switchStateOff")}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-
-          <div className="settings-preferences-row">
-            <span
-              className="settings-preferences-row-title"
-              id="sound-pack-label"
-            >
-              {t("soundPack")}
-            </span>
-            <div className="settings-preferences-row-control">
-              <SettingsSoundPackSelect
-                soundPacks={soundPacks}
-                currentSoundPackId={currentSoundPackId}
-                selectSoundPack={selectSoundPack}
-                t={t}
-              />
             </div>
           </div>
 
