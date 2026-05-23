@@ -38,5 +38,11 @@ pub fn run_pet_startup_window_animation(
     if !window.is_visible().map_err(|e| e.to_string())? {
         return Ok(false);
     }
-    animate_pet_window_from_offscreen_right(&window, duration_ms).map_err(|e| e.to_string())
+    match animate_pet_window_from_offscreen_right(&window, duration_ms) {
+        Ok(completed) => Ok(completed),
+        Err(error) => {
+            let _ = place_window_bottom_right(&window);
+            Err(error.to_string())
+        }
+    }
 }

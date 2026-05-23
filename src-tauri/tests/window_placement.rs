@@ -401,6 +401,22 @@ mod subject {
     }
 
     #[test]
+    fn startup_window_command_settles_position_on_animation_error() {
+        let source = include_str!("../src/commands.rs");
+        let body = source
+            .split("pub fn run_pet_startup_window_animation")
+            .nth(1)
+            .and_then(|rest| rest.split("#[tauri::command]").next())
+            .unwrap_or(source);
+
+        assert!(body.contains("animate_pet_window_from_offscreen_right"));
+        assert!(
+            body.contains("place_window_bottom_right"),
+            "startup animation command must settle the native window before reporting an animation error"
+        );
+    }
+
+    #[test]
     fn startup_animation_settles_hidden_window_without_reasserting_after_mid_animation_hide() {
         let start = PhysicalPosition { x: 200, y: 40 };
         let target = PhysicalPosition { x: 100, y: 40 };
