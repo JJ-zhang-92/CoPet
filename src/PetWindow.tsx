@@ -14,6 +14,7 @@ import { ErrorView, LoadingView } from "./components/AppShell";
 import { PetSprite } from "./components/PetSprite";
 import { Toaster } from "./components/ui/sonner";
 import { useLayeredPetState } from "./hooks/useLayeredPetState";
+import { usePetStartupAnimation } from "./hooks/usePetStartupAnimation";
 import {
   useAgentMessages,
   useLoadState,
@@ -87,6 +88,13 @@ export function PetWindow() {
     onLongPress: isMac ? () => openPetContextMenuRef.current() : undefined,
     onInteractionSound: playInteractionSound,
   });
+  const startup = usePetStartupAnimation({
+    selectedPetId: selectedPet?.id ?? null,
+    selectedSoundPackId: selectedSoundPack?.id ?? null,
+    onInteractionSound: playInteractionSound,
+  });
+  const displayedAgentMessages = startup.hideMessages ? [] : agentMessages;
+  const displayedComposed = startup.composedOverride ?? composed;
 
   const stackRef = useRef<HTMLDivElement | null>(null);
   const sliderDraggingRef = useRef(false);
@@ -122,7 +130,7 @@ export function PetWindow() {
   });
   const configuredPetScale = petWindowScaleFromSize(petWindowSize);
   const fitPetScale =
-    selectedPet && agentMessages.length === 0
+    selectedPet && displayedAgentMessages.length === 0
       ? Math.max(
           0.01,
           Math.min(
@@ -217,7 +225,13 @@ export function PetWindow() {
       void resizeToStack(anchor);
     });
     return () => window.cancelAnimationFrame(animationFrame);
-  }, [selectedPet?.id, petScale, agentMessages.length, viewportSize.height, viewportSize.width]);
+  }, [
+    selectedPet?.id,
+    petScale,
+    displayedAgentMessages.length,
+    viewportSize.height,
+    viewportSize.width,
+  ]);
 
   useEffect(() => {
     openPetContextMenuRef.current = () => {
@@ -332,7 +346,7 @@ export function PetWindow() {
       >
         <div
           className="pet-window-stack"
-          data-fit-pet={agentMessages.length === 0}
+          data-fit-pet={displayedAgentMessages.length === 0}
           ref={stackRef}
           style={
             selectedPet
@@ -344,17 +358,17 @@ export function PetWindow() {
               : undefined
           }
         >
-          {agentMessages.length > 0 ? (
+          {displayedAgentMessages.length > 0 ? (
             <AgentMessages
               dismissLabel={t("dismiss")}
-              messages={agentMessages}
+              messages={displayedAgentMessages}
               onDismiss={dismissAgentMessage}
             />
           ) : null}
           {selectedPet ? (
             <PetSprite
               pet={selectedPet}
-              composed={composed}
+              composed={displayedComposed}
               scale={petScale}
               inputHandlers={bindInput()}
             />

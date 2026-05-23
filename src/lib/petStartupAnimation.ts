@@ -1,0 +1,89 @@
+import type { ComposedView } from "./petAnimation";
+
+export type PetStartupAnimationPhase =
+  | "idle"
+  | "entering"
+  | "arriving"
+  | "complete";
+
+type PetStartupAnimationRunState = "pending" | "running" | "complete";
+
+export const petStartupAnimationConfig = {
+  enabled: true,
+  enterDurationMs: 900,
+  arrivalDurationMs: 1500,
+  arrivalSoundKey: "pettedSlow",
+} as const;
+
+export const petStartupEnteringView: ComposedView = {
+  bodySpriteRow: "running-left",
+  emotionOverlay: null,
+  dragging: false,
+};
+
+export const petStartupArrivingView: ComposedView = {
+  bodySpriteRow: "waiting",
+  emotionOverlay: "heart",
+  dragging: false,
+};
+
+let runState: PetStartupAnimationRunState = "pending";
+let runPromise: Promise<void> | null = null;
+let enterResolved = false;
+let arrivalStartedAtMs: number | null = null;
+
+export function getPetStartupAnimationRunState(): PetStartupAnimationRunState {
+  return runState;
+}
+
+export function completePetStartupAnimationRun(): void {
+  runState = "complete";
+  runPromise = null;
+  enterResolved = false;
+  arrivalStartedAtMs = null;
+}
+
+export function hasPetStartupAnimationEnterResolved(): boolean {
+  return enterResolved;
+}
+
+export function beginPetStartupAnimationArrival(nowMs = Date.now()): boolean {
+  if (arrivalStartedAtMs !== null) {
+    return false;
+  }
+
+  arrivalStartedAtMs = nowMs;
+  return true;
+}
+
+export function petStartupAnimationArrivalRemainingMs(
+  nowMs = Date.now(),
+): number {
+  if (arrivalStartedAtMs === null) {
+    return petStartupAnimationConfig.arrivalDurationMs;
+  }
+
+  return Math.max(
+    0,
+    petStartupAnimationConfig.arrivalDurationMs - (nowMs - arrivalStartedAtMs),
+  );
+}
+
+export function startPetStartupAnimationRun(
+  run: () => Promise<void>,
+): Promise<void> {
+  if (runState === "complete") {
+    return Promise.resolve();
+  }
+
+  if (!runPromise) {
+    runState = "running";
+    enterResolved = false;
+    arrivalStartedAtMs = null;
+    runPromise = run().then(() => {
+      enterResolved = true;
+    });
+  }
+
+  return runPromise;
+}
