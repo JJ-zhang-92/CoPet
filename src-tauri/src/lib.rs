@@ -73,7 +73,6 @@ const TRAY_MENU_AGENTS_ID: &str = "open-agents";
 const TRAY_MENU_PREFERENCES_ID: &str = "open-preferences";
 const TRAY_MENU_ABOUT_ID: &str = "open-about";
 const TRAY_MENU_LANGUAGE_SUBMENU_ID: &str = "language-submenu";
-const TRAY_MENU_LANG_SYSTEM_ID: &str = "lang-system";
 const TRAY_MENU_LANG_EN_ID: &str = "lang-en-us";
 const TRAY_MENU_LANG_ZH_ID: &str = "lang-zh-cn";
 const TRAY_MENU_QUIT_ID: &str = "quit-app";
@@ -100,7 +99,6 @@ struct TrayMenuHandles {
     preferences: MenuItem<Wry>,
     about: MenuItem<Wry>,
     language_menu: Submenu<Wry>,
-    language_system: CheckMenuItem<Wry>,
     language_en: CheckMenuItem<Wry>,
     language_zh: CheckMenuItem<Wry>,
     quit: MenuItem<Wry>,
@@ -183,10 +181,7 @@ fn set_locale_preference(
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
     refresh_tray_menu(&app, &state);
-    let _ = install_app_menu(
-        &app,
-        state.locale_preference.effective_locale(default_locale()),
-    );
+    let _ = install_app_menu(&app, state.locale_preference.effective_locale());
     Ok(state)
 }
 
@@ -266,7 +261,7 @@ pub fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
     let Some(handles) = app.try_state::<TrayMenuHandles>() else {
         return;
     };
-    let locale = state.locale_preference.effective_locale(default_locale());
+    let locale = state.locale_preference.effective_locale();
     let pet_visible = app
         .get_webview_window("pet")
         .and_then(|window| window.is_visible().ok())
@@ -306,9 +301,6 @@ pub fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
         .language_menu
         .set_text(t(locale, MessageKey::TrayLanguageMenu));
     let _ = handles
-        .language_system
-        .set_text(t(locale, MessageKey::TrayLanguageSystem));
-    let _ = handles
         .language_en
         .set_text(t(locale, MessageKey::TrayLanguageEnglish));
     let _ = handles
@@ -317,9 +309,6 @@ pub fn refresh_tray_menu(app: &AppHandle, state: &AppState) {
     let _ = handles.quit.set_text(t(locale, MessageKey::TrayQuit));
 
     let pref = state.locale_preference;
-    let _ = handles
-        .language_system
-        .set_checked(matches!(pref, LocalePreference::System));
     let _ = handles
         .language_en
         .set_checked(matches!(pref, LocalePreference::EnUs));
@@ -714,14 +703,6 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         true,
         None::<&str>,
     )?;
-    let language_system = CheckMenuItem::with_id(
-        app,
-        TRAY_MENU_LANG_SYSTEM_ID,
-        t(locale, MessageKey::TrayLanguageSystem),
-        true,
-        false,
-        None::<&str>,
-    )?;
     let language_en = CheckMenuItem::with_id(
         app,
         TRAY_MENU_LANG_EN_ID,
@@ -744,7 +725,6 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         t(locale, MessageKey::TrayLanguageMenu),
         true,
     )?;
-    language_menu.append(&language_system)?;
     language_menu.append(&language_en)?;
     language_menu.append(&language_zh)?;
     let quit = MenuItem::with_id(
@@ -803,9 +783,6 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
                 spawn_navigate_to_settings_section(app, SETTINGS_SECTION_PREFERENCES)
             }
             TRAY_MENU_ABOUT_ID => spawn_navigate_to_settings_section(app, SETTINGS_SECTION_ABOUT),
-            TRAY_MENU_LANG_SYSTEM_ID => {
-                let _ = handle_set_locale(app, LocalePreference::System);
-            }
             TRAY_MENU_LANG_EN_ID => {
                 let _ = handle_set_locale(app, LocalePreference::EnUs);
             }
@@ -842,7 +819,6 @@ fn install_tray_menu(app: &mut tauri::App) -> tauri::Result<()> {
         preferences,
         about,
         language_menu,
-        language_system,
         language_en,
         language_zh,
         quit,

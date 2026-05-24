@@ -365,9 +365,13 @@ fn app_state_exposes_default_locale() {
     let store = make_store(&temp);
 
     let state = store.ensure_ready().unwrap();
+    let expected = copet_lib::i18n::default_locale();
 
-    assert_eq!(state.locale, copet_lib::i18n::default_locale());
-    assert_eq!(state.locale_preference, LocalePreference::System);
+    assert_eq!(state.locale, expected);
+    assert_eq!(
+        state.locale_preference,
+        LocalePreference::from_locale(expected),
+    );
 }
 
 #[test]
@@ -386,18 +390,40 @@ fn set_locale_preference_persists_explicit_locale() {
 }
 
 #[test]
-fn set_locale_preference_system_returns_to_default_locale_detection() {
+fn legacy_system_locale_preference_is_migrated_to_detected_locale() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
-    store.set_locale_preference(LocalePreference::ZhCn).unwrap();
 
-    let state = store
-        .set_locale_preference(LocalePreference::System)
+    let config_path = store.root().join("config.json");
+    let raw = fs::read_to_string(&config_path).unwrap();
+    let mut value: serde_json::Value = serde_json::from_str(&raw).unwrap();
+    value
+        .as_object_mut()
+        .unwrap()
+        .insert("localePreference".into(), serde_json::json!("system"));
+    fs::write(&config_path, serde_json::to_vec_pretty(&value).unwrap()).unwrap();
+
+    let state = store.ensure_ready().unwrap();
+    let expected = copet_lib::i18n::default_locale();
+
+    assert_eq!(state.locale, expected);
+    assert_eq!(
+        state.locale_preference,
+        LocalePreference::from_locale(expected),
+    );
+
+    // The legacy "system" string should be rewritten on first load.
+    let rewritten: serde_json::Value =
+        serde_json::from_str(&fs::read_to_string(&config_path).unwrap()).unwrap();
+    let stored = rewritten
+        .as_object()
+        .unwrap()
+        .get("localePreference")
+        .and_then(|v| v.as_str())
         .unwrap();
-
-    assert_eq!(state.locale_preference, LocalePreference::System);
-    assert_eq!(state.locale, copet_lib::i18n::default_locale());
+    assert!(stored == "en-US" || stored == "zh-CN");
+    assert_ne!(stored, "system");
 }
 
 #[test]

@@ -54,7 +54,7 @@ export type AppState = {
   currentPetId: string;
   currentSoundPackId?: string;
   locale?: "en-US" | "zh-CN";
-  localePreference?: "system" | "en-US" | "zh-CN";
+  localePreference?: "en-US" | "zh-CN";
   pets: PetSummary[];
   soundPacks?: SoundPackSummary[];
   onboardingComplete: boolean;
@@ -273,7 +273,7 @@ export async function createAppHarness(browser: Browser, options: AppHarnessOpti
     currentPetId: copet.id,
     currentSoundPackId: copetSoundPack.id,
     locale: "en-US",
-    localePreference: "system",
+    localePreference: "en-US",
     pets: [copet],
     soundPacks: [copetSoundPack],
     onboardingComplete: false,

@@ -61,7 +61,7 @@ export type SoundPackSummary = {
 };
 
 export type Locale = "en-US" | "zh-CN";
-export type LocalePreference = "system" | Locale;
+export type LocalePreference = Locale;
 
 export type AgentMessageDisplay = "all" | "latest";
 

@@ -266,7 +266,7 @@ export function SettingsWindow() {
               agentMessageDisplay={appState.agentMessageDisplay}
               soundPacks={appState.soundPacks ?? []}
               currentSoundPackId={appState.currentSoundPackId ?? ""}
-              locale={appState.localePreference === "zh-CN" ? "zh-CN" : "en-US"}
+              locale={appState.locale === "zh-CN" ? "zh-CN" : "en-US"}
               agentMessageVisible={appState.agentMessageVisible}
               petInteractions={appState.petInteractions ?? defaultPetInteractionPrefs}
               petVisible={petVisible}

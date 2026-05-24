@@ -11,8 +11,6 @@ pub enum Locale {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum LocalePreference {
-    #[serde(rename = "system")]
-    System,
     #[serde(rename = "en-US")]
     EnUs,
     #[serde(rename = "zh-CN")]
@@ -21,14 +19,20 @@ pub enum LocalePreference {
 
 impl Default for LocalePreference {
     fn default() -> Self {
-        Self::System
+        Self::from_locale(default_locale())
     }
 }
 
 impl LocalePreference {
-    pub fn effective_locale(self, system_locale: Locale) -> Locale {
+    pub fn from_locale(locale: Locale) -> Self {
+        match locale {
+            Locale::EnUs => Self::EnUs,
+            Locale::ZhCn => Self::ZhCn,
+        }
+    }
+
+    pub fn effective_locale(self) -> Locale {
         match self {
-            Self::System => system_locale,
             Self::EnUs => Locale::EnUs,
             Self::ZhCn => Locale::ZhCn,
         }
@@ -55,7 +59,6 @@ pub enum MessageKey {
     TrayHideMessages,
     TrayResetPosition,
     TrayLanguageMenu,
-    TrayLanguageSystem,
     TrayLanguageEnglish,
     TrayLanguageChinese,
     TrayAbout,
@@ -70,12 +73,34 @@ pub enum MessageKey {
 }
 
 pub fn default_locale() -> Locale {
+    // Prefer the platform-native preference (macOS reads NSLocale /
+    // CFLocaleCopyPreferredLanguages; Windows reads
+    // GetUserPreferredUILanguages). GUI processes on macOS do not inherit
+    // shell `LANG`/`LC_*`, so env vars alone misread Chinese systems as
+    // English when the .app is launched from Finder or the Dock.
+    if let Some(tag) = sys_locale::get_locale() {
+        if let Some(locale) = detect_locale_from_tag(&tag) {
+            return locale;
+        }
+    }
+
     detect_locale_from_env([
         ("LANGUAGE", env::var("LANGUAGE").unwrap_or_default()),
         ("LC_ALL", env::var("LC_ALL").unwrap_or_default()),
         ("LC_MESSAGES", env::var("LC_MESSAGES").unwrap_or_default()),
         ("LANG", env::var("LANG").unwrap_or_default()),
     ])
+}
+
+pub fn detect_locale_from_tag(tag: &str) -> Option<Locale> {
+    let normalized = tag.trim().replace('_', "-").to_ascii_lowercase();
+    if normalized.starts_with("zh") {
+        return Some(Locale::ZhCn);
+    }
+    if normalized.starts_with("en") {
+        return Some(Locale::EnUs);
+    }
+    None
 }
 
 pub fn detect_locale_from_env<I, K, V>(vars: I) -> Locale
@@ -86,12 +111,8 @@ where
 {
     for (_key, value) in vars {
         for candidate in value.as_ref().split(':') {
-            let normalized = candidate.trim().replace('_', "-").to_ascii_lowercase();
-            if normalized.starts_with("zh") {
-                return Locale::ZhCn;
-            }
-            if normalized.starts_with("en") {
-                return Locale::EnUs;
+            if let Some(locale) = detect_locale_from_tag(candidate) {
+                return locale;
             }
         }
     }
@@ -127,11 +148,9 @@ pub fn t(locale: Locale, key: MessageKey) -> &'static str {
         (Locale::ZhCn, MessageKey::TrayResetPosition) => "重置宠物位置",
         // New: Language submenu
         (Locale::EnUs, MessageKey::TrayLanguageMenu) => "Language",
-        (Locale::EnUs, MessageKey::TrayLanguageSystem) => "System Default",
         (Locale::EnUs, MessageKey::TrayLanguageEnglish) => "English",
         (Locale::EnUs, MessageKey::TrayLanguageChinese) => "中文",
         (Locale::ZhCn, MessageKey::TrayLanguageMenu) => "语言",
-        (Locale::ZhCn, MessageKey::TrayLanguageSystem) => "跟随系统",
         (Locale::ZhCn, MessageKey::TrayLanguageEnglish) => "English",
         (Locale::ZhCn, MessageKey::TrayLanguageChinese) => "中文",
         // New: About

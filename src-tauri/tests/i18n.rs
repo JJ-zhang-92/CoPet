@@ -1,4 +1,4 @@
-use copet_lib::i18n::{detect_locale_from_env, t, Locale, MessageKey};
+use copet_lib::i18n::{detect_locale_from_env, detect_locale_from_tag, t, Locale, MessageKey};
 
 #[test]
 fn detects_chinese_locale_from_environment() {
@@ -10,6 +10,28 @@ fn detects_chinese_locale_from_environment() {
     ]);
 
     assert_eq!(locale, Locale::ZhCn);
+}
+
+#[test]
+fn detects_chinese_locale_from_macos_preferred_language_tag() {
+    // macOS reports preferred languages as BCP 47 tags such as
+    // "zh-Hans-CN" — env-based detection sees no LANG on Finder-launched
+    // GUI apps, so the tag-based path must match this shape.
+    assert_eq!(detect_locale_from_tag("zh-Hans-CN"), Some(Locale::ZhCn));
+    assert_eq!(detect_locale_from_tag("zh-Hant-TW"), Some(Locale::ZhCn));
+    assert_eq!(detect_locale_from_tag("zh-CN"), Some(Locale::ZhCn));
+}
+
+#[test]
+fn detects_english_locale_from_preferred_language_tag() {
+    assert_eq!(detect_locale_from_tag("en-US"), Some(Locale::EnUs));
+    assert_eq!(detect_locale_from_tag("en-GB"), Some(Locale::EnUs));
+}
+
+#[test]
+fn returns_none_for_unsupported_language_tag() {
+    assert_eq!(detect_locale_from_tag("fr-FR"), None);
+    assert_eq!(detect_locale_from_tag(""), None);
 }
 
 #[test]
@@ -65,11 +87,6 @@ fn localizes_tray_menu_labels() {
     );
     assert_eq!(t(Locale::EnUs, MessageKey::TrayLanguageMenu), "Language");
     assert_eq!(t(Locale::ZhCn, MessageKey::TrayLanguageMenu), "语言");
-    assert_eq!(
-        t(Locale::EnUs, MessageKey::TrayLanguageSystem),
-        "System Default"
-    );
-    assert_eq!(t(Locale::ZhCn, MessageKey::TrayLanguageSystem), "跟随系统");
     assert_eq!(t(Locale::EnUs, MessageKey::TrayLanguageEnglish), "English");
     assert_eq!(t(Locale::ZhCn, MessageKey::TrayLanguageEnglish), "English");
     assert_eq!(t(Locale::EnUs, MessageKey::TrayLanguageChinese), "中文");

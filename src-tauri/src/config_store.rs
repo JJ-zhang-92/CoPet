@@ -136,7 +136,7 @@ impl ConfigStore {
 
     pub fn effective_locale(&self) -> Result<Locale, StoreError> {
         let config = self.load_or_create_config()?;
-        Ok(config.locale_preference.effective_locale(default_locale()))
+        Ok(config.locale_preference.effective_locale())
     }
 
     pub fn ensure_ready(&self) -> Result<AppState, StoreError> {
@@ -178,7 +178,7 @@ impl ConfigStore {
         Ok(AppState {
             current_pet_id: config.current_pet_id,
             current_sound_pack_id: config.current_sound_pack_id,
-            locale: config.locale_preference.effective_locale(default_locale()),
+            locale: config.locale_preference.effective_locale(),
             locale_preference: config.locale_preference,
             pets,
             sound_packs,
@@ -577,12 +577,13 @@ impl ConfigStore {
         if path.exists() {
             let bytes = fs::read(&path)?;
             let mut value: serde_json::Value = serde_json::from_slice(&bytes)?;
-            let migrated = lift_legacy_pet_interactions(&mut value);
+            let migrated_interactions = lift_legacy_pet_interactions(&mut value);
+            let migrated_locale = migrate_legacy_system_locale_preference(&mut value);
             let config: StoredConfig = serde_json::from_value(value)?;
-            if migrated {
+            if migrated_interactions || migrated_locale {
                 // Rewrite immediately so the on-disk file matches the new
-                // flat schema; otherwise the legacy nested key would only be
-                // dropped on the next setting change.
+                // schema; otherwise the legacy values would only be dropped
+                // on the next setting change.
                 self.save_config(&config)?;
             }
             return Ok(config);
@@ -640,6 +641,33 @@ impl StoreError {
             },
         }
     }
+}
+
+/// Replace a legacy `localePreference: "system"` value with the locale
+/// resolved from the current environment. The `system` variant was removed
+/// from `LocalePreference`; existing configs would otherwise fail to
+/// deserialize. Returns `true` when the JSON was changed, signalling the
+/// caller to rewrite the file.
+fn migrate_legacy_system_locale_preference(value: &mut serde_json::Value) -> bool {
+    let Some(object) = value.as_object_mut() else {
+        return false;
+    };
+    let is_legacy_system = object
+        .get("localePreference")
+        .and_then(|v| v.as_str())
+        .is_some_and(|s| s == "system");
+    if !is_legacy_system {
+        return false;
+    }
+    let resolved = match default_locale() {
+        Locale::EnUs => "en-US",
+        Locale::ZhCn => "zh-CN",
+    };
+    object.insert(
+        "localePreference".to_string(),
+        serde_json::Value::String(resolved.to_string()),
+    );
+    true
 }
 
 /// Move legacy nested `petInteractions` keys up to the top level so the rest
@@ -904,7 +932,7 @@ impl Default for StoredConfig {
             current_sound_pack_id: default_current_sound_pack_id(),
             onboarding_complete: false,
             agent_auto_install_complete: false,
-            locale_preference: LocalePreference::System,
+            locale_preference: LocalePreference::default(),
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
             agent_message_display: AgentMessageDisplay::All,
             agent_message_visible: true,
