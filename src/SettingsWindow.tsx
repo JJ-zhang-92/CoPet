@@ -138,6 +138,16 @@ export function SettingsWindow() {
     };
   }, []);
 
+  useEffect(() => {
+    // Suppress the webview's built-in right-click menu (Reload, Back, etc.)
+    // in production. Kept on in dev so we still get Inspect / Reload while
+    // iterating.
+    if (!import.meta.env.PROD) return;
+    const suppress = (event: MouseEvent) => event.preventDefault();
+    window.addEventListener("contextmenu", suppress);
+    return () => window.removeEventListener("contextmenu", suppress);
+  }, []);
+
   const t = useMemo(
     () => createTranslator(appState?.locale),
     [appState?.locale],
