@@ -4,6 +4,7 @@ import { runPetStartupWindowAnimation } from "../lib/appCommands";
 import type { ComposedView } from "../lib/petAnimation";
 import {
   beginPetStartupAnimationArrival,
+  beginPetStartupAnimationEnterSound,
   completePetStartupAnimationRun,
   getPetStartupAnimationRunState,
   hasPetStartupAnimationEnterCompletedVisibly,
@@ -15,12 +16,14 @@ import {
   startPetStartupAnimationRun,
   type PetStartupAnimationPhase,
 } from "../lib/petStartupAnimation";
-import type { InteractionSoundKey } from "./usePetSounds";
+import type { AgentSoundKey, InteractionSoundKey } from "./usePetSounds";
 
 export type UsePetStartupAnimationArgs = {
+  enabled: boolean;
   selectedPetId: string | null;
   selectedSoundPackId: string | null;
   onInteractionSound: (kind: InteractionSoundKey) => void;
+  onAgentSound: (kind: AgentSoundKey) => void;
 };
 
 export type UsePetStartupAnimationResult = {
@@ -38,23 +41,24 @@ function prefersReducedMotion(): boolean {
   return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 }
 
-function shouldRunStartupAnimation(selectedPetId: string | null): boolean {
-  return (
-    !!selectedPetId &&
-    petStartupAnimationConfig.enabled &&
-    !prefersReducedMotion()
-  );
+function shouldRunStartupAnimation(
+  selectedPetId: string | null,
+  enabled: boolean,
+): boolean {
+  return !!selectedPetId && enabled && !prefersReducedMotion();
 }
 
 export function usePetStartupAnimation({
+  enabled,
   selectedPetId,
   selectedSoundPackId,
   onInteractionSound,
+  onAgentSound,
 }: UsePetStartupAnimationArgs): UsePetStartupAnimationResult {
   const [phase, setPhase] = useState<PetStartupAnimationPhase>(() => {
     const runState = getPetStartupAnimationRunState();
     if (runState === "complete") return "complete";
-    if (shouldRunStartupAnimation(selectedPetId)) {
+    if (shouldRunStartupAnimation(selectedPetId, enabled)) {
       return runState === "running" && hasPetStartupAnimationEnterResolved()
         ? "arriving"
         : "entering";
@@ -68,11 +72,16 @@ export function usePetStartupAnimation({
   const localCompleteRef = useRef(phase === "complete");
   const arrivalTimerRef = useRef<number | null>(null);
   const onInteractionSoundRef = useRef(onInteractionSound);
+  const onAgentSoundRef = useRef(onAgentSound);
   const skippedStartupSettledRef = useRef(false);
 
   useEffect(() => {
     onInteractionSoundRef.current = onInteractionSound;
   }, [onInteractionSound]);
+
+  useEffect(() => {
+    onAgentSoundRef.current = onAgentSound;
+  }, [onAgentSound]);
 
   const clearArrivalTimer = useCallback(() => {
     if (arrivalTimerRef.current !== null) {
@@ -99,7 +108,7 @@ export function usePetStartupAnimation({
       !selectedPetId ||
       skippedStartupSettledRef.current ||
       getPetStartupAnimationRunState() === "complete" ||
-      shouldRunStartupAnimation(selectedPetId)
+      shouldRunStartupAnimation(selectedPetId, enabled)
     ) {
       return;
     }
@@ -110,7 +119,7 @@ export function usePetStartupAnimation({
     void runPetStartupWindowAnimation(0).finally(() => {
       completePetStartupAnimationRun();
     });
-  }, [selectedPetId]);
+  }, [enabled, selectedPetId]);
 
   useEffect(() => {
     const startedWith = startIdentityRef.current;
@@ -132,7 +141,7 @@ export function usePetStartupAnimation({
   }, [complete, phase, selectedPetId, selectedSoundPackId]);
 
   useEffect(() => {
-    if (!petStartupAnimationConfig.enabled) {
+    if (!enabled) {
       complete();
       return;
     }
@@ -155,6 +164,12 @@ export function usePetStartupAnimation({
     }
 
     const runWindowAnimation = async () => {
+      // Play the celebratory yay.mp3 in sync with the native slide-in.
+      // Guarded by beginPetStartupAnimationEnterSound so React Strict Mode's
+      // double effect invocation doesn't fire two overlapping plays.
+      if (beginPetStartupAnimationEnterSound()) {
+        onAgentSoundRef.current(petStartupAnimationConfig.enterSoundKey);
+      }
       const result = await runPetStartupWindowAnimation(
         petStartupAnimationConfig.enterDurationMs,
       );
@@ -209,12 +224,12 @@ export function usePetStartupAnimation({
     return () => {
       cancelled = true;
     };
-  }, [clearArrivalTimer, complete, selectedPetId, selectedSoundPackId]);
+  }, [clearArrivalTimer, complete, enabled, selectedPetId, selectedSoundPackId]);
 
   const effectivePhase =
     phase === "idle" &&
     !localCompleteRef.current &&
-    shouldRunStartupAnimation(selectedPetId)
+    shouldRunStartupAnimation(selectedPetId, enabled)
       ? "entering"
       : phase;
   const composedOverride =

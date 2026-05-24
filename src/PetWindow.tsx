@@ -89,9 +89,11 @@ export function PetWindow() {
     onInteractionSound: playInteractionSound,
   });
   const startup = usePetStartupAnimation({
+    enabled: petInteractions.enableStartupAnimation,
     selectedPetId: selectedPet?.id ?? null,
     selectedSoundPackId: selectedSoundPack?.id ?? null,
     onInteractionSound: playInteractionSound,
+    onAgentSound: playAgentSound,
   });
   const displayedAgentMessages = startup.hideMessages ? [] : agentMessages;
   const displayedComposed = startup.composedOverride ?? composed;
@@ -100,6 +102,15 @@ export function PetWindow() {
   const sliderDraggingRef = useRef(false);
   const initialContentResizePendingRef = useRef(true);
   const initialContentResizeReleaseTimerRef = useRef<number | null>(null);
+  const startupHadOverrideRef = useRef(false);
+  if (startup.hideMessages) {
+    // Capture the fact that the startup slide-in actually ran (vs. the
+    // disabled / reduced-motion paths that go straight to complete). We use
+    // this below to skip the first reset-position resize, which would
+    // otherwise teleport the pet leftward when the stack grows to include
+    // agent messages.
+    startupHadOverrideRef.current = true;
+  }
   const resizeTimerRef = useRef<number | null>(null);
   const sliderScaleReleaseTimerRef = useRef<number | null>(null);
   const petWindowSizeRef = useRef(defaultPetWindowSize);
@@ -169,12 +180,22 @@ export function PetWindow() {
 
   useEffect(() => {
     const selectedPetId = selectedPet?.id ?? null;
-    const selectedPetChanged = selectedPetIdRef.current !== selectedPetId;
+    const previousPetId = selectedPetIdRef.current;
+    const selectedPetChanged = previousPetId !== selectedPetId;
+    // Only the "was a real id, is now a different real id" transition counts
+    // as a user-driven switch. The initial null → ready transition is just
+    // startup state settling; stopAllSounds() here would silence the startup
+    // wheee that usePetStartupAnimation just kicked off in the effect chain
+    // immediately above this one.
+    const selectedPetUserSwitch =
+      previousPetId !== null && selectedPetChanged;
     selectedPetIdRef.current = selectedPetId;
 
     const selectedSoundPackId = selectedSoundPack?.id ?? null;
-    const selectedSoundPackChanged =
-      selectedSoundPackIdRef.current !== selectedSoundPackId;
+    const previousSoundPackId = selectedSoundPackIdRef.current;
+    const selectedSoundPackChanged = previousSoundPackId !== selectedSoundPackId;
+    const selectedSoundPackUserSwitch =
+      previousSoundPackId !== null && selectedSoundPackChanged;
     selectedSoundPackIdRef.current = selectedSoundPackId;
 
     const previousPetState = previousPetStateRef.current;
@@ -183,7 +204,9 @@ export function PetWindow() {
 
     if (selectedPetChanged || selectedSoundPackChanged) {
       lastAgentSoundKeyRef.current = null;
-      stopAllSounds();
+      if (selectedPetUserSwitch || selectedSoundPackUserSwitch) {
+        stopAllSounds();
+      }
       return;
     }
 
@@ -212,6 +235,21 @@ export function PetWindow() {
 
   useEffect(() => {
     if (startup.hideMessages) {
+      return;
+    }
+
+    // Preserve the bottom-right placement the Rust slide-in landed on.
+    // A reset-position resize here would setSize() to the new stack content
+    // size (now including agent messages) and shift window-left to keep the
+    // right edge against the monitor, visually nudging the centered pet to
+    // the left. After this single skip, later resizes use the "center"
+    // anchor and stay stable.
+    if (
+      startupHadOverrideRef.current &&
+      initialContentResizePendingRef.current
+    ) {
+      initialContentResizePendingRef.current = false;
+      startupHadOverrideRef.current = false;
       return;
     }
 

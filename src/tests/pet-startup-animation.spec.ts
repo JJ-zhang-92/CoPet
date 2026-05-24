@@ -83,6 +83,7 @@ test("arrival shows heart, plays pettedSlow, then restores messages and Agent st
   await expect(page.getByTestId("pet-agent-message")).toHaveCount(0);
 
   await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/yay.mp3",
     "/sounds/copet/sigh.mp3",
   ]);
 
@@ -92,6 +93,7 @@ test("arrival shows heart, plays pettedSlow, then restores messages and Agent st
   await expect(sprite).toHaveAttribute("data-pet-state", "running");
   await expect(spriteFrame).toHaveAttribute("data-emotion", "");
   await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/yay.mp3",
     "/sounds/copet/sigh.mp3",
   ]);
 });
@@ -244,9 +246,13 @@ test("startup stays in arrival for hooks mounted after enter resolves", async ({
 
     function StartupProbe({ testId }: { testId: string }) {
       const startup = usePetStartupAnimation({
+        enabled: true,
         selectedPetId: "copet",
         selectedSoundPackId: "system:copet",
         onInteractionSound: (kind: string) => {
+          testWindow.__strictStartupSounds.push(kind);
+        },
+        onAgentSound: (kind: string) => {
           testWindow.__strictStartupSounds.push(kind);
         },
       });
@@ -333,7 +339,10 @@ test("startup stays in arrival for hooks mounted after enter resolves", async ({
           ).__strictStartupSounds,
       ),
     )
-    .toEqual([petStartupAnimationConfig.arrivalSoundKey]);
+    .toEqual([
+      petStartupAnimationConfig.enterSoundKey,
+      petStartupAnimationConfig.arrivalSoundKey,
+    ]);
 
   await expect(probe, {
     timeout: petStartupAnimationConfig.arrivalDurationMs + 1000,
@@ -416,6 +425,9 @@ test("startup command failure restores normal messages and Agent state", async (
 });
 
 test("hidden pet during startup skips arrival sound", async ({ browser }) => {
+  // The enter swoosh fires at invoke time (before the frontend knows whether
+  // Rust will report the window as hidden), so it still plays. The arrival
+  // heart + sigh are gated on result.completed and stay silent.
   const harness = await createAppHarness(browser, {
     reducedMotion: "no-preference",
     commandResults: {
@@ -443,7 +455,9 @@ test("hidden pet during startup skips arrival sound", async ({ browser }) => {
     "data-pet-state",
     "running",
   );
-  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([]);
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/yay.mp3",
+  ]);
 });
 
 test("changing pet during startup stops the startup override", async ({ browser }) => {
@@ -511,7 +525,12 @@ test("changing sound pack during startup stops the startup override", async ({
     "data-emotion",
     "",
   );
-  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([]);
+  // Enter swoosh fires from the original copet pack before the sound pack
+  // change lands; arrival sigh is suppressed because the startup override
+  // bails out as soon as the identity changes.
+  await expect.poll(() => harness.playedSoundUrls(page)).toEqual([
+    "/sounds/copet/yay.mp3",
+  ]);
 });
 
 test("reduced motion skips startup animation and shows messages immediately", async ({

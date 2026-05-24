@@ -26,7 +26,7 @@ mod subject {
     }
 
     #[test]
-    fn calculates_startup_positions_from_offscreen_right_to_default_target() {
+    fn calculates_startup_positions_from_screen_edge_to_default_target() {
         let (start, target) = pet_startup_window_positions(
             PhysicalPosition { x: 100, y: 50 },
             PhysicalSize {
@@ -40,7 +40,10 @@ mod subject {
             24,
         );
 
-        assert_eq!(start, PhysicalPosition { x: 2020, y: 586 });
+        // start: horizontal center on the monitor's right edge (left half on
+        // screen, right half hangs off). target: default bottom-right with
+        // margin. Slide distance = window_width/2 + margin.
+        assert_eq!(start, PhysicalPosition { x: 1810, y: 586 });
         assert_eq!(target, PhysicalPosition { x: 1576, y: 586 });
     }
 
@@ -59,7 +62,9 @@ mod subject {
             24,
         );
 
-        assert_eq!(start, PhysicalPosition { x: 200, y: 20 });
+        // start: -100 + 300 - 420/2 = -10. target clamps to monitor origin
+        // when the window is wider than the monitor.
+        assert_eq!(start, PhysicalPosition { x: -10, y: 20 });
         assert_eq!(target, PhysicalPosition { x: -100, y: 20 });
     }
 

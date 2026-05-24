@@ -27,11 +27,19 @@ pub fn reset_pet_window_position(app: tauri::AppHandle) -> Result<(), String> {
     Ok(())
 }
 
-#[tauri::command]
+#[tauri::command(async)]
 pub fn run_pet_startup_window_animation(
     app: tauri::AppHandle,
     duration_ms: u64,
 ) -> Result<bool, String> {
+    // The `async` attribute on the Tauri command macro is load-bearing: it
+    // tells Tauri to run this command on the async runtime's worker thread
+    // instead of the main runloop. Sync commands without this attribute run
+    // on the macOS main thread, so the animation's thread::sleep loop would
+    // freeze the webview for the entire slide — the running-left CSS
+    // keyframe pauses, queued set_position frame updates never reach
+    // WindowServer, and the user only sees the final arrival heart at the
+    // end.
     let window = app
         .get_webview_window("pet")
         .ok_or_else(|| "pet window is not available".to_string())?;

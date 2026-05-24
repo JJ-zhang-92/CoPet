@@ -61,10 +61,17 @@ pub fn apply_pet_window_size_for_startup(
     window: &WebviewWindow,
     size: PetWindowSize,
 ) -> tauri::Result<()> {
-    place_window_startup_offscreen_right(window)?;
+    // orderFront the panel at its final fully-on-screen frame first so macOS
+    // WindowServer commits it into the current Space's window collection.
+    // The startup animation's set_position(start) call afterwards moves an
+    // already-registered NSPanel to the half-off-screen start frame without
+    // losing Space membership — if we orderFront at the half-off-screen
+    // frame instead, the panel never gets composited until a workspace
+    // reassertion fires, and the user only sees the arrival heart at the
+    // end of the slide.
     let (width, height) = pet_window_logical_dimensions(size);
     window.set_size(LogicalSize::new(width, height))?;
-    place_window_startup_offscreen_right(window)?;
+    place_window_bottom_right(window)?;
     keep_pet_window_on_top(window)?;
     Ok(())
 }
@@ -95,18 +102,6 @@ pub fn place_window_bottom_right(window: &WebviewWindow) -> tauri::Result<()> {
     Ok(())
 }
 
-fn place_window_startup_offscreen_right(window: &WebviewWindow) -> tauri::Result<()> {
-    let Some(monitor) = window.current_monitor()? else {
-        return Ok(());
-    };
-    let window_size = window.outer_size()?;
-    let margin = (BOTTOM_RIGHT_MARGIN_LOGICAL_PX * monitor.scale_factor()).round() as i32;
-    let (start, _) =
-        pet_startup_window_positions(*monitor.position(), *monitor.size(), window_size, margin);
-    window.set_position(start)?;
-    Ok(())
-}
-
 pub fn animate_pet_window_from_offscreen_right(
     window: &WebviewWindow,
     duration_ms: u64,
@@ -119,14 +114,31 @@ pub fn animate_pet_window_from_offscreen_right(
     let (start, target) =
         pet_startup_window_positions(*monitor.position(), *monitor.size(), window_size, margin);
 
+    // Dispatch the keep-on-top reassertion through the main runloop. The
+    // startup command runs on a tokio worker thread (#[tauri::command(async)])
+    // so thread::sleep does not freeze the webview; but keep_pet_window_on_top
+    // ultimately calls NSWindow.orderFrontRegardless via objc2, and AppKit
+    // requires all NSWindow methods to run on the main thread — calling it
+    // from a worker thread aborts with SIGTRAP ("Must only be used from the
+    // main thread"). The dispatch is fire-and-forget; we don't await its
+    // completion because there's no return value the loop depends on.
     let started_at = Instant::now();
+    let app_handle = window.app_handle().clone();
+    let window_for_keep = window.clone();
     animate_pet_window_positions_while_visible(
         start,
         target,
         duration_ms,
         || window.is_visible(),
         |position| window.set_position(position),
-        || keep_pet_window_on_top(window),
+        move || {
+            let window_inner = window_for_keep.clone();
+            app_handle
+                .run_on_main_thread(move || {
+                    let _ = keep_pet_window_on_top(&window_inner);
+                })
+                .map_err(Into::into)
+        },
         thread::sleep,
         || started_at.elapsed().as_millis() as u64,
     )
@@ -500,9 +512,19 @@ fn pet_startup_window_positions(
     window_size: PhysicalSize<u32>,
     margin: i32,
 ) -> (PhysicalPosition<i32>, PhysicalPosition<i32>) {
+    // The pet window starts with its horizontal center on the monitor's right
+    // edge — the left half of the panel is on screen, the right half hangs
+    // off — and slides left into the default bottom-right position with
+    // margin. Keeping at least half the panel on screen at the start frame
+    // is enough for macOS WindowServer to commit the NSPanel into the
+    // current Space's window collection (a fully off-screen first orderFront
+    // gets dropped on the floor and the user only sees the pet after
+    // swiping to another Space). The slide distance is window_width/2 +
+    // margin, which is visibly long enough to read as motion.
     let target = bottom_right_position(monitor_position, monitor_size, window_size, margin);
     let start = PhysicalPosition {
-        x: monitor_position.x + monitor_size.width as i32,
+        x: (monitor_position.x + monitor_size.width as i32 - window_size.width as i32 / 2)
+            .max(monitor_position.x),
         y: target.y,
     };
     (start, target)

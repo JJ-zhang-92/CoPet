@@ -9,9 +9,9 @@ export type PetStartupAnimationPhase =
 type PetStartupAnimationRunState = "pending" | "running" | "complete";
 
 export const petStartupAnimationConfig = {
-  enabled: true,
-  enterDurationMs: 900,
+  enterDurationMs: 2000,
   arrivalDurationMs: 1500,
+  enterSoundKey: "celebrating",
   arrivalSoundKey: "pettedSlow",
 } as const;
 
@@ -31,6 +31,7 @@ let runState: PetStartupAnimationRunState = "pending";
 let runPromise: Promise<void> | null = null;
 let enterResolved = false;
 let enterCompletedVisibly = false;
+let enterSoundPlayed = false;
 let arrivalStartedAtMs: number | null = null;
 
 export function getPetStartupAnimationRunState(): PetStartupAnimationRunState {
@@ -42,7 +43,14 @@ export function completePetStartupAnimationRun(): void {
   runPromise = null;
   enterResolved = false;
   enterCompletedVisibly = false;
+  enterSoundPlayed = false;
   arrivalStartedAtMs = null;
+}
+
+export function beginPetStartupAnimationEnterSound(): boolean {
+  if (enterSoundPlayed) return false;
+  enterSoundPlayed = true;
+  return true;
 }
 
 export function hasPetStartupAnimationEnterResolved(): boolean {
@@ -86,6 +94,7 @@ export function startPetStartupAnimationRun(
     runState = "running";
     enterResolved = false;
     enterCompletedVisibly = false;
+    enterSoundPlayed = false;
     arrivalStartedAtMs = null;
     runPromise = run().then((completedVisibly) => {
       enterResolved = true;
