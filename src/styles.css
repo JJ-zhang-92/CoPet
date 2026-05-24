@@ -140,7 +140,8 @@ select {
   gap: 6px;
   min-width: 0;
   margin: 0 -4px;
-  padding: 2px 24px 2px 4px;
+  overflow: hidden;
+  padding: 2px 4px;
   border-radius: 4px;
   transition: background 120ms ease;
 }
@@ -170,6 +171,7 @@ select {
   position: absolute;
   top: 50%;
   right: 4px;
+  z-index: 1;
   display: flex;
   width: 16px;
   height: 16px;
@@ -179,7 +181,7 @@ select {
   border: 0;
   border-radius: 4px;
   color: hsl(var(--muted-foreground));
-  background: transparent;
+  background: hsl(var(--card) / 0.95);
   cursor: pointer;
   opacity: 0;
   transform: translateY(-50%);
@@ -189,12 +191,14 @@ select {
     background 120ms ease;
 }
 
-.pet-agent-message:hover .pet-agent-message-dismiss {
+.pet-agent-message:hover .pet-agent-message-dismiss,
+.pet-agent-message:focus-within .pet-agent-message-dismiss {
   opacity: 1;
 }
 
 .pet-agent-message-dismiss:hover {
   color: hsl(var(--primary));
+  background: hsl(var(--card));
 }
 
 .pet-agent-message-dismiss svg {
