@@ -56,6 +56,16 @@ Restart Codex if the newly installed Skills do not appear.
 | Copilot CLI | JSON hook file | `~/.copilot/hooks/copet.json` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
 
+## Installation
+
+### macOS
+
+Download the `.dmg` from [Releases](https://github.com/ChanceYu/CoPet/releases) and drag `CoPet.app` into `/Applications`. The build is not notarized, so run once to clear the quarantine flag:
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
+```
+
 ## Getting started
 
 Prerequisites: [Rust](https://www.rust-lang.org/tools/install), [Node.js](https://nodejs.org/) with pnpm. Runs on macOS (primary), Windows, and Linux.

@@ -24,7 +24,7 @@
 
 ## 自定义你的宠物
 
-CoPet 不止内置宠物。[CoPet Skill 系列](./skills/README.md) 可以把角色设定、团队 mascot 或个人头像变成你自己的桌面伙伴：
+CoPet 不止内置宠物。[CoPet Skill 系列](./skills/README.md) 可以把角色设定、团队或个人头像变成你自己的桌面伙伴：
 
 - [`copet-gen`](./skills/copet-gen/SKILL.md) 生成并安装自定义 CoPet 宠物包，包含 `pet.json` 与 `spritesheet.webp`，让你的角色响应 Agent 活动。
 - [`copet-sound`](./skills/copet-sound/SKILL.md) 生成配套 11 段 MP3 音效包，覆盖点击、互动、等待、成功和错误等状态。
@@ -55,6 +55,16 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 | OpenCode | JS 插件 + 配置入口 | `~/.config/opencode/plugins/copet.js`, `~/.config/opencode/opencode.json` |
 | Copilot CLI | JSON hook 文件 | `~/.copilot/hooks/copet.json` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
+
+## 安装
+
+### macOS
+
+在 [Releases](https://github.com/ChanceYu/CoPet/releases) 下载 `.dmg`，把 `CoPet.app` 拖入 `/Applications`。构建未公证，安装后执行一次以下命令解除 quarantine：
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
+```
 
 ## 快速开始
 
