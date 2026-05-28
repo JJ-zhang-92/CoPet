@@ -58,13 +58,25 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 
 ## 安装
 
+| 平台 | 下载 |
+| --- | --- |
+| macOS（Universal） | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
+| Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
+| Windows arm64 | [CoPet-windows-arm64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-arm64.exe) |
+
+[全部 Releases](https://github.com/ChanceYu/CoPet/releases)
+
 ### macOS
 
-在 [Releases](https://github.com/ChanceYu/CoPet/releases) 下载 `.dmg`，把 `CoPet.app` 拖入 `/Applications`。构建未公证，安装后执行一次以下命令解除 quarantine：
+把 `CoPet.app` 拖入 `/Applications`。构建未公证，安装后执行一次以下命令解除 quarantine：
 
 ```bash
 sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
 ```
+
+### Windows
+
+Windows 构建未做代码签名，首次启动可能触发 SmartScreen 警告——点击 *更多信息* → *仍要运行*。
 
 ## 快速开始
 
