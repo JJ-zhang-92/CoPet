@@ -1,0 +1,196 @@
+# Release workflow — manually triggered builds for macOS (universal) and Windows (x64 + arm64).
+#
+# Recovery notes (if a run fails partway):
+#   - `prepare` failed: no tag/commit pushed; re-run.
+#   - any `build` leg failed: tag + bump commit are already on main; delete the tag
+#     (`git push --delete origin vX.Y.Z`), revert the bump commit, fix the cause, re-run.
+#   - `publish` failed: tag + bump commit are on main but no release exists; re-run the
+#     `publish` job from the Actions UI, or do the same delete-tag-and-revert dance.
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Release version (e.g. 0.1.2). Leave empty to auto-bump patch.'
+        required: false
+        type: string
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.resolve.outputs.version }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Resolve version
+        id: resolve
+        env:
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          if [ -n "$INPUT_VERSION" ]; then
+            pnpm version "$INPUT_VERSION" --no-git-tag-version
+          else
+            pnpm version patch --no-git-tag-version
+          fi
+          RESOLVED=$(node -p "require('./package.json').version")
+          echo "version=$RESOLVED" >> "$GITHUB_OUTPUT"
+          echo "Resolved release version: $RESOLVED"
+
+      - name: Sync src-tauri/tauri.conf.json version
+        env:
+          RESOLVED: ${{ steps.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+          grep '"version"' src-tauri/tauri.conf.json
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit, tag, push
+        env:
+          RESOLVED: ${{ steps.resolve.outputs.version }}
+        run: |
+          set -euo pipefail
+          git add package.json src-tauri/tauri.conf.json
+          git commit -m "chore(release): v$RESOLVED"
+          git tag "v$RESOLVED"
+          git push origin HEAD:main
+          git push origin "v$RESOLVED"
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # macOS: `target` is the synthetic Tauri triple; `rust-targets` is what rustup
+          # actually installs. The universal build lipos x86_64 + aarch64 darwin together.
+          - os: macos-14
+            target: universal-apple-darwin
+            rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
+            bundles: dmg
+            artifact-dir: src-tauri/target/universal-apple-darwin/release/bundle/dmg
+            artifact-ext: dmg
+            asset: CoPet-macos-universal.dmg
+          - os: windows-latest
+            target: x86_64-pc-windows-msvc
+            rust-targets: x86_64-pc-windows-msvc
+            bundles: nsis
+            artifact-dir: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis
+            artifact-ext: exe
+            asset: CoPet-windows-x64.exe
+          - os: windows-latest
+            target: aarch64-pc-windows-msvc
+            rust-targets: aarch64-pc-windows-msvc
+            bundles: nsis
+            artifact-dir: src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis
+            artifact-ext: exe
+            asset: CoPet-windows-arm64.exe
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: v${{ needs.prepare.outputs.version }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.rust-targets }}
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri -> target
+          key: ${{ matrix.target }}
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Frontend build
+        run: pnpm build
+
+      - name: Tauri build
+        run: pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
+
+      - name: Rename artifact to fixed asset name
+        shell: bash
+        env:
+          ARTIFACT_DIR: ${{ matrix.artifact-dir }}
+          ARTIFACT_EXT: ${{ matrix.artifact-ext }}
+          ASSET: ${{ matrix.asset }}
+        run: |
+          set -euo pipefail
+          mkdir -p dist-release
+          SRC=$(find "$ARTIFACT_DIR" -maxdepth 1 -type f -name "*.$ARTIFACT_EXT" | head -n 1)
+          if [ -z "$SRC" ]; then
+            echo "::error::No .$ARTIFACT_EXT produced in $ARTIFACT_DIR"
+            ls -la "$ARTIFACT_DIR" || true
+            exit 1
+          fi
+          echo "Renaming $SRC -> dist-release/$ASSET"
+          cp "$SRC" "dist-release/$ASSET"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist-release/${{ matrix.asset }}
+          if-no-files-found: error
+
+  publish:
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist-release
+          merge-multiple: true
+
+      - name: List downloaded artifacts
+        run: ls -la dist-release
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.prepare.outputs.version }}
+          name: v${{ needs.prepare.outputs.version }}
+          files: |
+            dist-release/CoPet-macos-universal.dmg
+            dist-release/CoPet-windows-x64.exe
+            dist-release/CoPet-windows-arm64.exe
+          draft: false
+          prerelease: false
+          make_latest: 'true'
+          generate_release_notes: true
+          fail_on_unmatched_files: true
