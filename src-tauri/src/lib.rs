@@ -1021,6 +1021,7 @@ pub fn run() {
         .build(tauri::generate_context!())
         .expect("failed to build CoPet")
         .run(|app, event| match event {
+            #[cfg(target_os = "macos")]
             tauri::RunEvent::Reopen { .. } => {
                 // macOS Dock click on the running app. The settings window
                 // hides (not closes) on red-light, so the app icon stays in
