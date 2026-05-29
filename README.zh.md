@@ -62,7 +62,6 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 | --- | --- |
 | macOS（Universal） | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
 | Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
-| Windows arm64 | [CoPet-windows-arm64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-arm64.exe) |
 
 [全部 Releases](https://github.com/ChanceYu/CoPet/releases)
 

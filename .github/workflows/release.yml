@@ -1,4 +1,4 @@
-# Release workflow — manually triggered builds for macOS (universal) and Windows (x64 + arm64).
+# Release workflow — manually triggered builds for macOS (universal) and Windows (x64).
 #
 # Failure model: the bump commit, tag, and GitHub release are only created after
 # every build matrix leg succeeds. Until then `prepare` and `build` are purely
@@ -90,12 +90,6 @@ jobs:
             bundles: nsis
             artifact-ext: exe
             asset: CoPet-windows-x64.exe
-          - os: windows-latest
-            target: aarch64-pc-windows-msvc
-            rust-targets: aarch64-pc-windows-msvc
-            bundles: nsis
-            artifact-ext: exe
-            asset: CoPet-windows-arm64.exe
     runs-on: ${{ matrix.os }}
     env:
       RESOLVED: ${{ needs.prepare.outputs.version }}
@@ -228,7 +222,6 @@ jobs:
           files: |
             dist-release/CoPet-macos-universal.dmg
             dist-release/CoPet-windows-x64.exe
-            dist-release/CoPet-windows-arm64.exe
           draft: false
           prerelease: false
           make_latest: 'true'

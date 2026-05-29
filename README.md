@@ -62,7 +62,6 @@ Restart Codex if the newly installed Skills do not appear.
 | --- | --- |
 | macOS (Universal) | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
 | Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
-| Windows arm64 | [CoPet-windows-arm64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-arm64.exe) |
 
 [All releases](https://github.com/ChanceYu/CoPet/releases)
 
