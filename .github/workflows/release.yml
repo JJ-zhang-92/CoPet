@@ -1,11 +1,16 @@
 # Release workflow — manually triggered builds for macOS (universal) and Windows (x64 + arm64).
 #
+# Failure model: the bump commit, tag, and GitHub release are only created after
+# every build matrix leg succeeds. Until then `prepare` and `build` are purely
+# read-only on `main` — any edits live only in the runner workspace.
+#
 # Recovery notes (if a run fails partway):
-#   - `prepare` failed: no tag/commit pushed; re-run.
-#   - any `build` leg failed: tag + bump commit are already on main; delete the tag
-#     (`git push --delete origin vX.Y.Z`), revert the bump commit, fix the cause, re-run.
-#   - `publish` failed: tag + bump commit are on main but no release exists; re-run the
-#     `publish` job from the Actions UI, or do the same delete-tag-and-revert dance.
+#   - `prepare` or any `build` leg failed: nothing was pushed; fix the cause and re-run.
+#   - `publish` failed BEFORE pushing the tag: nothing was pushed; re-run.
+#   - `publish` failed AFTER pushing the tag (release creation hiccup): the tag and
+#     bump commit are on `main`, but the GitHub release may be missing or incomplete.
+#     Re-run `publish` — the idempotency guard skips the commit+tag+push step when
+#     the tag already exists on origin and proceeds straight to (re)creating the release.
 name: Release
 
 on:
@@ -37,7 +42,6 @@ jobs:
       - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - uses: pnpm/action-setup@v4
         with:
@@ -61,30 +65,10 @@ jobs:
           RESOLVED=$(node -p "require('./package.json').version")
           echo "version=$RESOLVED" >> "$GITHUB_OUTPUT"
           echo "Resolved release version: $RESOLVED"
-
-      - name: Sync src-tauri/tauri.conf.json version
-        env:
-          RESOLVED: ${{ steps.resolve.outputs.version }}
-        run: |
-          set -euo pipefail
-          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
-          grep '"version"' src-tauri/tauri.conf.json
-
-      - name: Configure git identity
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
-      - name: Commit, tag, push
-        env:
-          RESOLVED: ${{ steps.resolve.outputs.version }}
-        run: |
-          set -euo pipefail
-          git add package.json src-tauri/tauri.conf.json
-          git commit -m "chore(release): v$RESOLVED"
-          git tag "v$RESOLVED"
-          git push origin HEAD:main
-          git push origin "v$RESOLVED"
+          # Discard the local bump — prepare is read-only on the repo. The
+          # actual commit only happens in `publish` after every build leg
+          # succeeds, so a failed run never leaves a stale tag or bump on main.
+          git checkout -- package.json
 
   build:
     needs: prepare
@@ -98,28 +82,28 @@ jobs:
             target: universal-apple-darwin
             rust-targets: aarch64-apple-darwin,x86_64-apple-darwin
             bundles: dmg
-            artifact-dir: src-tauri/target/universal-apple-darwin/release/bundle/dmg
             artifact-ext: dmg
             asset: CoPet-macos-universal.dmg
           - os: windows-latest
             target: x86_64-pc-windows-msvc
             rust-targets: x86_64-pc-windows-msvc
             bundles: nsis
-            artifact-dir: src-tauri/target/x86_64-pc-windows-msvc/release/bundle/nsis
             artifact-ext: exe
             asset: CoPet-windows-x64.exe
           - os: windows-latest
             target: aarch64-pc-windows-msvc
             rust-targets: aarch64-pc-windows-msvc
             bundles: nsis
-            artifact-dir: src-tauri/target/aarch64-pc-windows-msvc/release/bundle/nsis
             artifact-ext: exe
             asset: CoPet-windows-arm64.exe
     runs-on: ${{ matrix.os }}
+    env:
+      RESOLVED: ${{ needs.prepare.outputs.version }}
     steps:
       - uses: actions/checkout@v5
-        with:
-          ref: v${{ needs.prepare.outputs.version }}
+        # No `ref:` — the release tag does not exist yet. Build from current
+        # main and embed the resolved version locally so the produced binaries
+        # match the tag that `publish` will create.
 
       - uses: pnpm/action-setup@v4
         with:
@@ -134,31 +118,43 @@ jobs:
         with:
           targets: ${{ matrix.rust-targets }}
 
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+      - name: Apply release version locally
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Bump package.json too — vite.config.ts embeds `npm_package_version`
+          # into the frontend's `__APP_VERSION__` (rendered in the About panel),
+          # so the build must run with the resolved version already in place.
+          # The edits live only in the runner workspace; the actual commit
+          # happens later in `publish` after every build leg succeeds.
+          node -e "const fs=require('fs');const p='package.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+          grep '"version"' package.json src-tauri/tauri.conf.json
 
-      - name: Frontend build
-        run: pnpm build
+      - name: Build Tauri app
+        id: tauri
+        uses: tauri-apps/tauri-action@v0
+        with:
+          # No `tagName` — the action only builds and emits `artifactPaths`.
+          # The bump commit, tag, and GitHub release happen in `publish`
+          # after every matrix leg succeeds.
+          args: --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
 
-      - name: Tauri build
-        run: pnpm tauri build --target ${{ matrix.target }} --bundles ${{ matrix.bundles }}
-
-      - name: Rename artifact to fixed asset name
+      - name: Stage artifact under fixed name
         shell: bash
         env:
-          ARTIFACT_DIR: ${{ matrix.artifact-dir }}
+          ARTIFACT_PATHS: ${{ steps.tauri.outputs.artifactPaths }}
           ARTIFACT_EXT: ${{ matrix.artifact-ext }}
           ASSET: ${{ matrix.asset }}
         run: |
           set -euo pipefail
           mkdir -p dist-release
-          SRC=$(find "$ARTIFACT_DIR" -maxdepth 1 -type f -name "*.$ARTIFACT_EXT" | head -n 1)
+          SRC=$(printf '%s' "$ARTIFACT_PATHS" | jq -r --arg ext ".$ARTIFACT_EXT" '.[] | select(endswith($ext))' | head -n 1)
           if [ -z "$SRC" ]; then
-            echo "::error::No .$ARTIFACT_EXT produced in $ARTIFACT_DIR"
-            ls -la "$ARTIFACT_DIR" || true
+            echo "::error::No .$ARTIFACT_EXT bundle in artifactPaths: $ARTIFACT_PATHS"
             exit 1
           fi
-          echo "Renaming $SRC -> dist-release/$ASSET"
+          echo "Staging $SRC -> dist-release/$ASSET"
           cp "$SRC" "dist-release/$ASSET"
 
       - uses: actions/upload-artifact@v4
@@ -170,7 +166,45 @@ jobs:
   publish:
     needs: [prepare, build]
     runs-on: ubuntu-latest
+    env:
+      RESOLVED: ${{ needs.prepare.outputs.version }}
     steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Commit bump and push tag
+        run: |
+          set -euo pipefail
+          # Idempotency: if a prior publish run already pushed the tag, skip
+          # the commit+push so a re-run can proceed straight to (re)creating
+          # the GitHub release without colliding on an existing tag.
+          if git ls-remote --tags --exit-code origin "v$RESOLVED" >/dev/null 2>&1; then
+            echo "Tag v$RESOLVED already exists on origin; skipping commit+tag+push."
+            exit 0
+          fi
+          node -e "const fs=require('fs');const p='package.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+          node -e "const fs=require('fs');const p='src-tauri/tauri.conf.json';const c=JSON.parse(fs.readFileSync(p,'utf8'));c.version=process.env.RESOLVED;fs.writeFileSync(p,JSON.stringify(c,null,2)+'\n');"
+          git add package.json src-tauri/tauri.conf.json
+          git commit -m "chore(release): v$RESOLVED"
+          git tag "v$RESOLVED"
+          git push origin HEAD:main
+          git push origin "v$RESOLVED"
+
       - uses: actions/download-artifact@v4
         with:
           path: dist-release
