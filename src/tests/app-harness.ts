@@ -112,6 +112,7 @@ export type AppHarnessOptions = {
   runtimeStatus?: RuntimeStatus;
   scaleFactor?: number;
   state?: AppState;
+  userAgent?: string;
   windowPositions?: Partial<Record<"pet" | "settings", { x: number; y: number }>>;
   windowSizes?: Partial<Record<"pet" | "settings", { height: number; width: number }>>;
 };
@@ -128,6 +129,8 @@ type HarnessMonitor = {
 };
 
 const appStateChangedEvent = "copet-app-state-changed";
+const defaultHarnessUserAgent =
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36";
 
 export const copet: PetSummary = {
   id: "copet",
@@ -281,6 +284,7 @@ export const piAdapter: AdapterSummary = {
 export async function createAppHarness(browser: Browser, options: AppHarnessOptions = {}) {
   const context = await browser.newContext({
     reducedMotion: options.reducedMotion ?? "reduce",
+    userAgent: options.userAgent ?? defaultHarnessUserAgent,
   });
   const pages: Page[] = [];
   const calls: CommandCall[] = [];
