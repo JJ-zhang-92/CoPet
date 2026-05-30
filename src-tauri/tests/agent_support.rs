@@ -13,6 +13,9 @@ mod codex;
 #[path = "agent_support/copilot.rs"]
 mod copilot;
 
+#[path = "agent_support/cursor.rs"]
+mod cursor;
+
 #[path = "agent_support/gemini.rs"]
 mod gemini;
 
