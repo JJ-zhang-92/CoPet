@@ -33,11 +33,9 @@ fn pi_install_writes_managed_extension() {
     assert!(index.contains("\"localhost\""));
     assert!(index.contains("\"::1\""));
     assert!(index.contains("url.pathname !== EVENTS_PATH"));
-    assert!(
-        index.contains(
-            "function send(kind: string, nativeEvent: ExtensionEvent, ctx: ExtensionContext): void"
-        )
-    );
+    assert!(index.contains(
+        "function send(kind: string, nativeEvent: ExtensionEvent, ctx: ExtensionContext): void"
+    ));
     assert!(index.contains("pi.on(\"session_shutdown\", async"));
     assert!(!index.contains("return send("));
     assert!(!index.contains("=> send("));

@@ -304,7 +304,10 @@ fn run_agent_auto_install_once_restores_helper_when_missing_after_completion() {
 
     let summary = run_agent_auto_install_once(&store, &manager).unwrap();
 
-    assert!(helper.exists(), "helper script should be restored on launch");
+    assert!(
+        helper.exists(),
+        "helper script should be restored on launch"
+    );
     assert!(summary.installed.is_empty());
     assert!(summary.failed.is_empty());
     assert!(store.agent_auto_install_complete().unwrap());

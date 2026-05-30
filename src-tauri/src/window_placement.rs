@@ -364,9 +364,9 @@ fn apply_native_pet_window_z_order_policy(
             SWP_NOMOVE | SWP_NOSIZE
         };
         unsafe {
-            SetWindowPos(hwnd, Some(HWND_TOPMOST), 0, 0, 0, 0, flags).map_err(
-                |error| std::io::Error::new(std::io::ErrorKind::Other, error.to_string()),
-            )?;
+            SetWindowPos(hwnd, Some(HWND_TOPMOST), 0, 0, 0, 0, flags).map_err(|error| {
+                std::io::Error::new(std::io::ErrorKind::Other, error.to_string())
+            })?;
         }
     }
 
