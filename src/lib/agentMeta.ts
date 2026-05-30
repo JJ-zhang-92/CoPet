@@ -5,8 +5,10 @@ export type AgentMetaKey =
   | "claude-code"
   | "codex"
   | "copilot"
+  | "cursor"
   | "gemini"
-  | "opencode";
+  | "opencode"
+  | "pi";
 
 type AgentMetaCopy = {
   vendor: string;
@@ -30,6 +32,10 @@ const AGENT_META: Record<AgentMetaKey, AgentMetaCopy> = {
     vendor: "GitHub",
     descriptionKey: "agentCopilotDescription",
   },
+  cursor: {
+    vendor: "Cursor",
+    descriptionKey: "agentCursorDescription",
+  },
   gemini: {
     vendor: "Google",
     descriptionKey: "agentGeminiDescription",
@@ -37,6 +43,10 @@ const AGENT_META: Record<AgentMetaKey, AgentMetaCopy> = {
   opencode: {
     vendor: "Open source",
     descriptionKey: "agentOpencodeDescription",
+  },
+  pi: {
+    vendor: "Earendil Works",
+    descriptionKey: "agentPiDescription",
   },
 };
 

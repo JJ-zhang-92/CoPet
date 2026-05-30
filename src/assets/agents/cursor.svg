@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Cursor">
+  <rect width="64" height="64" rx="12" fill="#111827"/>
+  <path d="M18 10l32 24-17 3-8 17-7-44z" fill="#fff"/>
+  <path d="M33 37l9 13" stroke="#9ca3af" stroke-width="5" stroke-linecap="round"/>
+</svg>

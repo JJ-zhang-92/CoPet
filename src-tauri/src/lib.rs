@@ -135,13 +135,13 @@ fn localize_adapter_error(error: AdapterError) -> String {
             }
             AdapterError::UnmanagedPiExtension(path) => {
                 format!(
-                    "Pi 扩展目录已存在且不是 CoPet 管理的目录：{}",
+                    "Pi 扩展目录已存在且不是 CoPet 管理：{}",
                     path.to_string_lossy()
                 )
             }
             AdapterError::UnmanagedPiExtensionRemoval(path) => {
                 format!(
-                    "Pi 扩展目录不是 CoPet 管理的目录：{}",
+                    "Pi 扩展目录不是 CoPet 管理，拒绝删除：{}",
                     path.to_string_lossy()
                 )
             }
