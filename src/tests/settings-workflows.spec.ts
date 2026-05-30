@@ -5,8 +5,10 @@ import {
   codexAdapter,
   copilotAdapter,
   createAppHarness,
+  cursorAdapter,
   goku,
   nebula,
+  piAdapter,
   copet,
 } from "./app-harness";
 
@@ -81,7 +83,7 @@ test("agent integration config path abbreviates mac home paths", async ({ browse
   await expect(configPath).toHaveAttribute("title", "/Users/elu/.codex/hooks.json");
 });
 
-test("agent integrations render Copilot CLI before Gemini", async ({
+test("agent integrations render Cursor and Pi in adapter order", async ({
   browser,
 }) => {
   const harness = await createAppHarness(browser, {
@@ -95,6 +97,7 @@ test("agent integrations render Copilot CLI before Gemini", async ({
         message: "Configuration path not created yet",
       },
       codexAdapter,
+      cursorAdapter,
       antigravityAdapter,
       {
         id: "opencode",
@@ -113,6 +116,7 @@ test("agent integrations render Copilot CLI before Gemini", async ({
         healthy: false,
         message: "Configuration path not created yet",
       },
+      piAdapter,
     ],
   });
   const page = await harness.openPage("settings");
@@ -121,12 +125,82 @@ test("agent integrations render Copilot CLI before Gemini", async ({
   await expect(page.locator(".adapter-card-name")).toHaveText([
     "Claude Code",
     "Codex",
+    "Cursor",
     "Antigravity",
     "OpenCode",
     "Copilot CLI",
     "Gemini",
+    "Pi",
   ]);
+  await expect(page.getByText("Cursor's agent hooks.")).toBeVisible();
   await expect(page.getByText("GitHub Copilot's terminal agent.")).toBeVisible();
+  await expect(page.getByText("Pi coding agent extension.")).toBeVisible();
+});
+
+test("cursor integration switch installs and uninstalls the adapter", async ({
+  browser,
+}) => {
+  const harness = await createAppHarness(browser, {
+    adapters: [cursorAdapter],
+  });
+  const page = await harness.openPage("settings");
+  await page.getByRole("tab", { name: "Agents" }).click();
+  const cursorSwitch = page.getByRole("switch", { name: "Cursor" });
+
+  await expect(cursorSwitch).toHaveAttribute("aria-checked", "false");
+  await cursorSwitch.click();
+  await expect(cursorSwitch).toHaveAttribute("aria-checked", "true");
+
+  await cursorSwitch.click();
+  await expect(cursorSwitch).toHaveAttribute("aria-checked", "false");
+
+  const adapterCalls = harness.calls.filter(
+    (call) =>
+      call.command === "install_agent_adapter" ||
+      call.command === "uninstall_agent_adapter",
+  );
+  expect(adapterCalls).toEqual([
+    {
+      command: "install_agent_adapter",
+      args: { adapterId: "cursor" },
+    },
+    {
+      command: "uninstall_agent_adapter",
+      args: { adapterId: "cursor" },
+    },
+  ]);
+});
+
+test("pi integration switch installs and uninstalls the adapter", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    adapters: [piAdapter],
+  });
+  const page = await harness.openPage("settings");
+  await page.getByRole("tab", { name: "Agents" }).click();
+  const piSwitch = page.getByRole("switch", { name: "Pi" });
+
+  await expect(piSwitch).toHaveAttribute("aria-checked", "false");
+  await piSwitch.click();
+  await expect(piSwitch).toHaveAttribute("aria-checked", "true");
+
+  await piSwitch.click();
+  await expect(piSwitch).toHaveAttribute("aria-checked", "false");
+
+  const adapterCalls = harness.calls.filter(
+    (call) =>
+      call.command === "install_agent_adapter" ||
+      call.command === "uninstall_agent_adapter",
+  );
+  expect(adapterCalls).toEqual([
+    {
+      command: "install_agent_adapter",
+      args: { adapterId: "pi" },
+    },
+    {
+      command: "uninstall_agent_adapter",
+      args: { adapterId: "pi" },
+    },
+  ]);
 });
 
 test("copilot cli integration switch installs and uninstalls the adapter", async ({

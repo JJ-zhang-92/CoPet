@@ -242,6 +242,15 @@ export const codexAdapter: AdapterSummary = {
   message: "Configuration path not created yet",
 };
 
+export const cursorAdapter: AdapterSummary = {
+  id: "cursor",
+  displayName: "Cursor",
+  configPath: "/home/.cursor/hooks.json",
+  installed: false,
+  healthy: false,
+  message: "Configuration path not created yet",
+};
+
 export const antigravityAdapter: AdapterSummary = {
   id: "antigravity",
   displayName: "Antigravity",
@@ -255,6 +264,15 @@ export const copilotAdapter: AdapterSummary = {
   id: "copilot",
   displayName: "Copilot CLI",
   configPath: "/home/.copilot/hooks/copet.json",
+  installed: false,
+  healthy: false,
+  message: "Configuration path not created yet",
+};
+
+export const piAdapter: AdapterSummary = {
+  id: "pi",
+  displayName: "Pi",
+  configPath: "/home/.pi/agent/extensions/copet/index.ts",
   installed: false,
   healthy: false,
   message: "Configuration path not created yet",
