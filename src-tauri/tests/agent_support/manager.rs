@@ -45,11 +45,13 @@ fn adapters_install_repair_and_uninstall_real_config_files() {
 
             for adapter_id in [
                 "codex",
+                "cursor",
                 "claude-code",
                 "antigravity",
                 "opencode",
                 "copilot",
                 "gemini",
+                "pi",
             ] {
                 let installed = manager.install(adapter_id).unwrap();
                 assert!(installed.adapter.installed, "{adapter_id} should install");
@@ -104,6 +106,11 @@ fn assert_adapter_config_contains_marker(
             let config = fs::read_to_string(home.join(".codex/config.toml")).unwrap();
             assert!(config.contains("hooks = true"));
         }
+        "cursor" => {
+            let value = read_json(home.join(".cursor/hooks.json"));
+            assert!(value.to_string().contains("copet-hook.sh"));
+            assert!(value.to_string().contains("cursor"));
+        }
         "claude-code" => {
             let value = read_json(home.join(".claude/settings.json"));
             assert!(value.to_string().contains("copet-hook.sh"));
@@ -129,6 +136,13 @@ fn assert_adapter_config_contains_marker(
             assert!(value.to_string().contains("copet-hook.sh"));
             assert!(value.to_string().contains("copilot"));
         }
+        "pi" => {
+            let content =
+                fs::read_to_string(home.join(".pi/agent/extensions/copet/index.ts")).unwrap();
+            assert!(content.contains("copetPiExtension"));
+            let marker = read_json(home.join(".pi/agent/extensions/copet/.copet-managed.json"));
+            assert_eq!(marker["managed"], true);
+        }
         _ => unreachable!("unknown adapter"),
     }
 }
@@ -140,6 +154,7 @@ fn assert_adapter_config_does_not_contain_marker(
 ) {
     match adapter_id {
         "codex" => assert_json_file_lacks_marker(home.join(".codex/hooks.json")),
+        "cursor" => assert_json_file_lacks_marker(home.join(".cursor/hooks.json")),
         "claude-code" => assert_json_file_lacks_marker(home.join(".claude/settings.json")),
         "gemini" => assert_json_file_lacks_marker(home.join(".gemini/settings.json")),
         "antigravity" => {
@@ -149,6 +164,7 @@ fn assert_adapter_config_does_not_contain_marker(
         }
         "opencode" => assert!(!opencode_config_dir.join("plugins/copet.js").exists()),
         "copilot" => assert!(!home.join(".copilot/hooks/copet.json").exists()),
+        "pi" => assert!(!home.join(".pi/agent/extensions/copet").exists()),
         _ => unreachable!("unknown adapter"),
     }
 }
@@ -164,8 +180,11 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
         let temp = tempfile::tempdir().unwrap();
         let root = temp.path().join(".copet");
         let home = temp.path().join("home");
-        let manager =
-            manager_with_fake_agent_names(&root, &home, &["codex", "agy", "copilot", "gemini"]);
+        let manager = manager_with_fake_agent_names(
+            &root,
+            &home,
+            &["codex", "cursor", "agy", "copilot", "gemini", "pi"],
+        );
 
         let summary = manager.auto_install_detected_agents();
 
@@ -173,25 +192,24 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
             summary.installed,
             vec![
                 "codex".to_string(),
+                "cursor".to_string(),
                 "antigravity".to_string(),
                 "copilot".to_string(),
-                "gemini".to_string()
+                "gemini".to_string(),
+                "pi".to_string()
             ]
         );
         assert_eq!(
             summary.skipped,
-            vec![
-                "claude-code".to_string(),
-                "cursor".to_string(),
-                "opencode".to_string(),
-                "pi".to_string(),
-            ]
+            vec!["claude-code".to_string(), "opencode".to_string()]
         );
         assert!(summary.failed.is_empty());
         assert!(home.join(".codex/hooks.json").exists());
+        assert!(home.join(".cursor/hooks.json").exists());
         assert!(home.join(".gemini/config/hooks.json").exists());
         assert!(home.join(".copilot/hooks/copet.json").exists());
         assert!(home.join(".gemini/settings.json").exists());
+        assert!(home.join(".pi/agent/extensions/copet/index.ts").exists());
         assert!(!home.join(".claude/settings.json").exists());
         assert!(!home.join(".config/opencode/plugins/copet.js").exists());
     });
