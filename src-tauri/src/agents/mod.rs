@@ -11,9 +11,10 @@ use std::{
 pub(crate) const COPET_MARKER: &str = "copet-managed-hook";
 pub(crate) const HELPER_NAME: &str = "copet-hook.sh";
 
-static ADAPTERS: [&dyn CliAdapter; 6] = [
+static ADAPTERS: [&dyn CliAdapter; 7] = [
     adapters::CLAUDE_CODE,
     adapters::CODEX,
+    adapters::CURSOR,
     adapters::ANTIGRAVITY,
     adapters::OPENCODE,
     adapters::COPILOT,
@@ -524,6 +525,8 @@ fn hook_command(adapter_id: &str, helper_path: &Path, kind: &str) -> String {
 fn hook_default_output(adapter_id: &str, kind: &str) -> &'static str {
     if adapter_id == "antigravity" && matches!(kind, "tool.before" | "session.stop") {
         r#"{"decision":"allow"}"#
+    } else if adapter_id == "cursor" && kind == "user.prompt" {
+        r#"{"continue":true}"#
     } else {
         "{}"
     }
@@ -557,6 +560,10 @@ hook_output() {
         ;;
     esac
   fi
+  if [ "$agent" = "cursor" ] && [ "$kind" = "user.prompt" ]; then
+    printf '{"continue":true}\n'
+    return
+  fi
   printf '{}\n'
 }
 tool="$(json_string_field tool_name)"
@@ -574,6 +581,12 @@ for field in file_path:file_path filePath:filePath file:file path:path command:c
   source_key="${field%%:*}"
   output_key="${field#*:}"
   value="$(json_string_field "$source_key")"
+  if [ -z "$value" ]; then
+    value="$(json_string_field_after_key tool_input "$source_key")"
+  fi
+  if [ -z "$value" ]; then
+    value="$(json_string_field_after_key toolInput "$source_key")"
+  fi
   if [ -n "$value" ]; then
     escaped_value="$(json_escape "$value")"
     tool_input=",\"toolInput\":{\"$output_key\":\"$escaped_value\"}"

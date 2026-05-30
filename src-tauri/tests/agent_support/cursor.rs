@@ -1,4 +1,4 @@
-use super::helpers::{manager_with_fake_agents, read_json};
+use super::helpers::{manager_with_fake_agent_names, manager_with_fake_agents, read_json};
 use serde_json::json;
 use std::{
     fs,
@@ -95,6 +95,86 @@ fn cursor_install_is_idempotent_and_repair_keeps_one_copet_entry_per_event() {
 }
 
 #[test]
+fn cursor_install_accepts_cursor_agent_executable() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let manager = manager_with_fake_agent_names(&root, &home, &["cursor-agent"]);
+
+    let result = manager.install("cursor").unwrap();
+
+    assert!(result.adapter.installed);
+    assert!(home.join(".cursor/hooks.json").exists());
+}
+
+#[test]
+fn cursor_install_detection_handles_shell_significant_helper_paths() {
+    assert_cursor_install_detection_for_root_dir_name("semi;quote'root");
+}
+
+#[test]
+fn cursor_install_detection_handles_then_delimiter_in_helper_path() {
+    assert_cursor_install_detection_for_root_dir_name("semi; then root");
+}
+
+#[test]
+fn cursor_install_detection_handles_else_delimiter_in_helper_path() {
+    assert_cursor_install_detection_for_root_dir_name("semi; else root");
+}
+
+fn assert_cursor_install_detection_for_root_dir_name(root_dir_name: &str) {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(root_dir_name);
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let installed = manager.install("cursor").unwrap();
+    assert!(installed.adapter.installed);
+
+    let inspected = manager.inspect("cursor").unwrap();
+    assert!(inspected.installed);
+
+    let uninstalled = manager.uninstall("cursor").unwrap();
+    assert!(!uninstalled.adapter.installed);
+
+    let hooks = read_json(home.join(".cursor/hooks.json"));
+    assert!(!hooks.to_string().contains("copet-hook.sh"));
+}
+
+#[test]
+fn cursor_stale_helper_path_is_not_installed_and_install_repairs_it() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let stale_root = temp.path().join("stale-copet-root");
+    let current_root = temp.path().join("current-copet-root");
+    let stale_manager = manager_with_fake_agents(&stale_root, &home);
+    let current_manager = manager_with_fake_agents(&current_root, &home);
+
+    stale_manager.install("cursor").unwrap();
+
+    let stale_summary = current_manager.inspect("cursor").unwrap();
+    assert!(!stale_summary.installed);
+
+    let repaired = current_manager.install("cursor").unwrap();
+    assert!(repaired.adapter.installed);
+
+    let hooks = read_json(home.join(".cursor/hooks.json"));
+    let serialized = hooks.to_string();
+    assert!(serialized.contains(
+        &current_root
+            .join("hooks/copet-hook.sh")
+            .to_string_lossy()
+            .to_string()
+    ));
+    assert!(!serialized.contains(
+        &stale_root
+            .join("hooks/copet-hook.sh")
+            .to_string_lossy()
+            .to_string()
+    ));
+}
+
+#[test]
 fn cursor_uninstall_removes_only_copet_hooks() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");
@@ -127,6 +207,96 @@ fn cursor_uninstall_removes_only_copet_hooks() {
     let serialized = hooks.to_string();
     assert!(!serialized.contains("copet-hook.sh"));
     assert!(!root.join("adapters/cursor.json").exists());
+}
+
+#[test]
+fn cursor_uninstall_preserves_forged_mentions_and_unmanaged_events() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let hooks_path = home.join(".cursor/hooks.json");
+    fs::create_dir_all(hooks_path.parent().unwrap()).unwrap();
+    fs::write(
+        &hooks_path,
+        serde_json::to_vec_pretty(&json!({
+            "version": 1,
+            "hooks": {
+                "preToolUse": [
+                    { "command": "echo copet-hook.sh cursor tool.before" }
+                ],
+                "unmanagedEvent": [
+                    { "command": "if [ -f '/tmp/copet-hook.sh' ]; then '/tmp/copet-hook.sh' cursor tool.before; else echo '{}'; fi" }
+                ]
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let before = manager.inspect("cursor").unwrap();
+    assert!(!before.installed);
+
+    manager.install("cursor").unwrap();
+    manager.uninstall("cursor").unwrap();
+    let hooks = read_json(&hooks_path);
+
+    assert_eq!(
+        hooks["hooks"]["preToolUse"][0]["command"],
+        "echo copet-hook.sh cursor tool.before"
+    );
+    assert_eq!(
+        hooks["hooks"]["unmanagedEvent"][0]["command"],
+        "if [ -f '/tmp/copet-hook.sh' ]; then '/tmp/copet-hook.sh' cursor tool.before; else echo '{}'; fi"
+    );
+}
+
+#[test]
+fn cursor_install_rejects_non_object_hooks_without_panicking() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let hooks_path = home.join(".cursor/hooks.json");
+    fs::create_dir_all(hooks_path.parent().unwrap()).unwrap();
+    fs::write(
+        &hooks_path,
+        serde_json::to_vec_pretty(&json!({
+            "version": 1,
+            "hooks": []
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let error = manager.install("cursor").unwrap_err().to_string();
+
+    assert!(error.contains("invalid JSON"));
+}
+
+#[test]
+fn cursor_install_rejects_non_array_event_hooks_without_panicking() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let hooks_path = home.join(".cursor/hooks.json");
+    fs::create_dir_all(hooks_path.parent().unwrap()).unwrap();
+    fs::write(
+        &hooks_path,
+        serde_json::to_vec_pretty(&json!({
+            "version": 1,
+            "hooks": {
+                "preToolUse": { "command": "./user-hook.sh" }
+            }
+        }))
+        .unwrap(),
+    )
+    .unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let error = manager.install("cursor").unwrap_err().to_string();
+
+    assert!(error.contains("invalid JSON"));
 }
 
 #[test]

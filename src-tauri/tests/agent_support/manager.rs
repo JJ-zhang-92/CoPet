@@ -23,6 +23,7 @@ fn list_exposes_each_platform_adapter() {
             [
                 ("claude-code".to_string(), "Claude Code".to_string()),
                 ("codex".to_string(), "Codex".to_string()),
+                ("cursor".to_string(), "Cursor".to_string()),
                 ("antigravity".to_string(), "Antigravity".to_string()),
                 ("opencode".to_string(), "OpenCode".to_string()),
                 ("copilot".to_string(), "Copilot CLI".to_string()),
@@ -178,7 +179,11 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
         );
         assert_eq!(
             summary.skipped,
-            vec!["claude-code".to_string(), "opencode".to_string()]
+            vec![
+                "claude-code".to_string(),
+                "cursor".to_string(),
+                "opencode".to_string()
+            ]
         );
         assert!(summary.failed.is_empty());
         assert!(home.join(".codex/hooks.json").exists());
