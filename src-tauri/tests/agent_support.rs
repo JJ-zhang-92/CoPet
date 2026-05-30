@@ -24,3 +24,6 @@ mod manager;
 
 #[path = "agent_support/opencode.rs"]
 mod opencode;
+
+#[path = "agent_support/pi.rs"]
+mod pi;
