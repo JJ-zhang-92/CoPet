@@ -100,7 +100,11 @@ impl EventStateEngine {
             return self.current();
         }
 
-        let minimum_until = now_ms + MIN_DWELL_MS;
+        if !matches!(self.current.state, PetStateId::Running | PetStateId::Review) {
+            return self.set_state(PetStateId::Idle, now_ms, None);
+        }
+
+        let minimum_until = self.current.since_ms + MIN_DWELL_MS;
         if now_ms < minimum_until {
             self.current.idle_after_ms = Some(minimum_until);
             return self.current();
@@ -132,6 +136,59 @@ impl EventStateEngine {
 impl Default for EventStateEngine {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+pub fn normalize_runtime_event(mut event: RuntimeEvent) -> RuntimeEvent {
+    if let Some(agent) = canonical_agent_id(&event.agent) {
+        event.agent = agent.to_string();
+    }
+    if let Some(kind) = canonical_event_kind(&event.kind) {
+        event.kind = kind.to_string();
+    }
+    event
+}
+
+pub fn canonical_agent_id(agent: &str) -> Option<&'static str> {
+    match agent.trim().to_ascii_lowercase().as_str() {
+        "claude" | "claude_code" | "claudecode" => Some("claude-code"),
+        "cursor-agent" | "cursor_agent" | "cursoragent" => Some("cursor"),
+        "open-code" | "open_code" => Some("opencode"),
+        "pi-agent" | "pi_agent" | "piagent" => Some("pi"),
+        _ => None,
+    }
+}
+
+pub fn canonical_event_kind(kind: &str) -> Option<&'static str> {
+    match kind.trim().to_ascii_lowercase().as_str() {
+        "user.prompt" | "userpromptsubmit" | "beforeagent" | "beforesubmitprompt"
+        | "before_agent_start" | "tui.prompt.append" => Some("user.prompt"),
+        "tool.before" | "pretooluse" | "beforetool" | "tool.execute.before" | "tool_call" => {
+            Some("tool.before")
+        }
+        "tool.after" | "posttooluse" | "aftertool" | "tool.execute.after" | "tool_result" => {
+            Some("tool.after")
+        }
+        "permission.waiting" | "session.waiting" | "permissionrequest" | "notification"
+        | "permission.asked" => Some("permission.waiting"),
+        "session.stop" | "session.end" | "stop" | "sessionend" | "session.idle" | "agent_end"
+        | "session_shutdown" => Some("session.stop"),
+        "session.error" | "posttoolusefailure" => Some("session.error"),
+        _ => None,
+    }
+}
+
+pub fn agent_display_name(agent: &str) -> &str {
+    match agent {
+        "antigravity" => "Antigravity",
+        "codex" => "Codex",
+        "claude-code" => "Claude Code",
+        "copilot" => "Copilot CLI",
+        "cursor" => "Cursor",
+        "gemini" => "Gemini",
+        "opencode" => "OpenCode",
+        "pi" => "Pi",
+        _ => agent,
     }
 }
 

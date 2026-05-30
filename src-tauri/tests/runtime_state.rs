@@ -60,9 +60,20 @@ fn coalesces_tool_after_until_minimum_dwell_then_falls_back_to_idle() {
     let after = engine.apply_event(event("tool.after", Some("Bash")), 1_050);
 
     assert_eq!(after.state, PetStateId::Running);
-    assert_eq!(after.idle_after_ms, Some(1_250));
-    assert_eq!(engine.advance_time(1_249).state, PetStateId::Running);
-    assert_eq!(engine.advance_time(1_250).state, PetStateId::Idle);
+    assert_eq!(after.idle_after_ms, Some(1_200));
+    assert_eq!(engine.advance_time(1_199).state, PetStateId::Running);
+    assert_eq!(engine.advance_time(1_200).state, PetStateId::Idle);
+}
+
+#[test]
+fn tool_after_idles_immediately_after_minimum_dwell_has_elapsed() {
+    let mut engine = EventStateEngine::new();
+
+    engine.apply_event(event("tool.before", Some("Bash")), 1_000);
+    let after = engine.apply_event(event("tool.after", Some("Bash")), 1_300);
+
+    assert_eq!(after.state, PetStateId::Idle);
+    assert_eq!(after.idle_after_ms, None);
 }
 
 #[test]

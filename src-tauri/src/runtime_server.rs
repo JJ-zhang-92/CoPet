@@ -15,7 +15,8 @@ use std::{
 use crate::{
     diagnostics::RotatingLog,
     runtime_state::{
-        BoundedEventQueue, DerivedPetState, EventStateEngine, RuntimeEvent, TokenBucket,
+        agent_display_name, normalize_runtime_event, BoundedEventQueue, DerivedPetState,
+        EventStateEngine, RuntimeEvent, TokenBucket,
     },
 };
 
@@ -420,53 +421,6 @@ fn agent_message_for_event(event: &RuntimeEvent, now_ms: u64) -> Option<AgentMes
         text,
         updated_at_ms: now_ms,
     })
-}
-
-fn normalize_runtime_event(mut event: RuntimeEvent) -> RuntimeEvent {
-    if let Some(agent) = canonical_agent_id(&event.agent) {
-        event.agent = agent.to_string();
-    }
-    if let Some(kind) = canonical_event_kind(&event.kind) {
-        event.kind = kind.to_string();
-    }
-    event
-}
-
-fn canonical_agent_id(agent: &str) -> Option<&'static str> {
-    match agent.trim().to_ascii_lowercase().as_str() {
-        "claude" | "claude_code" | "claudecode" => Some("claude-code"),
-        "open-code" | "open_code" => Some("opencode"),
-        _ => None,
-    }
-}
-
-fn canonical_event_kind(kind: &str) -> Option<&'static str> {
-    match kind.trim().to_ascii_lowercase().as_str() {
-        "user.prompt" | "userpromptsubmit" | "beforeagent" | "tui.prompt.append" => {
-            Some("user.prompt")
-        }
-        "tool.before" | "pretooluse" | "beforetool" | "tool.execute.before" => Some("tool.before"),
-        "tool.after" | "posttooluse" | "aftertool" | "tool.execute.after" => Some("tool.after"),
-        "permission.waiting" | "session.waiting" | "permissionrequest" | "notification"
-        | "permission.asked" => Some("permission.waiting"),
-        "session.stop" | "session.end" | "stop" | "sessionend" | "session.idle" => {
-            Some("session.stop")
-        }
-        "session.error" => Some("session.error"),
-        _ => None,
-    }
-}
-
-fn agent_display_name(agent: &str) -> &str {
-    match agent {
-        "antigravity" => "Antigravity",
-        "codex" => "Codex",
-        "claude-code" => "Claude Code",
-        "copilot" => "Copilot CLI",
-        "gemini" => "Gemini",
-        "opencode" => "OpenCode",
-        _ => agent,
-    }
 }
 
 fn format_agent_message(event: &RuntimeEvent) -> Option<String> {

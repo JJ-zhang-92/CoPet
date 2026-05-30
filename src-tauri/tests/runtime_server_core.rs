@@ -325,6 +325,82 @@ fn runtime_core_normalizes_agent_aliases_and_raw_cli_event_kinds_for_messages() 
 }
 
 #[test]
+fn runtime_core_normalizes_cursor_and_pi_events() {
+    let mut core = RuntimeCore::new("secret".to_string());
+
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "cursor-agent".to_string(),
+            kind: "preToolUse".to_string(),
+            tool: Some("Shell".to_string()),
+            tool_input: Some(json!({ "command": "pnpm build" })),
+            session_id: None,
+            timestamp: None,
+        },
+        100,
+    )
+    .unwrap();
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "pi".to_string(),
+            kind: "before_agent_start".to_string(),
+            tool: None,
+            tool_input: Some(json!({ "subject": "implement pi integration" })),
+            session_id: None,
+            timestamp: None,
+        },
+        200,
+    )
+    .unwrap();
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "pi".to_string(),
+            kind: "tool_call".to_string(),
+            tool: Some("Read".to_string()),
+            tool_input: Some(json!({ "filePath": "/repo/src/App.tsx" })),
+            session_id: None,
+            timestamp: None,
+        },
+        600,
+    )
+    .unwrap();
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "pi".to_string(),
+            kind: "tool_result".to_string(),
+            tool: Some("Read".to_string()),
+            tool_input: Some(json!({ "filePath": "/repo/src/App.tsx" })),
+            session_id: None,
+            timestamp: None,
+        },
+        900,
+    )
+    .unwrap();
+
+    let status = core.status();
+    let cursor = status
+        .messages
+        .iter()
+        .find(|message| message.agent == "cursor")
+        .unwrap();
+    let pi = status
+        .messages
+        .iter()
+        .find(|message| message.agent == "pi")
+        .unwrap();
+
+    assert_eq!(cursor.display_name, "Cursor");
+    assert_eq!(cursor.text, "Running pnpm build");
+    assert_eq!(pi.display_name, "Pi");
+    assert_eq!(pi.text, "Read App.tsx");
+    assert_eq!(status.current_state.state, PetStateId::Idle);
+}
+
+#[test]
 fn runtime_core_rejects_missing_or_wrong_bearer_token() {
     let mut core = RuntimeCore::new("secret".to_string());
 
