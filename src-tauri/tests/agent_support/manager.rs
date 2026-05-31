@@ -27,8 +27,8 @@ fn list_exposes_each_platform_adapter() {
                 ("antigravity".to_string(), "Antigravity".to_string()),
                 ("opencode".to_string(), "OpenCode".to_string()),
                 ("copilot".to_string(), "Copilot CLI".to_string()),
-                ("gemini".to_string(), "Gemini".to_string()),
                 ("pi".to_string(), "Pi".to_string()),
+                ("gemini".to_string(), "Gemini".to_string()),
             ]
         );
     });
@@ -195,8 +195,8 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
                 "cursor".to_string(),
                 "antigravity".to_string(),
                 "copilot".to_string(),
-                "gemini".to_string(),
-                "pi".to_string()
+                "pi".to_string(),
+                "gemini".to_string()
             ]
         );
         assert_eq!(

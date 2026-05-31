@@ -18,8 +18,8 @@ static ADAPTERS: [&dyn CliAdapter; 8] = [
     adapters::ANTIGRAVITY,
     adapters::OPENCODE,
     adapters::COPILOT,
-    adapters::GEMINI,
     adapters::PI,
+    adapters::GEMINI,
 ];
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -571,6 +571,10 @@ hook_output() {
   fi
   printf '{}\n'
 }
+if [ "$agent" = "claude-code" ] && printf '%s' "$compact_input" | grep -q '"cursor_version"[[:space:]]*:'; then
+  hook_output
+  exit 0
+fi
 tool="$(json_string_field tool_name)"
 if [ -z "$tool" ]; then
   tool="$(json_string_field tool)"
