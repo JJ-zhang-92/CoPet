@@ -18,7 +18,8 @@ Built with Tauri, Rust, and React. Lightweight, local-first, no cloud.
 - Built-in pets plus import support for Codex-compatible pet packages.
 - Rich pet interactions: hover, click, double-click, rapid-click petting, long-press, drag reactions, and native context menu.
 - Global and per-pet sound packs for interactions and Agent states.
-- Settings and tray controls for pets, Agent hooks, sounds, language, visibility, and window position.
+- Settings and tray controls for pet size, pet launch animation on app startup, Agent message display mode, hooks, sounds, language, visibility, and window position.
+- Agent messages can show only the latest update or keep multiple Agent updates visible at once.
 - Local-first data model in `~/.copet`, with safe hook backups, atomic writes, and no telemetry.
 - Bilingual UI (English / 简体中文).
 
