@@ -2,7 +2,7 @@
   <img src="./public/pet.png" alt="CoPet logo" width="120" />
   <h1>CoPet</h1>
   <p><strong>A living desktop companion for every AI Agent CLI session.</strong></p>
-  <p>Driven by Codex pet packages, CoPet reacts in real time to Claude Code, Codex, Cursor, Antigravity, OpenCode, Copilot CLI, Pi, and Gemini, turning prompts, tool use, waiting, and completions into lively desktop feedback.</p>
+  <p>Driven by Codex pet packages, CoPet reacts in real time to Claude Code, Codex, Antigravity, OpenCode, Cursor, Copilot CLI, Pi, and Gemini, turning prompts, tool use, waiting, and completions into lively desktop feedback.</p>
 </div>
 
 ![CoPet](./public/banner.png)
@@ -14,7 +14,7 @@ Built with Tauri, Rust, and React. Lightweight, local-first, no cloud.
 ## Features
 
 - Real-time pet reactions to Agent prompts, tool use, waiting, completion, and errors.
-- Integrations for Claude Code, Codex, Cursor, Antigravity, OpenCode, Copilot CLI, Pi, and Gemini.
+- Integrations for Claude Code, Codex, Antigravity, OpenCode, Cursor, Copilot CLI, Pi, and Gemini.
 - Built-in pets plus import support for Codex-compatible pet packages.
 - Rich pet interactions: hover, click, double-click, rapid-click petting, long-press, drag reactions, and native context menu.
 - Global and per-pet sound packs for interactions and Agent states.
@@ -51,9 +51,9 @@ Restart Codex if the newly installed Skills do not appear.
 | --- | --- | --- |
 | Claude Code | JSON hooks | `~/.claude/settings.json` |
 | Codex | JSON hooks + trusted hook hashes | `~/.codex/hooks.json`, `~/.codex/config.toml` |
-| Cursor | JSON hooks | `~/.cursor/hooks.json` |
 | Antigravity | JSON hooks | `~/.gemini/config/hooks.json` |
 | OpenCode | JS plugin + config entry | `~/.config/opencode/plugins/copet.js`, `~/.config/opencode/opencode.json` |
+| Cursor | JSON hooks | `~/.cursor/hooks.json` |
 | Copilot CLI | JSON hook file | `~/.copilot/hooks/copet.json` |
 | Pi | TypeScript extension | `~/.pi/agent/extensions/copet/index.ts` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |

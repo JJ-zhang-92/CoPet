@@ -23,9 +23,9 @@ fn list_exposes_each_platform_adapter() {
             [
                 ("claude-code".to_string(), "Claude Code".to_string()),
                 ("codex".to_string(), "Codex".to_string()),
-                ("cursor".to_string(), "Cursor".to_string()),
                 ("antigravity".to_string(), "Antigravity".to_string()),
                 ("opencode".to_string(), "OpenCode".to_string()),
+                ("cursor".to_string(), "Cursor".to_string()),
                 ("copilot".to_string(), "Copilot CLI".to_string()),
                 ("pi".to_string(), "Pi".to_string()),
                 ("gemini".to_string(), "Gemini".to_string()),
@@ -192,8 +192,8 @@ fn auto_install_detected_agents_installs_only_available_cli_adapters() {
             summary.installed,
             vec![
                 "codex".to_string(),
-                "cursor".to_string(),
                 "antigravity".to_string(),
+                "cursor".to_string(),
                 "copilot".to_string(),
                 "pi".to_string(),
                 "gemini".to_string()

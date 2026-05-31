@@ -14,9 +14,9 @@ pub(crate) const HELPER_NAME: &str = "copet-hook.sh";
 static ADAPTERS: [&dyn CliAdapter; 8] = [
     adapters::CLAUDE_CODE,
     adapters::CODEX,
-    adapters::CURSOR,
     adapters::ANTIGRAVITY,
     adapters::OPENCODE,
+    adapters::CURSOR,
     adapters::COPILOT,
     adapters::PI,
     adapters::GEMINI,

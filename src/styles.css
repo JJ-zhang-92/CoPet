@@ -1622,16 +1622,14 @@ select {
   z-index: 1;
 }
 
-.adapter-card:hover,
-.adapter-card:focus-within {
+.adapter-card:hover {
   border-color: hsl(var(--primary) / 0.28);
   box-shadow:
     0 1px 0 hsl(0 0% 100% / 0.76) inset,
     0 4px 12px hsl(var(--primary) / 0.075);
 }
 
-.adapter-card:hover::before,
-.adapter-card:focus-within::before {
+.adapter-card:hover::before {
   opacity: 1;
 }
 
@@ -1644,8 +1642,7 @@ select {
     0 1px 2px hsl(220 18% 18% / 0.025);
 }
 
-.adapter-card[data-installed]:hover,
-.adapter-card[data-installed]:focus-within {
+.adapter-card[data-installed]:hover {
   border-color: hsl(var(--primary) / 0.32);
   box-shadow:
     0 1px 0 hsl(0 0% 100% / 0.9) inset,

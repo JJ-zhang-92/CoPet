@@ -2,7 +2,7 @@
   <img src="./public/pet.png" alt="CoPet logo" width="120" />
   <h1>CoPet</h1>
   <p><strong>由 Codex pet 包驱动的 AI Agent 桌面伙伴。</strong></p>
-  <p>实时响应 Claude Code、Codex、Cursor、Antigravity、OpenCode、Copilot CLI、Pi、Gemini 会话，把提示、工具调用、等待和完成状态变成陪你写代码的灵动宠物反馈。</p>
+  <p>实时响应 Claude Code、Codex、Antigravity、OpenCode、Cursor、Copilot CLI、Pi、Gemini 会话，把提示、工具调用、等待和完成状态变成陪你写代码的灵动宠物反馈。</p>
 </div>
 
 ![CoPet](./public/banner.zh.png)
@@ -14,7 +14,7 @@
 ## 功能
 
 - 实时响应 Agent 提示、工具使用、等待、完成和错误。
-- 内置 Claude Code、Codex、Cursor、Antigravity、OpenCode、Copilot CLI、Pi、Gemini 集成。
+- 内置 Claude Code、Codex、Antigravity、OpenCode、Cursor、Copilot CLI、Pi、Gemini 集成。
 - 内置宠物，并支持导入 Codex 兼容宠物包。
 - 丰富宠物互动：悬停、单击、双击、快速连击、长按、拖拽反应和原生右键菜单。
 - 支持全局音效包与随宠物携带的交互 / Agent 状态音效。
@@ -51,9 +51,9 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 | --- | --- | --- |
 | Claude Code | JSON hooks | `~/.claude/settings.json` |
 | Codex | JSON hooks + 可信 hook 哈希 | `~/.codex/hooks.json`, `~/.codex/config.toml` |
-| Cursor | JSON hooks | `~/.cursor/hooks.json` |
 | Antigravity | JSON hooks | `~/.gemini/config/hooks.json` |
 | OpenCode | JS 插件 + 配置入口 | `~/.config/opencode/plugins/copet.js`, `~/.config/opencode/opencode.json` |
+| Cursor | JSON hooks | `~/.cursor/hooks.json` |
 | Copilot CLI | JSON hook 文件 | `~/.copilot/hooks/copet.json` |
 | Pi | TypeScript 扩展 | `~/.pi/agent/extensions/copet/index.ts` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |

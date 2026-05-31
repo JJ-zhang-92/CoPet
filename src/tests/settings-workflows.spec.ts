@@ -97,7 +97,6 @@ test("agent integrations render Cursor and Pi in adapter order", async ({
         message: "Configuration path not created yet",
       },
       codexAdapter,
-      cursorAdapter,
       antigravityAdapter,
       {
         id: "opencode",
@@ -107,7 +106,9 @@ test("agent integrations render Cursor and Pi in adapter order", async ({
         healthy: false,
         message: "Configuration path not created yet",
       },
+      cursorAdapter,
       copilotAdapter,
+      piAdapter,
       {
         id: "gemini",
         displayName: "Gemini",
@@ -116,7 +117,6 @@ test("agent integrations render Cursor and Pi in adapter order", async ({
         healthy: false,
         message: "Configuration path not created yet",
       },
-      piAdapter,
     ],
   });
   const page = await harness.openPage("settings");
@@ -125,12 +125,12 @@ test("agent integrations render Cursor and Pi in adapter order", async ({
   await expect(page.locator(".adapter-card-name")).toHaveText([
     "Claude Code",
     "Codex",
-    "Cursor",
     "Antigravity",
     "OpenCode",
+    "Cursor",
     "Copilot CLI",
-    "Gemini",
     "Pi",
+    "Gemini",
   ]);
   await expect(page.getByText("Cursor's agent hooks.")).toBeVisible();
   await expect(page.getByText("GitHub Copilot's terminal agent.")).toBeVisible();
