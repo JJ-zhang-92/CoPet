@@ -744,9 +744,9 @@ fn sort_group(pet: &PetSummary) -> u8 {
     if let Some(rank) = priority_builtin_pet_rank(pet) {
         rank as u8
     } else if !pet.built_in {
-        2
+        PRIORITY_BUILTIN_PET_IDS.len() as u8
     } else {
-        3
+        PRIORITY_BUILTIN_PET_IDS.len() as u8 + 1
     }
 }
 

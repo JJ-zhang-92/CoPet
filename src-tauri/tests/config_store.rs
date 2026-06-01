@@ -8,6 +8,7 @@ use std::{fs, path::Path, path::PathBuf};
 const NON_DEFAULT_BUILTIN_PET_ID: &str = "dragon";
 const PRIMARY_BUILTIN_PET_ID: &str = "copet-neo";
 const SECONDARY_BUILTIN_PET_ID: &str = "copet-nia";
+const TERTIARY_BUILTIN_PET_ID: &str = "copet-mecha";
 
 fn builtin_pets_dir() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("assets/pets")
@@ -58,6 +59,7 @@ fn list_pets_exposes_all_builtin_packages_from_resource_dir() {
 
     assert!(ids.contains(&"system:copet-neo"));
     assert!(ids.contains(&"system:copet-nia"));
+    assert!(ids.contains(&"system:copet-mecha"));
     assert!(ids.contains(&format!("system:{NON_DEFAULT_BUILTIN_PET_ID}").as_str()));
     assert!(dragon.built_in);
 }
@@ -86,7 +88,7 @@ fn list_pets_returns_user_imports_alongside_builtins() {
 }
 
 #[test]
-fn list_pets_orders_copet_neo_then_copet_nia_then_user_imports_then_builtins() {
+fn list_pets_orders_brand_pets_then_user_imports_then_other_builtins() {
     let temp = tempfile::tempdir().unwrap();
     let store = make_store(&temp);
     store.ensure_ready().unwrap();
@@ -97,6 +99,7 @@ fn list_pets_orders_copet_neo_then_copet_nia_then_user_imports_then_builtins() {
 
     assert_eq!(pets[0].id, "system:copet-neo");
     assert_eq!(pets[1].id, format!("system:{SECONDARY_BUILTIN_PET_ID}"));
+    assert_eq!(pets[2].id, format!("system:{TERTIARY_BUILTIN_PET_ID}"));
 
     let user_indices = pets
         .iter()
@@ -107,7 +110,10 @@ fn list_pets_orders_copet_neo_then_copet_nia_then_user_imports_then_builtins() {
         .iter()
         .enumerate()
         .filter_map(|(idx, pet)| {
-            (pet.built_in && pet.id != "system:copet-neo" && pet.id != "system:copet-nia")
+            (pet.built_in
+                && pet.id != "system:copet-neo"
+                && pet.id != "system:copet-nia"
+                && pet.id != "system:copet-mecha")
                 .then_some((idx, pet.id.as_str()))
         })
         .collect::<Vec<_>>();
