@@ -92,7 +92,14 @@ pub fn resize_pet_window_from_center(
 }
 
 pub fn place_window_bottom_right(window: &WebviewWindow) -> tauri::Result<()> {
-    let Some(monitor) = window.current_monitor()? else {
+    // Newly-created Windows tool windows (transparent + skipTaskbar +
+    // focusable=false) can land at OS-defaulted off-screen coordinates
+    // before the first SetWindowPos. current_monitor() then returns None
+    // because the window's frame intersects no attached display, and a
+    // silent early-return here would leave the pet stuck off-screen for
+    // the rest of the session. Fall back to primary_monitor so we always
+    // land somewhere visible.
+    let Some(monitor) = pick_monitor_for_placement(window)? else {
         return Ok(());
     };
     let window_size = window.outer_size()?;
@@ -102,11 +109,18 @@ pub fn place_window_bottom_right(window: &WebviewWindow) -> tauri::Result<()> {
     Ok(())
 }
 
+fn pick_monitor_for_placement(window: &WebviewWindow) -> tauri::Result<Option<tauri::Monitor>> {
+    if let Some(monitor) = window.current_monitor()? {
+        return Ok(Some(monitor));
+    }
+    window.primary_monitor()
+}
+
 pub fn animate_pet_window_from_offscreen_right(
     window: &WebviewWindow,
     duration_ms: u64,
 ) -> tauri::Result<bool> {
-    let Some(monitor) = window.current_monitor()? else {
+    let Some(monitor) = pick_monitor_for_placement(window)? else {
         return Ok(true);
     };
     let window_size = window.outer_size()?;
