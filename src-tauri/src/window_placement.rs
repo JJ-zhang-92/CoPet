@@ -76,6 +76,20 @@ pub fn apply_pet_window_size_for_startup(
     Ok(())
 }
 
+// NSWindow.hasShadow defaults to true; on a transparent + decorations:false
+// window the system shadow traces opaque pixels and reads as a faint border
+// around the bubble. Windows disables its own shadow via Tauri's set_shadow;
+// do the equivalent on macOS via AppKit.
+#[cfg(target_os = "macos")]
+pub fn disable_pet_window_native_shadow(window: &WebviewWindow) -> tauri::Result<()> {
+    use objc2_app_kit::NSWindow;
+    unsafe {
+        let ns_window = &*window.ns_window()?.cast::<NSWindow>();
+        ns_window.setHasShadow(false);
+    }
+    Ok(())
+}
+
 pub fn resize_pet_window_from_center(
     window: &WebviewWindow,
     size: PetWindowSize,

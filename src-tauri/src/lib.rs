@@ -989,6 +989,7 @@ pub fn run() {
                 #[cfg(target_os = "macos")]
                 {
                     let _panel = window.to_panel();
+                    let _ = window_placement::disable_pet_window_native_shadow(&window);
                 }
                 #[cfg(target_os = "windows")]
                 {

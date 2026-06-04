@@ -2462,6 +2462,7 @@ select {
   transform-origin: center;
   transition: none;
   image-rendering: pixelated;
+  filter: drop-shadow(4px 0 1.5px hsl(var(--foreground) / 0.18));
 }
 
 .pet-sprite {
