@@ -108,6 +108,7 @@ export function PetPackageCard({
       >
         <span className="pet-card-preview">
           <PetSprite
+            animated={false}
             pet={pet}
             composed={{
               bodySpriteRow: active ? "waving" : "idle",

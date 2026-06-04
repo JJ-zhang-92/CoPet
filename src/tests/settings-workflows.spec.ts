@@ -476,7 +476,7 @@ test("the current installed pet is marked active and cannot be removed", async (
   await expect(card.getByTitle("Remove")).toHaveCount(0);
 });
 
-test("pet package cards render animated sprite previews", async ({ browser }) => {
+test("pet package cards render static sprite previews", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
     state: {
       currentPetId: copet.id,
@@ -490,7 +490,7 @@ test("pet package cards render animated sprite previews", async ({ browser }) =>
     .filter({ hasText: "Goku" })
     .locator(".pet-sprite");
 
-  await expect(installedSprite).toHaveAttribute("data-animated", "true");
+  await expect(installedSprite).toHaveAttribute("data-animated", "false");
 });
 
 test("pet window size setting uses a slider and updates the pet window", async ({
