@@ -1,4 +1,5 @@
-#![cfg_attr(target_os = "windows", windows_subsystem = "windows")]
+// Prevents an extra console window on Windows in release builds.
+#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
     copet_lib::run()
