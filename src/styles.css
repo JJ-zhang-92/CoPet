@@ -631,6 +631,10 @@ select {
   min-width: 0;
 }
 
+.pet-source-filter .ui-select-trigger {
+  height: 34px;
+}
+
 .pet-search {
   display: inline-flex;
   width: min(210px, 100%);
