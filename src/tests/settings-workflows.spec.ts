@@ -11,6 +11,7 @@ import {
   piAdapter,
   copet,
 } from "./app-harness";
+import type { PetSummary } from "./app-harness";
 
 test("agent integration switch installs and uninstalls an adapter", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
@@ -436,6 +437,87 @@ test("refresh list reloads settings data", async ({ browser }) => {
     .toBeGreaterThan(initialLoads);
   await expect(refreshButton).toHaveAttribute("aria-busy", "false");
   await expect(refreshIcon).toHaveAttribute("data-loading", "false");
+});
+
+test("pet list toolbar filters installed pets by source", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: copet.id,
+      locale: "en-US",
+      pets: [copet, goku, nebula],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("settings");
+  const typeFilter = page.getByRole("combobox", { name: "Pet type" });
+
+  await expect(typeFilter).toHaveText("All");
+  await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+
+  await typeFilter.click();
+  await page.getByRole("option", { name: "Built-in" }).click();
+
+  await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Goku" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Nebula" })).toHaveCount(0);
+
+  await typeFilter.click();
+  await page.getByRole("option", { name: "Custom" }).click();
+
+  await expect(page.getByRole("button", { name: "CoPet" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+});
+
+test("pet list toolbar searches installed pets", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: copet.id,
+      locale: "en-US",
+      pets: [copet, goku, nebula],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("settings");
+  const search = page.getByRole("searchbox", { name: "Search pets" });
+
+  await search.fill("stellar");
+
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "CoPet" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Goku" })).toHaveCount(0);
+
+  await search.fill("missing");
+
+  await expect(page.getByText("No matching pets.")).toBeVisible();
+});
+
+test("pet package grid expands to six columns on wide settings windows", async ({
+  browser,
+}) => {
+  const pets: PetSummary[] = Array.from({ length: 7 }, (_, index) => ({
+    ...goku,
+    id: `wide-pet-${index}`,
+    slug: `wide-${index}`,
+    displayName: `Wide Pet ${index}`,
+    builtIn: index === 0,
+  }));
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pets[0].id,
+      locale: "en-US",
+      pets,
+      onboardingComplete: false,
+    },
+    windowSizes: {
+      settings: { width: 1280, height: 720 },
+    },
+  });
+  const page = await harness.openPage("settings");
+
+  await expect(page.locator(".pet-grid").first().locator(".pet-card")).toHaveCount(6);
 });
 
 test("removing an installed non-current pet refreshes the installed list", async ({

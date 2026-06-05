@@ -25,6 +25,8 @@ import {
 // thresholds pad for the 10px gap between cards so we round up only when a
 // new column would still leave each card readable.
 export function computePetGridColumns(width: number): number {
+  if (width >= 960) return 6;
+  if (width >= 800) return 5;
   if (width >= 640) return 4;
   if (width >= 470) return 3;
   if (width >= 310) return 2;
@@ -32,6 +34,7 @@ export function computePetGridColumns(width: number): number {
 }
 
 export type PetPackageGridProps = {
+  emptyClassName?: string;
   currentPetId?: string;
   emptyTitle: string;
   locateCurrentLabel?: string;
@@ -47,6 +50,7 @@ export type PetPackageGridProps = {
 };
 
 export function PetPackageGrid({
+  emptyClassName,
   currentPetId,
   emptyTitle,
   locateCurrentLabel,
@@ -135,7 +139,7 @@ export function PetPackageGrid({
   if (pets.length === 0) {
     return (
       <div className="pet-list-region" ref={listRegionRef}>
-        <Empty>
+        <Empty className={emptyClassName}>
           <EmptyHeader>
             <EmptyMedia>
               <PawPrint aria-hidden="true" />

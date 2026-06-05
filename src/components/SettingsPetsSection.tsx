@@ -1,4 +1,4 @@
-import { Import, RefreshCw } from "lucide-react";
+import { Import, RefreshCw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import type { PetSummary } from "../lib/appTypes";
@@ -9,8 +9,11 @@ import {
 import { PetPackageGrid } from "./PetPackageGrid";
 import { SettingsPetImportDrawer } from "./SettingsPetImportDrawer";
 import { Button } from "./ui/button";
+import { Select } from "./ui/select";
 
 import type { Translator } from "../lib/settingsTypes";
+
+type PetSourceFilter = "all" | "builtIn" | "custom";
 
 interface SettingsPetsSectionProps {
   currentPetId: string;
@@ -38,6 +41,8 @@ export function SettingsPetsSection({
   const [pendingScrollPetId, setPendingScrollPetId] = useState<string | null>(
     null,
   );
+  const [sourceFilter, setSourceFilter] = useState<PetSourceFilter>("all");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const petCardStrings = useMemo(
     () => ({
@@ -48,6 +53,35 @@ export function SettingsPetsSection({
     }),
     [t],
   );
+
+  const petSourceOptions = useMemo(
+    () => [
+      { label: t("allPets"), value: "all" },
+      { label: t("builtInPets"), value: "builtIn" },
+      { label: t("customPets"), value: "custom" },
+    ],
+    [t],
+  );
+
+  const filteredPets = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLocaleLowerCase();
+
+    return installedPets.filter((pet) => {
+      if (sourceFilter === "builtIn" && !pet.builtIn) {
+        return false;
+      }
+      if (sourceFilter === "custom" && pet.builtIn) {
+        return false;
+      }
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      return [pet.displayName, pet.slug, pet.description].some((value) =>
+        value.toLocaleLowerCase().includes(normalizedQuery),
+      );
+    });
+  }, [installedPets, searchQuery, sourceFilter]);
 
   const handleRefresh = async () => {
     const startedAt = Date.now();
@@ -68,7 +102,30 @@ export function SettingsPetsSection({
       <h2 id="settings-section-panel-heading">{t("pets")}</h2>
       <div className="settings-pets-description-row">
         <p className="settings-section-description">{t("petsDescription")}</p>
+      </div>
 
+      <div className="pet-list-toolbar">
+        <div className="pet-list-toolbar-left">
+          <Select
+            aria-label={t("petType")}
+            className="pet-source-filter"
+            onValueChange={(value) =>
+              setSourceFilter(value as PetSourceFilter)
+            }
+            options={petSourceOptions}
+            value={sourceFilter}
+          />
+          <label className="pet-search">
+            <Search aria-hidden="true" />
+            <input
+              aria-label={t("searchPets")}
+              onChange={(event) => setSearchQuery(event.target.value)}
+              placeholder={t("searchPets")}
+              type="search"
+              value={searchQuery}
+            />
+          </label>
+        </div>
         <div className="pet-toolbar">
           <Button
             aria-busy={refreshing}
@@ -88,7 +145,9 @@ export function SettingsPetsSection({
           </Button>
           <Button
             className="pet-list-toolbar-button"
-            disabled={petBusyId === "import-preview" || petBusyId === "import-commit"}
+            disabled={
+              petBusyId === "import-preview" || petBusyId === "import-commit"
+            }
             onClick={() => setImportDrawerOpen(true)}
             size="sm"
             type="button"
@@ -102,10 +161,15 @@ export function SettingsPetsSection({
 
       <PetPackageGrid
         currentPetId={currentPetId}
-        emptyTitle={t("noInstalledPets")}
+        emptyClassName={
+          installedPets.length === 0 ? undefined : "pet-list-empty-subtle"
+        }
+        emptyTitle={
+          installedPets.length === 0 ? t("noInstalledPets") : t("noMatchingPets")
+        }
         locateCurrentLabel={t("locateCurrent")}
         onScrollToPetIdHandled={() => setPendingScrollPetId(null)}
-        pets={installedPets}
+        pets={filteredPets}
         scrollToPetId={pendingScrollPetId}
         showCurrentLocator
         strings={petCardStrings}
