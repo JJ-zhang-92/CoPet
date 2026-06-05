@@ -688,6 +688,10 @@ select {
   color: hsl(var(--muted-foreground) / 0.82);
 }
 
+.pet-search input::-webkit-search-cancel-button {
+  cursor: pointer;
+}
+
 .settings-preferences {
   gap: 14px;
 }
