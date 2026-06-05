@@ -9,7 +9,7 @@ import {
 import { PetPackageGrid } from "./PetPackageGrid";
 import { SettingsPetImportDrawer } from "./SettingsPetImportDrawer";
 import { Button } from "./ui/button";
-import { ToggleGroup, ToggleGroupItem } from "./ui/toggle-group";
+import { Select } from "./ui/select";
 
 import type { Translator } from "../lib/settingsTypes";
 
@@ -51,6 +51,15 @@ export function SettingsPetsSection({
       customBadge: t("customBadge"),
       remove: t("remove"),
     }),
+    [t],
+  );
+
+  const petSourceOptions = useMemo(
+    () => [
+      { label: t("allPets"), value: "all" },
+      { label: t("builtInPets"), value: "builtIn" },
+      { label: t("customPets"), value: "custom" },
+    ],
     [t],
   );
 
@@ -97,16 +106,15 @@ export function SettingsPetsSection({
 
       <div className="pet-list-toolbar">
         <div className="pet-list-toolbar-left">
-          <ToggleGroup
+          <Select
             aria-label={t("petType")}
             className="pet-source-filter"
-            onValueChange={(value) => setSourceFilter(value as PetSourceFilter)}
+            onValueChange={(value) =>
+              setSourceFilter(value as PetSourceFilter)
+            }
+            options={petSourceOptions}
             value={sourceFilter}
-          >
-            <ToggleGroupItem value="all">{t("allPets")}</ToggleGroupItem>
-            <ToggleGroupItem value="builtIn">{t("builtInPets")}</ToggleGroupItem>
-            <ToggleGroupItem value="custom">{t("customPets")}</ToggleGroupItem>
-          </ToggleGroup>
+          />
           <label className="pet-search">
             <Search aria-hidden="true" />
             <input

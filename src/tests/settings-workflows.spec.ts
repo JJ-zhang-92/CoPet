@@ -448,23 +448,22 @@ test("pet list toolbar filters installed pets by source", async ({ browser }) =>
     },
   });
   const page = await harness.openPage("settings");
-  const typeFilter = page.getByRole("group", { name: "Pet type" });
+  const typeFilter = page.getByRole("combobox", { name: "Pet type" });
 
-  await expect(typeFilter.getByRole("button", { name: "All" })).toHaveAttribute(
-    "aria-pressed",
-    "true",
-  );
+  await expect(typeFilter).toHaveText("All");
   await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
 
-  await typeFilter.getByRole("button", { name: "Built-in" }).click();
+  await typeFilter.click();
+  await page.getByRole("option", { name: "Built-in" }).click();
 
   await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Goku" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Nebula" })).toHaveCount(0);
 
-  await typeFilter.getByRole("button", { name: "Custom" }).click();
+  await typeFilter.click();
+  await page.getByRole("option", { name: "Custom" }).click();
 
   await expect(page.getByRole("button", { name: "CoPet" })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
