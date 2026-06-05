@@ -637,8 +637,9 @@ select {
 
 .pet-search {
   display: inline-flex;
-  width: min(210px, 100%);
+  width: 100%;
   min-width: 96px;
+  max-width: 210px;
   height: 34px;
   flex: 1 1 104px;
   align-items: center;
