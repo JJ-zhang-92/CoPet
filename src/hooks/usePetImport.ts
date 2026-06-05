@@ -87,6 +87,7 @@ type PreviewState = {
 type PetImportPreviewSourceKind = "codex" | "folder";
 
 type ApplyBatchOptions = {
+  replaceMatchingIntendedPetIds?: boolean;
   replaceSourceKind?: PetImportPreviewSourceKind;
   sourceKind: PetImportPreviewSourceKind;
 };
@@ -282,12 +283,19 @@ export function usePetImport(options: UsePetImportOptions = {}) {
 
       setPreviewStateSafely((current) => {
         const replacedPreviewIds = new Set<string>();
+        const replacementIntendedPetIds = options.replaceMatchingIntendedPetIds
+          ? new Set(batch.previews.map((preview) => preview.intendedPetId))
+          : null;
         const nextSourceKinds = new Map(current.previewSourceKinds);
-        const basePreviews = options.replaceSourceKind
+        const basePreviews =
+          options.replaceSourceKind || replacementIntendedPetIds
           ? current.previews.filter((preview) => {
-              const shouldReplace =
+              const shouldReplaceBySource =
                 current.previewSourceKinds.get(preview.previewId) ===
                 options.replaceSourceKind;
+              const shouldReplaceByPetId =
+                replacementIntendedPetIds?.has(preview.intendedPetId) ?? false;
+              const shouldReplace = shouldReplaceBySource || shouldReplaceByPetId;
               if (shouldReplace) {
                 replacedPreviewIds.add(preview.previewId);
                 nextSourceKinds.delete(preview.previewId);
@@ -418,7 +426,10 @@ export function usePetImport(options: UsePetImportOptions = {}) {
         return message;
       }
 
-      applyBatch(operation, result.batch, { sourceKind: "folder" });
+      applyBatch(operation, result.batch, {
+        replaceMatchingIntendedPetIds: true,
+        sourceKind: "folder",
+      });
       return null;
     });
   }, [

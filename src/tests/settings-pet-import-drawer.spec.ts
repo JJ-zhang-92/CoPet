@@ -514,3 +514,46 @@ test("folder source button directly triggers the folder dialog", async ({ browse
   });
   expect(harness.calls.some((call) => call.command === "preview_pet_import_zips")).toBe(false);
 });
+
+test("folder import refresh replaces existing previews with the same pet id", async ({
+  browser,
+}) => {
+  const folderFox: PetImportPreview = {
+    ...previewFox,
+    sourceLabel: "local-fox",
+  };
+  const refreshedFolderFox: PetImportPreview = {
+    ...folderFox,
+    previewId: "preview-fox-2",
+    summary: {
+      ...folderFox.summary,
+      displayName: "Local Fox Refresh",
+    },
+  };
+  const harness = await createAppHarness(browser, {
+    dialogOpenPaths: [["/pets/local-fox"], ["/pets/local-fox"]],
+    importPreviews: [folderFox],
+  });
+  const page = await harness.openPage("settings");
+
+  await page.getByRole("button", { name: "Import" }).click();
+  const drawer = page.getByRole("dialog", { name: "Import pets" });
+  await drawer.getByRole("button", { name: "Folders" }).click();
+  await expect(drawer.getByRole("button", { name: "Local Fox" })).toBeVisible();
+
+  harness.setImportPreviews([refreshedFolderFox]);
+  await drawer.getByRole("button", { name: "Folders" }).click();
+
+  await expect(drawer.getByRole("button", { name: "Local Fox Refresh" })).toBeVisible();
+  await expect(
+    drawer.getByRole("button", { name: "Local Fox", exact: true }),
+  ).toHaveCount(0);
+  await expect(drawer.locator(".pet-card")).toHaveCount(1);
+
+  await drawer.getByRole("button", { name: "Import all" }).click();
+
+  expect(harness.calls).toContainEqual({
+    command: "commit_pet_import_previews",
+    args: { sessionId: "session-1", previewIds: ["preview-fox-2"] },
+  });
+});
