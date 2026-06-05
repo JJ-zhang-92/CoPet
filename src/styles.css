@@ -619,7 +619,7 @@ select {
 .pet-list-toolbar-left {
   display: flex;
   min-width: 0;
-  flex: 1 1 320px;
+  flex: 1 1 196px;
   flex-wrap: wrap;
   align-items: center;
   gap: 8px;
@@ -638,9 +638,9 @@ select {
 .pet-search {
   display: inline-flex;
   width: min(210px, 100%);
-  min-width: 140px;
+  min-width: 96px;
   height: 34px;
-  flex: 1 1 150px;
+  flex: 1 1 104px;
   align-items: center;
   gap: 7px;
   padding: 0 10px;
