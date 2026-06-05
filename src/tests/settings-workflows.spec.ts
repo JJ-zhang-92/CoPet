@@ -11,6 +11,7 @@ import {
   piAdapter,
   copet,
 } from "./app-harness";
+import type { PetSummary } from "./app-harness";
 
 test("agent integration switch installs and uninstalls an adapter", async ({ browser }) => {
   const harness = await createAppHarness(browser, {
@@ -491,6 +492,32 @@ test("pet list toolbar searches installed pets", async ({ browser }) => {
   await search.fill("missing");
 
   await expect(page.getByText("No matching pets.")).toBeVisible();
+});
+
+test("pet package grid expands to six columns on wide settings windows", async ({
+  browser,
+}) => {
+  const pets: PetSummary[] = Array.from({ length: 7 }, (_, index) => ({
+    ...goku,
+    id: `wide-pet-${index}`,
+    slug: `wide-${index}`,
+    displayName: `Wide Pet ${index}`,
+    builtIn: index === 0,
+  }));
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: pets[0].id,
+      locale: "en-US",
+      pets,
+      onboardingComplete: false,
+    },
+    windowSizes: {
+      settings: { width: 1280, height: 720 },
+    },
+  });
+  const page = await harness.openPage("settings");
+
+  await expect(page.locator(".pet-grid").first().locator(".pet-card")).toHaveCount(6);
 });
 
 test("removing an installed non-current pet refreshes the installed list", async ({
