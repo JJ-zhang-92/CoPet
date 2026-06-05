@@ -634,7 +634,7 @@ select {
 .pet-source-filter .ui-select-trigger {
   height: 30px;
   border: 1px solid hsl(var(--border) / 0.82);
-  border-radius: var(--radius);
+  border-radius: 7px;
   background: hsl(var(--card) / 0.84);
   box-shadow: 0 1px 2px hsl(220 18% 18% / 0.04);
 }
@@ -650,7 +650,7 @@ select {
   gap: 7px;
   padding: 0 10px;
   border: 1px solid hsl(var(--border) / 0.82);
-  border-radius: var(--radius);
+  border-radius: 7px;
   color: hsl(var(--muted-foreground));
   background: hsl(var(--card) / 0.84);
   box-shadow: 0 1px 2px hsl(220 18% 18% / 0.04);
@@ -1881,7 +1881,7 @@ select {
   max-width: 100%;
   padding: 2px;
   border: 1px solid hsl(var(--border) / 0.82);
-  border-radius: var(--radius);
+  border-radius: 7px;
   background: hsl(var(--card) / 0.84);
   box-shadow: 0 1px 2px hsl(220 18% 18% / 0.04);
   white-space: nowrap;
