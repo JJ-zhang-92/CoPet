@@ -277,9 +277,9 @@ fn runtime_core_updates_existing_message_for_stop_after_agent_activity() {
         Some("Bearer secret"),
         RuntimeEvent {
             agent: "antigravity".to_string(),
-            kind: "user.prompt".to_string(),
-            tool: None,
-            tool_input: Some(json!({ "subject": "implement settings polish" })),
+            kind: "tool.before".to_string(),
+            tool: Some("run_command".to_string()),
+            tool_input: Some(json!({ "command": "git commit -m fix-antigravity" })),
             session_id: None,
             timestamp: None,
         },
@@ -325,6 +325,49 @@ fn runtime_core_updates_existing_message_for_stop_after_agent_activity() {
     assert_eq!(message.updated_at_ms, 200);
     assert_eq!(status.accepted_events, 3);
     assert_eq!(status.current_state.state, PetStateId::Waving);
+}
+
+#[test]
+fn runtime_core_suppresses_antigravity_stop_after_prompt_when_cli_never_started() {
+    let mut core = RuntimeCore::new("secret".to_string());
+
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "antigravity".to_string(),
+            kind: "user.prompt".to_string(),
+            tool: None,
+            tool_input: Some(json!({ "subject": "git commit" })),
+            session_id: None,
+            timestamp: None,
+        },
+        100,
+    )
+    .unwrap();
+    core.handle_event(
+        Some("Bearer secret"),
+        RuntimeEvent {
+            agent: "antigravity".to_string(),
+            kind: "session.stop".to_string(),
+            tool: None,
+            tool_input: None,
+            session_id: None,
+            timestamp: None,
+        },
+        200,
+    )
+    .unwrap();
+
+    let status = core.status();
+    let message = status
+        .messages
+        .iter()
+        .find(|message| message.agent == "antigravity")
+        .unwrap();
+
+    assert_eq!(message.text, "Thinking: git commit");
+    assert_eq!(message.updated_at_ms, 100);
+    assert_eq!(status.current_state.state, PetStateId::Jumping);
 }
 
 #[test]

@@ -431,9 +431,11 @@ mod subject {
         let mut keep_on_top_count = 0;
 
         let completed = animate_pet_window_positions_while_visible(
-            start,
-            target,
-            32,
+            PetWindowAnimation {
+                start,
+                target,
+                duration_ms: 32,
+            },
             || {
                 visibility_checks += 1;
                 Ok(visibility_checks < 3)

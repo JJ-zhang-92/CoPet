@@ -18,31 +18,21 @@ pub fn normalize_pet_window_size(size: PetWindowSize) -> PetWindowSize {
     size.clamp(MIN_PET_WINDOW_SIZE, MAX_PET_WINDOW_SIZE)
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AgentMessageDisplay {
+    #[default]
     All,
     Latest,
 }
 
-impl Default for AgentMessageDisplay {
-    fn default() -> Self {
-        Self::All
-    }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum CooldownStyle {
     Short,
+    #[default]
     Normal,
     Lazy,
-}
-
-impl Default for CooldownStyle {
-    fn default() -> Self {
-        Self::Normal
-    }
 }
 
 fn default_enable_click_sounds() -> bool {

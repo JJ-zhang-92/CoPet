@@ -72,16 +72,16 @@ impl CliAdapter for CodexCliAdapter {
     fn install(&self, manager: &AgentManager) -> Result<(), AdapterError> {
         let hooks_path = self.config_path(manager.home());
         install_json_hooks(manager, self.id(), &hooks_path, EVENTS, 1)?;
-        update_codex_config_toml(manager.home(), |document| {
-            set_features_hooks_true(document);
-            apply_trusted_hashes(document, &hooks_path)
+        update_codex_config_toml(manager.home(), |document, config_path| {
+            set_features_hooks_true(document, config_path)?;
+            apply_trusted_hashes(document, &hooks_path, config_path)
         })
     }
 
     fn uninstall(&self, manager: &AgentManager) -> Result<(), AdapterError> {
         let hooks_path = self.config_path(manager.home());
         remove_json_hooks(manager, self.id(), &hooks_path)?;
-        update_codex_config_toml(manager.home(), |document| {
+        update_codex_config_toml(manager.home(), |document, _config_path| {
             remove_copet_trusted_hashes(document, &hooks_path);
             Ok(())
         })
@@ -100,7 +100,7 @@ fn codex_config_path(home: &Path) -> PathBuf {
 /// write atomically only if the serialized output differs.
 fn update_codex_config_toml<F>(home: &Path, update: F) -> Result<(), AdapterError>
 where
-    F: FnOnce(&mut DocumentMut) -> Result<(), AdapterError>,
+    F: FnOnce(&mut DocumentMut, &Path) -> Result<(), AdapterError>,
 {
     let path = codex_config_path(home);
     let content = match std::fs::read_to_string(&path) {
@@ -113,9 +113,9 @@ where
     } else {
         content
             .parse::<DocumentMut>()
-            .map_err(|_| AdapterError::InvalidJson(path.clone()))?
+            .map_err(|_| AdapterError::InvalidToml(path.clone()))?
     };
-    update(&mut document)?;
+    update(&mut document, &path)?;
     let next = document.to_string();
     if next != content {
         write_atomic(&path, next.as_bytes())?;
@@ -125,14 +125,18 @@ where
 
 /// Set [features].hooks = true, creating the table if needed, and drop the
 /// deprecated `codex_hooks` feature flag if a previous install wrote it.
-fn set_features_hooks_true(document: &mut DocumentMut) {
+fn set_features_hooks_true(
+    document: &mut DocumentMut,
+    config_path: &Path,
+) -> Result<(), AdapterError> {
     let features = document
         .entry("features")
         .or_insert_with(|| Item::Table(Table::new()))
         .as_table_mut()
-        .expect("[features] must be a TOML table");
+        .ok_or_else(|| AdapterError::InvalidToml(config_path.to_path_buf()))?;
     features.insert("hooks", value(true));
     features.remove("codex_hooks");
+    Ok(())
 }
 
 /// Compact description of a single CoPet-owned Codex hook handler.
@@ -148,8 +152,8 @@ struct CoPetCodexHandler<'a> {
 
 /// Vendored from openai/codex-rs/hooks/src/engine/discovery.rs:538 (NormalizedHookIdentity)
 /// + config/src/hook_config.rs (HookHandlerConfig::Command / MatcherGroup).
-/// Field renames must mirror the source serde tags exactly so the
-/// canonical JSON keys match Codex byte-for-byte.
+///   Field renames must mirror the source serde tags exactly so the
+///   canonical JSON keys match Codex byte-for-byte.
 #[derive(Serialize)]
 struct NormalizedHookIdentity<'a> {
     event_name: &'a str,
@@ -181,7 +185,7 @@ enum VendoredHookHandlerConfig<'a> {
 }
 
 /// Replicates command_hook_hash → version_for_toml from openai/codex-rs.
-fn compute_trusted_hash(handler: &CoPetCodexHandler) -> String {
+fn compute_trusted_hash(handler: &CoPetCodexHandler) -> Result<String, AdapterError> {
     let identity = NormalizedHookIdentity {
         event_name: handler.event_label,
         group: VendoredMatcherGroup {
@@ -195,17 +199,19 @@ fn compute_trusted_hash(handler: &CoPetCodexHandler) -> String {
             }],
         },
     };
-    let toml_value =
-        toml::Value::try_from(&identity).expect("NormalizedHookIdentity must serialize to TOML");
-    let json_value = serde_json::to_value(&toml_value).unwrap_or(serde_json::Value::Null);
+    let toml_value = toml::Value::try_from(&identity)
+        .map_err(|error| AdapterError::HookHash(error.to_string()))?;
+    let json_value = serde_json::to_value(&toml_value)
+        .map_err(|error| AdapterError::HookHash(error.to_string()))?;
     let canonical = canonical_json(&json_value);
-    let bytes = serde_json::to_vec(&canonical).unwrap_or_default();
+    let bytes = serde_json::to_vec(&canonical)
+        .map_err(|error| AdapterError::HookHash(error.to_string()))?;
     let digest = Sha256::digest(&bytes);
     let hex = digest
         .iter()
         .map(|b| format!("{b:02x}"))
         .collect::<String>();
-    format!("sha256:{hex}")
+    Ok(format!("sha256:{hex}"))
 }
 
 /// Vendored from openai/codex-rs/config/src/fingerprint.rs:51.
@@ -257,6 +263,7 @@ fn cli_event_to_label(cli_event: &str) -> Option<&'static str> {
 fn apply_trusted_hashes(
     document: &mut DocumentMut,
     hooks_file_abs_path: &Path,
+    config_path: &Path,
 ) -> Result<(), AdapterError> {
     let hooks_content = std::fs::read(hooks_file_abs_path)?;
     let hooks_json: serde_json::Value = serde_json::from_slice(&hooks_content)
@@ -273,7 +280,7 @@ fn apply_trusted_hashes(
         .entry("hooks")
         .or_insert_with(|| Item::Table(Table::new()))
         .as_table_mut()
-        .expect("[hooks] must be a TOML table");
+        .ok_or_else(|| AdapterError::InvalidToml(config_path.to_path_buf()))?;
     // Allow [hooks] to dot into [hooks.state] cleanly.
     hooks_doc_table.set_implicit(true);
 
@@ -281,7 +288,7 @@ fn apply_trusted_hashes(
         .entry("state")
         .or_insert_with(|| Item::Table(Table::new()))
         .as_table_mut()
-        .expect("[hooks.state] must be a TOML table");
+        .ok_or_else(|| AdapterError::InvalidToml(config_path.to_path_buf()))?;
 
     for (cli_event, groups) in hooks_table.iter() {
         let Some(event_label) = cli_event_to_label(cli_event.as_str()) else {
@@ -291,12 +298,12 @@ fn apply_trusted_hashes(
             continue;
         };
         // Iterate every group/handler CoPet wrote (today: exactly 1 group, 1 handler each).
-        for (_group_index, group) in groups.iter().enumerate() {
+        for group in groups.iter() {
             let matcher = group.get("matcher").and_then(serde_json::Value::as_str);
             let Some(handlers) = group.get("hooks").and_then(serde_json::Value::as_array) else {
                 continue;
             };
-            for (_handler_index, handler) in handlers.iter().enumerate() {
+            for handler in handlers.iter() {
                 let Some(command) = handler.get("command").and_then(serde_json::Value::as_str)
                 else {
                     continue;
@@ -320,12 +327,12 @@ fn apply_trusted_hashes(
                     status_message,
                 };
                 let key = hook_state_key(hooks_file_abs_path, event_label);
-                let trusted_hash = compute_trusted_hash(&descriptor);
+                let trusted_hash = compute_trusted_hash(&descriptor)?;
                 let entry = state_table
                     .entry(&key)
                     .or_insert_with(|| Item::Table(Table::new()))
                     .as_table_mut()
-                    .expect("hook state entry must be a TOML table");
+                    .ok_or_else(|| AdapterError::InvalidToml(config_path.to_path_buf()))?;
                 entry.insert("trusted_hash", value(trusted_hash));
             }
         }
@@ -351,7 +358,8 @@ fn remove_copet_trusted_hashes(document: &mut DocumentMut, hooks_file_abs_path: 
     };
     let owned_keys: Vec<String> = state_table
         .iter()
-        .filter_map(|(key, _)| key.starts_with(&prefix).then(|| key.to_string()))
+        .filter(|(key, _)| key.starts_with(&prefix))
+        .map(|(key, _)| key.to_string())
         .collect();
     for key in owned_keys {
         state_table.remove(&key);

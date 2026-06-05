@@ -145,6 +145,10 @@ fn localize_adapter_error(error: AdapterError) -> String {
             AdapterError::InvalidJson(path) => {
                 format!("拒绝覆盖无效的 JSON 文件 {}", path.to_string_lossy())
             }
+            AdapterError::InvalidToml(path) => {
+                format!("TOML 文件无效：{}", path.to_string_lossy())
+            }
+            AdapterError::HookHash(error) => format!("计算钩子信任哈希失败：{error}"),
             AdapterError::AgentExecutableMissing { display_name } => {
                 format!("{display_name} 未安装或不在 PATH 中")
             }
@@ -1001,7 +1005,7 @@ pub fn run() {
             install_pet_window_z_order_guard(app.handle());
             schedule_pet_window_z_order_reassertions(app.handle());
             let app_state = store.app_state()?;
-            refresh_tray_menu(&app.handle(), &app_state);
+            refresh_tray_menu(app.handle(), &app_state);
             // Safety net: emit the final app state so windows that loaded before
             // setup completed (frontend JS starts before setup runs) receive the
             // correct pet list with built-in pets populated.
@@ -1037,9 +1041,7 @@ pub fn run() {
             }
         })
         .on_menu_event(|app, event| {
-            if pet_context_menu::handle_menu_event(app, event.id().as_ref()) {
-                return;
-            }
+            pet_context_menu::handle_menu_event(app, event.id().as_ref());
         })
         .invoke_handler(tauri::generate_handler![
             get_app_state,

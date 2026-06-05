@@ -320,6 +320,10 @@ impl BoundedEventQueue {
         self.events.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.events.is_empty()
+    }
+
     pub fn pop_front(&mut self) -> Option<RuntimeEvent> {
         self.events.pop_front()
     }

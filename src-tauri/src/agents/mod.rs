@@ -62,6 +62,10 @@ pub enum AdapterError {
     Json(#[from] serde_json::Error),
     #[error("refusing to overwrite invalid JSON at {0}")]
     InvalidJson(PathBuf),
+    #[error("invalid TOML at {0}")]
+    InvalidToml(PathBuf),
+    #[error("failed to compute hook trust hash: {0}")]
+    HookHash(String),
     #[error("{display_name} is not installed or not available on PATH")]
     AgentExecutableMissing { display_name: String },
     #[error("{display_name} hooks are not supported on {platform}")]
@@ -370,7 +374,8 @@ pub(crate) fn install_json_hooks(
         &manager.helper_path(),
         events,
         timeout,
-    );
+        path,
+    )?;
     write_json_atomic(path, &value)?;
     Ok(())
 }
@@ -397,9 +402,17 @@ pub(crate) fn json_config_has_copet_hook(
 ) -> Result<bool, AdapterError> {
     Ok(read_json_object_optional(path)?.is_some_and(|value| {
         value
-            .to_string()
-            .split("\\\"")
-            .any(|part| is_copet_command(part, adapter_id))
+            .get("hooks")
+            .and_then(Value::as_object)
+            .is_some_and(|hooks| {
+                hooks.values().any(|groups| {
+                    groups.as_array().is_some_and(|groups| {
+                        groups
+                            .iter()
+                            .any(|group| hook_group_has_copet_command(group, adapter_id))
+                    })
+                })
+            })
     }))
 }
 
@@ -451,16 +464,35 @@ fn hook_group_matches_event(group: &Value, adapter_id: &str, event: &HookEvent) 
         })
 }
 
+fn hook_group_has_copet_command(group: &Value, adapter_id: &str) -> bool {
+    group
+        .get("hooks")
+        .and_then(Value::as_array)
+        .is_some_and(|handlers| {
+            handlers.iter().any(|handler| {
+                handler
+                    .get("command")
+                    .and_then(Value::as_str)
+                    .is_some_and(|command| is_copet_command(command, adapter_id))
+            })
+        })
+}
+
 fn merge_hook_entries(
     value: &mut Value,
     adapter_id: &str,
     helper_path: &Path,
     events: &[HookEvent],
     timeout: u64,
-) {
-    let object = value.as_object_mut().expect("config must be JSON object");
+    path: &Path,
+) -> Result<(), AdapterError> {
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?;
     let hooks = object.entry("hooks").or_insert_with(|| json!({}));
-    let hooks_object = hooks.as_object_mut().expect("hooks must be JSON object");
+    let hooks_object = hooks
+        .as_object_mut()
+        .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?;
 
     for event in events {
         let mut group = json!({
@@ -478,9 +510,10 @@ fn merge_hook_entries(
             .entry(event.cli_event)
             .or_insert_with(|| json!([]))
             .as_array_mut()
-            .expect("event hooks must be arrays")
+            .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?
             .insert(0, group);
     }
+    Ok(())
 }
 
 fn remove_copet_hooks(value: &mut Value, adapter_id: &str) {

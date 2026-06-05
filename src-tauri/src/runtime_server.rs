@@ -28,8 +28,7 @@ impl RuntimeToken {
     pub fn rotate(runtime_dir: &Path) -> io::Result<String> {
         fs::create_dir_all(runtime_dir)?;
         let mut bytes = [0_u8; 32];
-        getrandom::getrandom(&mut bytes)
-            .map_err(|error| io::Error::new(io::ErrorKind::Other, error.to_string()))?;
+        getrandom::getrandom(&mut bytes).map_err(|error| io::Error::other(error.to_string()))?;
         let token = bytes.iter().map(|byte| format!("{byte:02x}")).collect();
         fs::write(runtime_dir.join("event-token"), &token)?;
         Ok(token)
@@ -397,7 +396,7 @@ impl RuntimeCore {
     }
 
     fn record_agent_activity(&mut self, event: &RuntimeEvent) {
-        if is_agent_activity_start_kind(&event.kind) {
+        if is_agent_activity_start_event(event) {
             self.active_agents.insert(event.agent.clone());
             return;
         }
@@ -469,6 +468,14 @@ fn is_agent_activity_start_kind(kind: &str) -> bool {
         kind,
         "user.prompt" | "tool.before" | "permission.waiting" | "session.waiting"
     )
+}
+
+fn is_agent_activity_start_event(event: &RuntimeEvent) -> bool {
+    if event.agent == "antigravity" && event.kind == "user.prompt" {
+        return false;
+    }
+
+    is_agent_activity_start_kind(&event.kind)
 }
 
 fn format_agent_message(event: &RuntimeEvent) -> Option<String> {

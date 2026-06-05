@@ -50,8 +50,7 @@ fn runtime_manager_accepts_authorized_http_events_and_rejects_bad_tokens() {
     assert!(observed_states
         .lock()
         .unwrap()
-        .iter()
-        .any(|state| *state == PetStateId::Review));
+        .contains(&PetStateId::Review));
 
     drop(manager);
     assert!(!runtime_dir.join("event-token").exists());

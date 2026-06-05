@@ -67,7 +67,7 @@ impl CliAdapter for AntigravityAdapter {
         let path = self.config_path(manager.home());
         manager.backup_file(self.id(), &path)?;
         let mut value = read_json_object_optional(&path)?.unwrap_or_else(|| json!({}));
-        install_antigravity_hook_entry(&mut value, self.id(), &manager.helper_path());
+        install_antigravity_hook_entry(&mut value, self.id(), &manager.helper_path(), &path)?;
         write_json_atomic(&path, &value)
     }
 
@@ -90,12 +90,20 @@ impl CliAdapter for AntigravityAdapter {
     }
 }
 
-fn install_antigravity_hook_entry(value: &mut Value, adapter_id: &str, helper_path: &Path) {
-    let object = value.as_object_mut().expect("config must be JSON object");
+fn install_antigravity_hook_entry(
+    value: &mut Value,
+    adapter_id: &str,
+    helper_path: &Path,
+    path: &Path,
+) -> Result<(), AdapterError> {
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?;
     object.insert(
         HOOK_KEY.to_string(),
         antigravity_hook_entry(adapter_id, helper_path),
     );
+    Ok(())
 }
 
 fn antigravity_hook_entry(adapter_id: &str, helper_path: &Path) -> Value {

@@ -39,6 +39,40 @@ fn claude_install_merges_hooks_and_uninstall_preserves_user_hooks() {
 }
 
 #[test]
+fn claude_install_rejects_non_object_hooks_without_panicking() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let settings = home.join(".claude/settings.json");
+    fs::create_dir_all(settings.parent().unwrap()).unwrap();
+    fs::write(&settings, r#"{"hooks":"not an object"}"#).unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let error = manager.install("claude-code").unwrap_err().to_string();
+
+    assert!(error.contains("invalid JSON"));
+}
+
+#[test]
+fn claude_inspect_ignores_copet_text_outside_hook_commands() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let settings = home.join(".claude/settings.json");
+    fs::create_dir_all(settings.parent().unwrap()).unwrap();
+    fs::write(
+        &settings,
+        r#"{"notes":"copet-hook.sh claude-code tool.before"}"#,
+    )
+    .unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let summary = manager.inspect("claude-code").unwrap();
+
+    assert!(!summary.installed);
+}
+
+#[test]
 fn claude_helper_ignores_cursor_compatibility_hook_payloads() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");

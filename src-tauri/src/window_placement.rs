@@ -48,6 +48,13 @@ struct SettingsWindowInteractionPolicy {
     orders_front_regardless: bool,
 }
 
+#[derive(Debug, Clone, Copy)]
+struct PetWindowAnimation {
+    start: PhysicalPosition<i32>,
+    target: PhysicalPosition<i32>,
+    duration_ms: u64,
+}
+
 pub fn apply_pet_window_size(window: &WebviewWindow, size: PetWindowSize) -> tauri::Result<()> {
     keep_pet_window_on_top(window)?;
     let (width, height) = pet_window_logical_dimensions(size);
@@ -83,6 +90,8 @@ pub fn apply_pet_window_size_for_startup(
 #[cfg(target_os = "macos")]
 pub fn disable_pet_window_native_shadow(window: &WebviewWindow) -> tauri::Result<()> {
     use objc2_app_kit::NSWindow;
+    // SAFETY: Tauri returns a valid NSWindow pointer for this WebviewWindow on
+    // macOS, and this runs during window setup on the app thread.
     unsafe {
         let ns_window = &*window.ns_window()?.cast::<NSWindow>();
         ns_window.setHasShadow(false);
@@ -154,18 +163,18 @@ pub fn animate_pet_window_from_offscreen_right(
     let app_handle = window.app_handle().clone();
     let window_for_keep = window.clone();
     animate_pet_window_positions_while_visible(
-        start,
-        target,
-        duration_ms,
+        PetWindowAnimation {
+            start,
+            target,
+            duration_ms,
+        },
         || window.is_visible(),
         |position| window.set_position(position),
         move || {
             let window_inner = window_for_keep.clone();
-            app_handle
-                .run_on_main_thread(move || {
-                    let _ = keep_pet_window_on_top(&window_inner);
-                })
-                .map_err(Into::into)
+            app_handle.run_on_main_thread(move || {
+                let _ = keep_pet_window_on_top(&window_inner);
+            })
         },
         thread::sleep,
         || started_at.elapsed().as_millis() as u64,
@@ -312,6 +321,8 @@ fn apply_native_pet_window_z_order_policy(
         NSWindowCollectionBehavior,
     };
 
+    // SAFETY: Callers route macOS z-order reassertion through the main thread;
+    // Tauri supplies a valid NSWindow pointer for this WebviewWindow.
     unsafe {
         if policy.unhides_application_without_activation {
             if let Some(mtm) = MainThreadMarker::new() {
@@ -356,9 +367,8 @@ fn apply_native_pet_window_z_order_policy(
         if policy.deminiaturizes && ns_window.isMiniaturized() {
             ns_window.deminiaturize(None);
         }
-        if policy.orders_front_regardless {
-            ns_window.orderFrontRegardless();
-        } else if policy.restores_visibility && !ns_window.isVisible() {
+        if policy.orders_front_regardless || (policy.restores_visibility && !ns_window.isVisible())
+        {
             ns_window.orderFrontRegardless();
         }
     }
@@ -391,10 +401,11 @@ fn apply_native_pet_window_z_order_policy(
         } else {
             SWP_NOMOVE | SWP_NOSIZE
         };
+        // SAFETY: hwnd comes from Tauri for this WebviewWindow; flags only
+        // mutate z-order and activation behavior, not memory ownership.
         unsafe {
-            SetWindowPos(hwnd, Some(HWND_TOPMOST), 0, 0, 0, 0, flags).map_err(|error| {
-                std::io::Error::new(std::io::ErrorKind::Other, error.to_string())
-            })?;
+            SetWindowPos(hwnd, Some(HWND_TOPMOST), 0, 0, 0, 0, flags)
+                .map_err(|error| std::io::Error::other(error.to_string()))?;
         }
     }
 
@@ -410,6 +421,8 @@ fn apply_native_settings_window_interaction_policy(
         NSFloatingWindowLevel, NSNormalWindowLevel, NSScreenSaverWindowLevel, NSWindow,
     };
 
+    // SAFETY: Tauri returns a valid NSWindow pointer for the settings window on
+    // macOS, and this is applied from app/window event handling.
     unsafe {
         let ns_window = &*window.ns_window()?.cast::<NSWindow>();
         if policy.macos_screen_saver_level {
@@ -457,6 +470,8 @@ fn install_native_pet_window_z_order_guard(app: &AppHandle) {
 
     let workspace = NSWorkspace::sharedWorkspace();
     let workspace_center = workspace.notificationCenter();
+    // SAFETY: objc2 exposes these Objective-C notification constants as extern
+    // statics; reading their addresses is the intended binding usage.
     let workspace_notifications: [&'static NSNotificationName; 8] = unsafe {
         [
             NSWorkspaceDidActivateApplicationNotification,
@@ -472,6 +487,8 @@ fn install_native_pet_window_z_order_guard(app: &AppHandle) {
     install_pet_window_reassertion_observers(&workspace_center, &workspace_notifications, app);
 
     let app_center = NSNotificationCenter::defaultCenter();
+    // SAFETY: objc2 exposes these Objective-C notification constants as extern
+    // statics; reading their addresses is the intended binding usage.
     let app_notifications: [&'static NSNotificationName; 6] = unsafe {
         [
             NSApplicationDidBecomeActiveNotification,
@@ -503,6 +520,8 @@ fn install_pet_window_reassertion_observers(
         let block: &'static RcBlock<dyn Fn(NonNull<NSNotification>)> = Box::leak(Box::new(block));
         let block: &DynBlock<dyn Fn(NonNull<NSNotification>)> = block;
 
+        // SAFETY: The block reference is leaked for process lifetime, so the
+        // notification center never observes a dangling callback pointer.
         unsafe {
             let _ = center.addObserverForName_object_queue_usingBlock(
                 Some(notification),
@@ -581,9 +600,7 @@ fn interpolate_position(
 }
 
 fn animate_pet_window_positions_while_visible<IsVisible, SetPosition, KeepOnTop, Sleep, ElapsedMs>(
-    start: PhysicalPosition<i32>,
-    target: PhysicalPosition<i32>,
-    duration_ms: u64,
+    animation: PetWindowAnimation,
     mut is_visible: IsVisible,
     mut set_position: SetPosition,
     mut keep_on_top: KeepOnTop,
@@ -597,6 +614,11 @@ where
     Sleep: FnMut(Duration),
     ElapsedMs: FnMut() -> u64,
 {
+    let PetWindowAnimation {
+        start,
+        target,
+        duration_ms,
+    } = animation;
     set_position(start)?;
     if !is_visible()? {
         set_position(target)?;

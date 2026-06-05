@@ -206,6 +206,36 @@ approval_policy = "on-request"
 }
 
 #[test]
+fn codex_install_rejects_non_table_features_without_panicking() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let config = home.join(".codex/config.toml");
+    fs::create_dir_all(config.parent().unwrap()).unwrap();
+    fs::write(&config, "features = true\n").unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let error = manager.install("codex").unwrap_err().to_string();
+
+    assert!(error.contains("invalid TOML"));
+}
+
+#[test]
+fn codex_install_rejects_non_table_hooks_state_without_panicking() {
+    let temp = tempfile::tempdir().unwrap();
+    let home = temp.path().join("home");
+    let root = temp.path().join(".copet");
+    let config = home.join(".codex/config.toml");
+    fs::create_dir_all(config.parent().unwrap()).unwrap();
+    fs::write(&config, "[hooks]\nstate = true\n").unwrap();
+    let manager = manager_with_fake_agents(&root, &home);
+
+    let error = manager.install("codex").unwrap_err().to_string();
+
+    assert!(error.contains("invalid TOML"));
+}
+
+#[test]
 fn codex_install_places_copet_hooks_before_existing_matching_groups() {
     let temp = tempfile::tempdir().unwrap();
     let home = temp.path().join("home");

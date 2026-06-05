@@ -1,9 +1,10 @@
 use serde::{Deserialize, Serialize};
 use std::env;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 pub enum Locale {
     #[serde(rename = "en-US")]
+    #[default]
     EnUs,
     #[serde(rename = "zh-CN")]
     ZhCn,
@@ -36,12 +37,6 @@ impl LocalePreference {
             Self::EnUs => Locale::EnUs,
             Self::ZhCn => Locale::ZhCn,
         }
-    }
-}
-
-impl Default for Locale {
-    fn default() -> Self {
-        Self::EnUs
     }
 }
 

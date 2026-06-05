@@ -668,8 +668,12 @@ fn commit_import_previews_rejects_unsafe_metadata_storage_id_without_installing(
     )
     .unwrap();
 
-    let result =
-        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        std::slice::from_ref(&preview.preview_id),
+    )
+    .unwrap();
 
     assert!(result.imported.is_empty());
     assert_eq!(result.failed.len(), 1);
@@ -703,8 +707,12 @@ fn commit_import_previews_rejects_mismatched_preview_metadata_without_installing
     )
     .unwrap();
 
-    let result =
-        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        std::slice::from_ref(&preview.preview_id),
+    )
+    .unwrap();
 
     assert!(result.imported.is_empty());
     assert_eq!(result.failed.len(), 1);
@@ -740,8 +748,12 @@ fn commit_import_previews_rejects_mismatched_intended_pet_id_metadata_without_in
     )
     .unwrap();
 
-    let result =
-        commit_import_previews(&store, &session.session_id, &[preview.preview_id.clone()]).unwrap();
+    let result = commit_import_previews(
+        &store,
+        &session.session_id,
+        std::slice::from_ref(&preview.preview_id),
+    )
+    .unwrap();
 
     assert!(result.imported.is_empty());
     assert_eq!(result.failed.len(), 1);

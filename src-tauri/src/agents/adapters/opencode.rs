@@ -117,12 +117,16 @@ fn opencode_config_has_plugin(path: &Path) -> Result<bool, AdapterError> {
 
 fn install_opencode_plugin_entry(path: &Path) -> Result<(), AdapterError> {
     let mut value = read_json_object_optional(path)?.unwrap_or_else(|| json!({}));
-    let object = value.as_object_mut().expect("config must be JSON object");
+    let object = value
+        .as_object_mut()
+        .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?;
     let plugins = object.entry("plugin").or_insert_with(|| json!([]));
     if !plugins.is_array() {
         *plugins = json!([]);
     }
-    let plugins = plugins.as_array_mut().expect("plugins must be array");
+    let plugins = plugins
+        .as_array_mut()
+        .ok_or_else(|| AdapterError::InvalidJson(path.to_path_buf()))?;
     if !plugins.iter().any(is_copet_plugin_entry) {
         plugins.push(json!(PLUGIN_ENTRY));
     }
