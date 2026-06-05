@@ -438,6 +438,62 @@ test("refresh list reloads settings data", async ({ browser }) => {
   await expect(refreshIcon).toHaveAttribute("data-loading", "false");
 });
 
+test("pet list toolbar filters installed pets by source", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: copet.id,
+      locale: "en-US",
+      pets: [copet, goku, nebula],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("settings");
+  const typeFilter = page.getByRole("group", { name: "Pet type" });
+
+  await expect(typeFilter.getByRole("button", { name: "All" })).toHaveAttribute(
+    "aria-pressed",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+
+  await typeFilter.getByRole("button", { name: "Built-in" }).click();
+
+  await expect(page.getByRole("button", { name: "CoPet" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Goku" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Nebula" })).toHaveCount(0);
+
+  await typeFilter.getByRole("button", { name: "Custom" }).click();
+
+  await expect(page.getByRole("button", { name: "CoPet" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Goku" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+});
+
+test("pet list toolbar searches installed pets", async ({ browser }) => {
+  const harness = await createAppHarness(browser, {
+    state: {
+      currentPetId: copet.id,
+      locale: "en-US",
+      pets: [copet, goku, nebula],
+      onboardingComplete: false,
+    },
+  });
+  const page = await harness.openPage("settings");
+  const search = page.getByRole("searchbox", { name: "Search pets" });
+
+  await search.fill("stellar");
+
+  await expect(page.getByRole("button", { name: "Nebula" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "CoPet" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Goku" })).toHaveCount(0);
+
+  await search.fill("missing");
+
+  await expect(page.getByText("No matching pets.")).toBeVisible();
+});
+
 test("removing an installed non-current pet refreshes the installed list", async ({
   browser,
 }) => {

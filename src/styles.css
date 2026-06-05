@@ -597,13 +597,88 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 8px 14px;
-  margin: 4px 0 16px;
+  margin: 4px 0 0;
 }
 
 .settings-pets-description-row .settings-section-description {
   flex: 1 1 260px;
   min-width: 0;
   margin: 0;
+}
+
+.pet-list-toolbar {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.pet-list-toolbar-left {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 320px;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.pet-source-filter {
+  min-width: 0;
+}
+
+.pet-search {
+  display: inline-flex;
+  width: min(210px, 100%);
+  min-width: 140px;
+  height: 34px;
+  flex: 1 1 150px;
+  align-items: center;
+  gap: 7px;
+  padding: 0 10px;
+  border: 1px solid hsl(var(--border) / 0.82);
+  border-radius: var(--radius);
+  color: hsl(var(--muted-foreground));
+  background: hsl(var(--card) / 0.84);
+  box-shadow: 0 1px 2px hsl(220 18% 18% / 0.04);
+  transition:
+    border-color 120ms ease,
+    box-shadow 120ms ease,
+    background 120ms ease;
+}
+
+.pet-search:focus-within {
+  border-color: hsl(var(--primary) / 0.46);
+  background: hsl(var(--card) / 0.96);
+  box-shadow:
+    0 0 0 3px hsl(var(--primary) / 0.08),
+    0 1px 2px hsl(220 18% 18% / 0.04);
+}
+
+.pet-search svg {
+  width: 14px;
+  height: 14px;
+  flex: 0 0 auto;
+  color: hsl(var(--muted-foreground) / 0.78);
+}
+
+.pet-search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  color: hsl(var(--foreground));
+  background: transparent;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 560;
+  line-height: 1;
+}
+
+.pet-search input::placeholder {
+  color: hsl(var(--muted-foreground) / 0.82);
 }
 
 .settings-preferences {
