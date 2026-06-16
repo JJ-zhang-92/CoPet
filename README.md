@@ -1,7 +1,7 @@
 <div align="center">
   <img src="./public/pet.png" alt="CoPet logo" width="120" />
   <h1>CoPet</h1>
-  <p><strong>A living desktop companion for every AI Agent CLI session.</strong></p>
+  <p><strong>A living desktop companion for every AI Agent.</strong></p>
   <p>Powered by Codex-compatible pet packages, CoPet reacts in real time to Claude Code, Codex, Antigravity, OpenCode, Cursor, Copilot CLI, Pi, and Gemini, turning prompts, tool use, waiting, and completions into lively pet reactions on your desktop.</p>
 </div>
 
