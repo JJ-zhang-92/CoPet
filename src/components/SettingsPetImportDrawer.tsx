@@ -24,6 +24,12 @@ type SettingsPetImportDrawerProps = {
   t: Translator;
 };
 
+const runImportAction = async (
+  action: () => Promise<{ errorMessage: string | null }>,
+) => {
+  await action();
+};
+
 export function SettingsPetImportDrawer({
   onOpenChange,
   open,
@@ -86,12 +92,6 @@ export function SettingsPetImportDrawer({
     }),
     [t],
   );
-
-  const runImportAction = async (
-    action: () => Promise<{ errorMessage: string | null }>,
-  ) => {
-    await action();
-  };
 
   const handleOpenChange = (nextOpen: boolean) => {
     if (nextOpen) {

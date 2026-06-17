@@ -64,6 +64,87 @@ function initialSettingsSection(): SettingsSectionId {
   return isSettingsSectionId(section) ? section : "pets";
 }
 
+const reportErr = (errorMessage: string | null) => {
+  if (errorMessage) toast.error(errorMessage);
+};
+
+const runAdapterAction = (
+  adapter: AdapterSummary,
+  action:
+    | "install_agent_adapter"
+    | "repair_agent_adapter"
+    | "uninstall_agent_adapter",
+) => commands.runAdapterAction(adapter, action);
+
+const resetPetWindowPosition = async () => {
+  const r = await commands.resetPetWindowPosition();
+  return r.errorMessage ? { errorMessage: r.errorMessage } : {};
+};
+
+const selectPet = async (pet: PetSummary) => {
+  const r = await commands.selectPet(pet);
+  reportErr(r.errorMessage);
+};
+const setPetWindowSize = async (size: number) => {
+  const r = await commands.setPetWindowSize(size);
+  reportErr(r.errorMessage);
+};
+const setLocalePreference = async (
+  pref: Parameters<typeof commands.setLocalePreference>[0],
+) => {
+  const r = await commands.setLocalePreference(pref);
+  reportErr(r.errorMessage);
+};
+const setAgentMessageDisplay = async (
+  display: Parameters<typeof commands.setAgentMessageDisplay>[0],
+) => {
+  const r = await commands.setAgentMessageDisplay(display);
+  reportErr(r.errorMessage);
+};
+const setAgentMessageVisible = async (visible: boolean) => {
+  const r = await commands.setAgentMessageVisible(visible);
+  reportErr(r.errorMessage);
+};
+const setPetInteractions = async (
+  prefs: Parameters<typeof commands.setPetInteractions>[0],
+) => {
+  const r = await commands.setPetInteractions(prefs);
+  reportErr(r.errorMessage);
+};
+const selectSoundPack = async (soundPackId: string) => {
+  const r = await commands.selectSoundPack(soundPackId);
+  reportErr(r.errorMessage);
+};
+const setPetVisible = async (visible: boolean) => {
+  const r = await commands.setPetVisible(visible);
+  reportErr(r.errorMessage);
+};
+const refreshPetLists = async () => {
+  const r = await commands.refreshPetLists();
+  reportErr(r.errorMessage);
+  return { errorMessage: r.errorMessage };
+};
+const removePet = async (pet: PetSummary) => {
+  const r = await commands.removePet(pet);
+  reportErr(r.errorMessage);
+};
+
+const startSettingsDrag = (event: ReactPointerEvent<HTMLElement>) => {
+  if (event.button !== 0) {
+    return;
+  }
+  const target = event.target;
+  if (
+    target instanceof Element &&
+    target.closest(
+      "button, input, select, textarea, a, [role='button'], [data-settings-no-drag]",
+    )
+  ) {
+    return;
+  }
+  void getCurrentWebviewWindow().startDragging();
+};
+
 export function SettingsWindow() {
   const loadState = useLoadState();
   const appState = useAppState();
@@ -73,71 +154,9 @@ export function SettingsWindow() {
   const petVisible = usePetVisible();
   const reportedLoadErrorRef = useRef<string | null>(null);
 
-  const reportErr = (errorMessage: string | null) => {
-    if (errorMessage) toast.error(errorMessage);
-  };
   const reportLoadError = (errorMessage: string) => {
     reportedLoadErrorRef.current = errorMessage;
     toast.error(errorMessage, { id: "settings-load-error" });
-  };
-
-  const selectPet = async (pet: PetSummary) => {
-    const r = await commands.selectPet(pet);
-    reportErr(r.errorMessage);
-  };
-  const setPetWindowSize = async (size: number) => {
-    const r = await commands.setPetWindowSize(size);
-    reportErr(r.errorMessage);
-  };
-  const setLocalePreference = async (
-    pref: Parameters<typeof commands.setLocalePreference>[0],
-  ) => {
-    const r = await commands.setLocalePreference(pref);
-    reportErr(r.errorMessage);
-  };
-  const setAgentMessageDisplay = async (
-    display: Parameters<typeof commands.setAgentMessageDisplay>[0],
-  ) => {
-    const r = await commands.setAgentMessageDisplay(display);
-    reportErr(r.errorMessage);
-  };
-  const setAgentMessageVisible = async (visible: boolean) => {
-    const r = await commands.setAgentMessageVisible(visible);
-    reportErr(r.errorMessage);
-  };
-  const setPetInteractions = async (
-    prefs: Parameters<typeof commands.setPetInteractions>[0],
-  ) => {
-    const r = await commands.setPetInteractions(prefs);
-    reportErr(r.errorMessage);
-  };
-  const selectSoundPack = async (soundPackId: string) => {
-    const r = await commands.selectSoundPack(soundPackId);
-    reportErr(r.errorMessage);
-  };
-  const setPetVisible = async (visible: boolean) => {
-    const r = await commands.setPetVisible(visible);
-    reportErr(r.errorMessage);
-  };
-  const runAdapterAction = (
-    adapter: AdapterSummary,
-    action:
-      | "install_agent_adapter"
-      | "repair_agent_adapter"
-      | "uninstall_agent_adapter",
-  ) => commands.runAdapterAction(adapter, action);
-  const refreshPetLists = async () => {
-    const r = await commands.refreshPetLists();
-    reportErr(r.errorMessage);
-    return { errorMessage: r.errorMessage };
-  };
-  const removePet = async (pet: PetSummary) => {
-    const r = await commands.removePet(pet);
-    reportErr(r.errorMessage);
-  };
-  const resetPetWindowPosition = async () => {
-    const r = await commands.resetPetWindowPosition();
-    return r.errorMessage ? { errorMessage: r.errorMessage } : {};
   };
 
   const [activeSection, setActiveSection] =
@@ -216,22 +235,6 @@ export function SettingsWindow() {
   const installedPets = appState.pets ?? emptyPetSummaries;
   const currentPetId = appState.currentPetId ?? "";
   const petWindowSize = appState.petWindowSize ?? defaultPetWindowSize;
-
-  const startSettingsDrag = (event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0) {
-      return;
-    }
-    const target = event.target;
-    if (
-      target instanceof Element &&
-      target.closest(
-        "button, input, select, textarea, a, [role='button'], [data-settings-no-drag]",
-      )
-    ) {
-      return;
-    }
-    void getCurrentWebviewWindow().startDragging();
-  };
 
   return (
     <main className="settings-window">

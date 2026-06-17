@@ -29,6 +29,12 @@ import type { Translator } from "../lib/settingsTypes";
 
 const SUCCESS_TOAST_DURATION_MS = 1800;
 
+const emitSliderDrag = (
+  phase: PetWindowSizeSliderDragPayload["phase"],
+) => {
+  void emit(petWindowSizeSliderDragEvent, { phase });
+};
+
 interface SettingsPreferencesSectionProps {
   agentMessageDisplay: AgentMessageDisplay;
   setAgentMessageDisplay: (next: AgentMessageDisplay) => void;
@@ -74,12 +80,6 @@ export function SettingsPreferencesSection({
     startClientY: number;
     started: boolean;
   } | null>(null);
-
-  const emitSliderDrag = (
-    phase: PetWindowSizeSliderDragPayload["phase"],
-  ) => {
-    void emit(petWindowSizeSliderDragEvent, { phase });
-  };
 
   const startSizeSliderDrag = () => {
     if (sizePointerRef.current?.started) {

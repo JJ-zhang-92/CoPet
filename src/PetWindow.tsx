@@ -50,6 +50,18 @@ import {
 import type { PetWindowSizeSliderDragPayload } from "./lib/petWindowUi";
 import { agentIconUrl } from "./lib/agentIcons";
 
+const setAgentMessageVisible = async (visible: boolean) => {
+  const { errorMessage } = await setAgentMessageVisibleCommand(visible);
+  if (errorMessage) toast.error(errorMessage);
+};
+
+const runContextMenuCommand = async (
+  command: Promise<{ errorMessage: string | null }>,
+) => {
+  const { errorMessage } = await command;
+  if (errorMessage) toast.error(errorMessage);
+};
+
 export function PetWindow() {
   const loadState = useLoadState();
   const agentMessages = useAgentMessages();
@@ -63,16 +75,6 @@ export function PetWindow() {
   const locale = useLocale();
   const t = createTranslator(locale);
 
-  const setAgentMessageVisible = async (visible: boolean) => {
-    const { errorMessage } = await setAgentMessageVisibleCommand(visible);
-    if (errorMessage) toast.error(errorMessage);
-  };
-  const runContextMenuCommand = async (
-    command: Promise<{ errorMessage: string | null }>,
-  ) => {
-    const { errorMessage } = await command;
-    if (errorMessage) toast.error(errorMessage);
-  };
   const { playInteractionSound, playAgentSound, stopAllSounds } = usePetSounds({
     enabled: soundEnabled,
     sounds: selectedSoundPack?.sounds,

@@ -24,6 +24,10 @@ export type PetPackageCardProps = {
   };
 };
 
+const stopActionClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
+  event.stopPropagation();
+};
+
 export function PetPackageCard({
   active = false,
   busy = false,
@@ -50,10 +54,6 @@ export function PetPackageCard({
     }
 
     onSelect?.(pet);
-  };
-
-  const stopActionClick = (event: ReactMouseEvent<HTMLButtonElement>) => {
-    event.stopPropagation();
   };
 
   const previewSelectLabel = strings.selectPreview
