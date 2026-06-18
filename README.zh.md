@@ -55,6 +55,27 @@
 - Agent 消息既可以只显示最新一条，也可以同时保留多条更新。
 - 数据默认留在本机，存放于 `~/.copet`；hook 写入会先备份、再原子写入，且不包含遥测。
 
+## 安装
+
+| 平台 | 下载 |
+| --- | --- |
+| macOS（通用版） | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
+| Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
+
+[全部版本](https://github.com/ChanceYu/CoPet/releases)
+
+### macOS
+
+把 `CoPet.app` 拖到 `/Applications`。当前构建未经过公证，首次运行前需要执行一次以下命令清除隔离标记：
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
+```
+
+### Windows
+
+Windows 版本未进行代码签名。首次启动时如果 SmartScreen 弹出警告，请点击 *更多信息* → *仍要运行*。
+
 ## 自定义你的宠物
 
 CoPet 不只能使用内置宠物。[CoPet Skill 系列](./skills/README.md) 可以把角色设定、团队吉祥物或个人头像做成你的桌面伙伴：
@@ -92,27 +113,6 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 | Copilot CLI | JSON hook 文件 | `~/.copilot/hooks/copet.json` |
 | Pi | TypeScript 扩展 | `~/.pi/agent/extensions/copet/index.ts` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
-
-## 安装
-
-| 平台 | 下载 |
-| --- | --- |
-| macOS（通用版） | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
-| Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
-
-[全部版本](https://github.com/ChanceYu/CoPet/releases)
-
-### macOS
-
-把 `CoPet.app` 拖到 `/Applications`。当前构建未经过公证，首次运行前需要执行一次以下命令清除隔离标记：
-
-```bash
-sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
-```
-
-### Windows
-
-Windows 版本未进行代码签名。首次启动时如果 SmartScreen 弹出警告，请点击 *更多信息* → *仍要运行*。
 
 ## 快速开始
 

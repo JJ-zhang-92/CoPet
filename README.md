@@ -55,6 +55,27 @@ Built with Tauri, Rust, and React. Lightweight, local-first, no cloud.
 - Agent messages can show only the latest update or keep multiple Agent updates visible at once.
 - Local-first data model in `~/.copet`, with safe hook backups, atomic writes, and no telemetry.
 
+## Installation
+
+| Platform | Download |
+| --- | --- |
+| macOS (Universal) | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
+| Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
+
+[All releases](https://github.com/ChanceYu/CoPet/releases)
+
+### macOS
+
+Drag `CoPet.app` into `/Applications`. The build is not notarized, so run once to clear the quarantine flag:
+
+```bash
+sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
+```
+
+### Windows
+
+Windows builds are not code-signed. SmartScreen may warn on first launch — click *More info* → *Run anyway*.
+
 ## Customize your pet
 
 CoPet is not limited to built-in pets. The [CoPet Skill series](./skills/README.md) helps you turn a character idea, team mascot, or personal avatar into your own desktop companion:
@@ -92,27 +113,6 @@ Restart Codex if the newly installed Skills do not appear.
 | Copilot CLI | JSON hook file | `~/.copilot/hooks/copet.json` |
 | Pi | TypeScript extension | `~/.pi/agent/extensions/copet/index.ts` |
 | Gemini | JSON hooks | `~/.gemini/settings.json` |
-
-## Installation
-
-| Platform | Download |
-| --- | --- |
-| macOS (Universal) | [CoPet-macos-universal.dmg](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-macos-universal.dmg) |
-| Windows x64 | [CoPet-windows-x64.exe](https://github.com/ChanceYu/CoPet/releases/latest/download/CoPet-windows-x64.exe) |
-
-[All releases](https://github.com/ChanceYu/CoPet/releases)
-
-### macOS
-
-Drag `CoPet.app` into `/Applications`. The build is not notarized, so run once to clear the quarantine flag:
-
-```bash
-sudo xattr -rd com.apple.quarantine /Applications/CoPet.app
-```
-
-### Windows
-
-Windows builds are not code-signed. SmartScreen may warn on first launch — click *More info* → *Run anyway*.
 
 ## Getting started
 
