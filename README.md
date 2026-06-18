@@ -62,21 +62,21 @@ CoPet is not limited to built-in pets. The [CoPet Skill series](./skills/README.
 - [`copet-gen`](./skills/copet-gen/SKILL.md) generates and installs custom CoPet pet packages with `pet.json` and `spritesheet.webp`, so your own pet can react to Agent activity.
 - [`copet-sound`](./skills/copet-sound/SKILL.md) creates matching 11-clip MP3 sound packs for clicks, gestures, waiting, success, and error states.
 
-Install CoPet Skills for Codex with either method.
+Install CoPet Skills into any agent or model with image-generation support — Claude Code, Codex, Cursor, and others — with either method.
 
 From a terminal:
 
 ```bash
-npx skills add ChanceYu/CoPet --skill '*' -a codex -g -y
+npx skills add ChanceYu/CoPet --skill '*'
 ```
 
-Inside Codex:
+Inside any supported agent:
 
 ```text
 $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet/tree/main/skills
 ```
 
-Restart Codex if the newly installed Skills do not appear.
+Restart the agent if the newly installed Skills do not appear.
 
 ## Supported agents
 

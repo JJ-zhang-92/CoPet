@@ -13,9 +13,11 @@ This Skill does not generate sprites, assemble atlases, run visual QA, or repair
 
 Using `$copet-gen` is explicit permission to use the subagents and lightweight workers required by `$hatch-pet`. Do not downgrade to main-session sequential generation solely because `$hatch-pet` delegates visual jobs.
 
+Works in any agent or model environment that supports image generation (Claude Code, Codex, Cursor, and others). Whatever ships `npx skills` plus an `$imagegen`-capable backend is enough.
+
 ## Required Dependency
 
-Use `$hatch-pet` first. If `$hatch-pet` is not available in the current Codex environment, stop and ask the user to install or provide it. Do not substitute direct `$imagegen` calls, local image scripts, hand-authored sprites, or partial pet package generation.
+`$copet-gen` requires `$hatch-pet` (source: <https://github.com/openai/skills/tree/main/skills/.curated/hatch-pet>). The workflow installs `$hatch-pet` automatically when it is missing from the active agent's skill directory — see Workflow step 1. Do not substitute direct `$imagegen` calls, local image scripts, hand-authored sprites, or partial pet package generation.
 
 If the local agent framework requires explicit user permission before spawning subagents, treat a user request to use `$copet-gen` as that permission for `$hatch-pet` pet-generation workers, visual QA workers, and brand-discovery workers.
 
@@ -33,12 +35,20 @@ If `<pet-id>` already exists under `$HOME/.copet/pets/`, append `-2`, `-3`, and 
 
 ## Workflow
 
-1. Use `$hatch-pet` to complete the user's pet request.
+1. Ensure `$hatch-pet` is available in the active agent. If it is not registered, install it:
+
+```bash
+npx skills add openai/skills --skill hatch-pet
+```
+
+   After installation, reload the agent so `$hatch-pet` becomes invocable, then continue.
+
+2. Use `$hatch-pet` to complete the user's pet request.
    - Wait for `$hatch-pet` to finish validation, visual QA, repair if needed, and packaging.
-   - The expected source package is usually `${CODEX_HOME:-$HOME/.codex}/pets/<pet-id>/`.
+   - The expected source package is usually `${CODEX_HOME:-$HOME/.codex}/pets/<pet-id>/` (this path is `$hatch-pet`'s output directory and is independent of which agent invoked it).
    - If the source package path is unclear, read the hatch run's `qa/run-summary.json` and use its `package` field.
 
-2. Install the completed package into CoPet:
+3. Install the completed package into CoPet:
 
 ```bash
 python skills/copet-gen/scripts/install-copet-pet.py \
@@ -53,7 +63,7 @@ python skills/copet-gen/scripts/install-copet-pet.py \
   --copet-config-dir /absolute/path/to/.copet
 ```
 
-3. Verify the installed package:
+4. Verify the installed package:
 
 ```bash
 INSTALLED_DIR=/absolute/path/from/installer-output
@@ -62,10 +72,11 @@ test -f "$INSTALLED_DIR/spritesheet.webp"
 test "$(basename "$INSTALLED_DIR")" = "$(jq -r '.id' "$INSTALLED_DIR/pet.json")"
 ```
 
-4. Report `installed_pet_id` and `installed_pet_dir`. If `collision=true`, mention the assigned suffix.
+5. Report `installed_pet_id` and `installed_pet_dir`. If `collision=true`, mention the assigned suffix.
 
 ## Rules
 
+- Auto-install `$hatch-pet` when missing instead of stopping — only halt if `npx skills add` itself fails.
 - Always complete `$hatch-pet` before installing into CoPet.
 - Allow `$hatch-pet` to spawn its normal subagents and lightweight workers.
 - Copy from the `$hatch-pet` package; do not move or mutate the source package.

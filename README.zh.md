@@ -62,21 +62,21 @@ CoPet 不只能使用内置宠物。[CoPet Skill 系列](./skills/README.md) 可
 - [`copet-gen`](./skills/copet-gen/SKILL.md) 生成并安装自定义 CoPet 宠物包，包含 `pet.json` 与 `spritesheet.webp`，让你的宠物跟随 Agent 活动做出反应。
 - [`copet-sound`](./skills/copet-sound/SKILL.md) 生成配套 11 段 MP3 音效包，用于点击、手势、等待、成功和错误等场景。
 
-安装到 Codex 有两种方式。
+可安装到任何支持图片生成的 Agent 或模型（Claude Code、Codex、Cursor 等），有两种方式。
 
 在终端中运行：
 
 ```bash
-npx skills add ChanceYu/CoPet --skill '*' -a codex -g -y
+npx skills add ChanceYu/CoPet --skill '*'
 ```
 
-在 Codex 会话中输入：
+在任意支持的 Agent 会话中输入：
 
 ```text
 $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet/tree/main/skills
 ```
 
-如果安装后没有看到这些 Skill，请重启 Codex。
+如果安装后没有看到这些 Skill，请重启对应的 Agent。
 
 ## 支持的 Agent
 
