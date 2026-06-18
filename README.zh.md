@@ -78,6 +78,8 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 
 如果安装后没有看到这些 Skill，请重启对应的 Agent。
 
+> **推荐在 Codex 中运行。** `copet-gen` 依赖上游 `$hatch-pet` / `$imagegen` 完成图像生成。Codex 自带 `image_gen` 工具，天然满足 `$imagegen` 的默认模式，无需 API key 即可使用。其他 Agent（Claude Code、Cursor 等）会回落到 `$imagegen` 的 CLI 模式，需要配置 `OPENAI_API_KEY` 并按 `$imagegen` 规则做一次显式确认。
+
 ## 支持的 Agent
 
 | Agent | 集成方式 | 默认配置路径 |

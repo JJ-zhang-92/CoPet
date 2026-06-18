@@ -78,6 +78,8 @@ $skill-installer install all CoPet skills from https://github.com/ChanceYu/CoPet
 
 Restart the agent if the newly installed Skills do not appear.
 
+> **Recommended runtime: Codex.** `copet-gen` delegates pet generation to the upstream `$hatch-pet` / `$imagegen` chain. Codex ships the built-in `image_gen` tool that satisfies `$imagegen` out of the box, so generation works with no API key. Other agents (Claude Code, Cursor, …) fall through to `$imagegen`'s CLI fallback, which requires `OPENAI_API_KEY` and a one-time user confirmation.
+
 ## Supported agents
 
 | Agent | Integration | Default config path |

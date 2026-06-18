@@ -13,7 +13,7 @@ This Skill does not generate sprites, assemble atlases, run visual QA, or repair
 
 Using `$copet-gen` is explicit permission to use the subagents and lightweight workers required by `$hatch-pet`. Do not downgrade to main-session sequential generation solely because `$hatch-pet` delegates visual jobs.
 
-Works in any agent or model environment that supports image generation (Claude Code, Codex, Cursor, and others). Whatever ships `npx skills` plus an `$imagegen`-capable backend is enough.
+Works in any agent or model environment that supports image generation (Claude Code, Codex, Cursor, and others). **Codex is the recommended runtime**: it ships the built-in `image_gen` tool that `$hatch-pet → $imagegen` rely on, so generation works out of the box with no API key. In other agents, `$imagegen` falls back to its CLI mode (`scripts/image_gen.py`) which requires `OPENAI_API_KEY` and explicit user confirmation per `$imagegen`'s rules.
 
 ## Required Dependency
 
