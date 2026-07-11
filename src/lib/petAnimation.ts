@@ -65,7 +65,7 @@ function baseSpriteRow(_state: BaseState): PetStateId {
 function agentSpriteRow(state: AgentState): PetStateId {
   switch (state.kind) {
     case "thinking":
-      return "waiting";
+      return "review";
     case "editing":
       return "running";
     case "inspecting":

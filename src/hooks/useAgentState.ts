@@ -28,6 +28,8 @@ function translate(petState: PetStateId, agentMessages: AgentMessage[]): AgentSt
       return { kind: "awaitingApproval", agent };
     case "waving":
       return { kind: "celebrating", agent };
+    case "thinking":
+      return { kind: "thinking", agent };
     case "failed":
       return { kind: "hurt", agent };
     case "idle":
