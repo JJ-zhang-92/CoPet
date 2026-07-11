@@ -15,6 +15,7 @@ pub enum PetStateId {
     Waiting,
     Running,
     Review,
+    Thinking,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -52,6 +53,7 @@ impl DerivedPetState {
 
 const MIN_DWELL_MS: u64 = 200;
 const TEMP_STATE_IDLE_AFTER_MS: u64 = 1_500;
+const THINKING_IDLE_AFTER_MS: u64 = 30_000;
 
 pub struct EventStateEngine {
     current: DerivedPetState,
@@ -80,7 +82,12 @@ impl EventStateEngine {
             return self.request_idle(now_ms);
         }
 
-        self.set_state(next, now_ms, Some(now_ms + TEMP_STATE_IDLE_AFTER_MS))
+        let idle_after = if next == PetStateId::Thinking {
+            Some(now_ms + THINKING_IDLE_AFTER_MS)
+        } else {
+            Some(now_ms + TEMP_STATE_IDLE_AFTER_MS)
+        };
+        self.set_state(next, now_ms, idle_after)
     }
 
     pub fn advance_time(&mut self, now_ms: u64) -> DerivedPetState {
@@ -100,7 +107,7 @@ impl EventStateEngine {
             return self.current();
         }
 
-        if !matches!(self.current.state, PetStateId::Running | PetStateId::Review) {
+        if !matches!(self.current.state, PetStateId::Running | PetStateId::Review | PetStateId::Thinking) {
             return self.set_state(PetStateId::Idle, now_ms, None);
         }
 
@@ -236,6 +243,7 @@ fn map_event_to_state(event: &RuntimeEvent) -> Option<PetStateId> {
         "permission.waiting" | "session.waiting" => Some(PetStateId::Waiting),
         "session.stop" | "session.end" => Some(PetStateId::Waving),
         "session.error" => Some(PetStateId::Failed),
+        "thinking" => Some(PetStateId::Thinking),
         _ => None,
     }
 }
