@@ -22,6 +22,7 @@ import {
   usePetInteractions,
   usePetState,
   usePetWindowSize,
+  useMessageFontSize,
   useSelectedSoundPack,
   useSelectedPet,
 } from "./hooks/useAppStore";
@@ -35,7 +36,8 @@ import {
 import { usePetContextMenu } from "./hooks/usePetContextMenu";
 import { agentSoundKeyForPetState, usePetSounds } from "./hooks/usePetSounds";
 import { createTranslator } from "./lib/i18n";
-import type { AgentMessage, PetWindowSize } from "./lib/appTypes";
+import { AGENT_MESSAGE_FONT_SCALE } from "./lib/appTypes";
+import type { AgentMessage, AgentMessageKind, PetWindowSize } from "./lib/appTypes";
 import {
   defaultPetWindowSize,
   maxPetWindowLogicalDimensions,
@@ -72,6 +74,7 @@ export function PetWindow() {
   const petInteractions = usePetInteractions();
   const soundEnabled = petInteractions.enableClickSounds;
   const petWindowSize = usePetWindowSize();
+  const messageFontSize = useMessageFontSize();
   const locale = useLocale();
   const t = createTranslator(locale);
 
@@ -416,6 +419,7 @@ export function PetWindow() {
                   "--pet-agent-message-min-width": `${Math.ceil(
                     selectedPet.frameWidth * petScale + 12,
                   )}px`,
+                  "--pet-agent-message-font-size": `${messageFontSize}px`,
                 } as CSSProperties)
               : undefined
           }
@@ -423,6 +427,7 @@ export function PetWindow() {
           {displayedAgentMessages.length > 0 ? (
             <AgentMessages
               dismissLabel={t("dismiss")}
+              messageFontSize={messageFontSize}
               messages={displayedAgentMessages}
               onDismiss={dismissAgentMessage}
             />
@@ -444,10 +449,12 @@ export function PetWindow() {
 
 function AgentMessages({
   dismissLabel,
+  messageFontSize,
   messages,
   onDismiss,
 }: {
   dismissLabel: string;
+  messageFontSize: number;
   messages: AgentMessage[];
   onDismiss: (agentId: string) => void;
 }) {
@@ -455,9 +462,12 @@ function AgentMessages({
     <div className="pet-agent-messages" data-testid="pet-agent-messages">
       {messages.map((message) => {
         const iconUrl = agentIconUrl(message.agent);
+        const scale = AGENT_MESSAGE_FONT_SCALE[message.kind] ?? 1.0;
+        const fontSize = Math.max(8, Math.round(messageFontSize * scale));
         return (
         <div
           className="pet-agent-message"
+          data-kind={message.kind}
           data-testid="pet-agent-message"
           key={`${message.agent}:${message.updatedAtMs}:${message.text}`}
         >
@@ -468,7 +478,12 @@ function AgentMessages({
               src={iconUrl}
             />
           ) : null}
-          <span className="pet-agent-text">{message.text}</span>
+          <span
+            className="pet-agent-text"
+            style={{ fontSize: `${fontSize}px` }}
+          >
+            {message.text}
+          </span>
           <button
             aria-label={dismissLabel}
             className="pet-agent-message-dismiss"

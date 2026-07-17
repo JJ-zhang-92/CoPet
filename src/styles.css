@@ -115,7 +115,7 @@ select {
   border-radius: 5px;
   background: hsl(var(--card) / 0.92);
   color: hsl(var(--foreground));
-  font-size: 11px;
+  font-size: var(--pet-agent-message-font-size, 11px);
   font-weight: 500;
   line-height: 1.25;
   text-align: left;
@@ -151,6 +151,26 @@ select {
 
 .pet-agent-message:hover {
   background: hsl(211 94% 50% / 0.08);
+}
+
+.pet-agent-message[data-kind="waiting"] .pet-agent-text {
+  color: #FF3B30;
+}
+
+.pet-agent-message[data-kind="error"] .pet-agent-text {
+  color: #FF9500;
+}
+
+.pet-agent-message[data-kind="running"] .pet-agent-text {
+  color: #007AFF;
+}
+
+.pet-agent-message[data-kind="thinking"] .pet-agent-text {
+  color: #8E8E93;
+}
+
+.pet-agent-message[data-kind="done"] .pet-agent-text {
+  color: #C7C7CC;
 }
 
 .pet-agent-icon {

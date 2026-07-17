@@ -18,6 +18,20 @@ pub fn normalize_pet_window_size(size: PetWindowSize) -> PetWindowSize {
     size.clamp(MIN_PET_WINDOW_SIZE, MAX_PET_WINDOW_SIZE)
 }
 
+pub type MessageFontSize = u8;
+
+pub const MIN_MESSAGE_FONT_SIZE: MessageFontSize = 8;
+pub const MAX_MESSAGE_FONT_SIZE: MessageFontSize = 32;
+pub const DEFAULT_MESSAGE_FONT_SIZE: MessageFontSize = 11;
+
+pub fn default_message_font_size() -> MessageFontSize {
+    DEFAULT_MESSAGE_FONT_SIZE
+}
+
+pub fn normalize_message_font_size(size: MessageFontSize) -> MessageFontSize {
+    size.clamp(MIN_MESSAGE_FONT_SIZE, MAX_MESSAGE_FONT_SIZE)
+}
+
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub enum AgentMessageDisplay {
@@ -81,6 +95,7 @@ pub struct AppState {
     pub sound_packs: Vec<SoundPackSummary>,
     pub onboarding_complete: bool,
     pub pet_window_size: PetWindowSize,
+    pub message_font_size: MessageFontSize,
     pub agent_message_display: AgentMessageDisplay,
     #[serde(default = "default_agent_message_visible")]
     pub agent_message_visible: bool,

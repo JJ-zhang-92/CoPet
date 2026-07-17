@@ -445,6 +445,7 @@ pub struct AgentMessage {
     pub display_name: String,
     pub text: String,
     pub updated_at_ms: u64,
+    pub kind: String,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, serde::Serialize)]
@@ -466,12 +467,14 @@ pub struct RuntimeSnapshot {
 }
 
 fn agent_message_for_event(event: &RuntimeEvent, now_ms: u64) -> Option<AgentMessage> {
+    let kind = message_kind_for_event(event);
     let text = format_agent_message(event)?;
     Some(AgentMessage {
         agent: event.agent.clone(),
         display_name: agent_display_name(&event.agent).to_string(),
         text,
         updated_at_ms: now_ms,
+        kind,
     })
 }
 
@@ -492,6 +495,18 @@ fn is_agent_activity_start_event(event: &RuntimeEvent) -> bool {
     }
 
     is_agent_activity_start_kind(&event.kind)
+}
+
+fn message_kind_for_event(event: &RuntimeEvent) -> String {
+    match event.kind.as_str() {
+        "permission.waiting" => "waiting".to_string(),
+        "session.error" => "error".to_string(),
+        "tool.before" => "running".to_string(),
+        "tool.after" | "session.stop" => "done".to_string(),
+        "user.prompt" => "thinking".to_string(),
+        "thinking" => "thinking".to_string(),
+        _ => "done".to_string(),
+    }
 }
 
 fn format_agent_message(event: &RuntimeEvent) -> Option<String> {

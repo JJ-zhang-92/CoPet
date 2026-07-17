@@ -1,8 +1,10 @@
 use crate::{
     app_state::{
         default_pet_window_size, normalize_pet_window_size, AgentMessageDisplay, AppState,
-        PetInteractionPrefs, PetWindowSize, DEFAULT_PET_WINDOW_SIZE, MAX_PET_WINDOW_SIZE,
-        MIN_PET_WINDOW_SIZE,
+        MessageFontSize, PetInteractionPrefs, PetWindowSize, DEFAULT_MESSAGE_FONT_SIZE,
+        DEFAULT_PET_WINDOW_SIZE, MAX_MESSAGE_FONT_SIZE, MAX_PET_WINDOW_SIZE,
+        MIN_MESSAGE_FONT_SIZE, MIN_PET_WINDOW_SIZE,
+        normalize_message_font_size,
     },
     i18n::{default_locale, Locale, LocalePreference},
     pet_package::{
@@ -184,6 +186,7 @@ impl ConfigStore {
             sound_packs,
             onboarding_complete: config.onboarding_complete,
             pet_window_size: normalized_pet_window_size,
+            message_font_size: config.message_font_size,
             agent_message_display: config.agent_message_display,
             agent_message_visible: config.agent_message_visible,
             pet_interactions: config.pet_interactions.clone(),
@@ -303,6 +306,14 @@ impl ConfigStore {
         self.app_state()?;
         let mut config = self.load_or_create_config()?;
         config.pet_window_size = normalize_pet_window_size(size);
+        self.save_config(&config)?;
+        self.app_state()
+    }
+
+    pub fn set_message_font_size(&self, value: MessageFontSize) -> Result<AppState, StoreError> {
+        self.app_state()?;
+        let mut config = self.load_or_create_config()?;
+        config.message_font_size = normalize_message_font_size(value);
         self.save_config(&config)?;
         self.app_state()
     }
@@ -929,6 +940,8 @@ struct StoredConfig {
         deserialize_with = "deserialize_stored_pet_window_size"
     )]
     pet_window_size: PetWindowSize,
+    #[serde(default = "default_message_font_size")]
+    message_font_size: MessageFontSize,
     #[serde(default)]
     agent_message_display: AgentMessageDisplay,
     #[serde(default = "default_agent_message_visible")]
@@ -950,6 +963,7 @@ impl Default for StoredConfig {
             agent_auto_install_complete: false,
             locale_preference: LocalePreference::default(),
             pet_window_size: DEFAULT_PET_WINDOW_SIZE,
+            message_font_size: DEFAULT_MESSAGE_FONT_SIZE,
             agent_message_display: AgentMessageDisplay::All,
             agent_message_visible: true,
             pet_interactions: PetInteractionPrefs::default(),
@@ -963,6 +977,10 @@ fn default_current_sound_pack_id() -> String {
 
 fn default_agent_message_visible() -> bool {
     true
+}
+
+fn default_message_font_size() -> MessageFontSize {
+    DEFAULT_MESSAGE_FONT_SIZE
 }
 
 fn deserialize_stored_pet_window_size<'de, D>(deserializer: D) -> Result<PetWindowSize, D::Error>

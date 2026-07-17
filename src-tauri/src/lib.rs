@@ -14,7 +14,7 @@ pub mod sound_pack;
 pub mod window_placement;
 
 use agents::{AdapterError, AdapterOperationResult, AdapterSummary, AgentManager};
-use app_state::{AgentMessageDisplay, AppState, PetInteractionPrefs, PetWindowSize};
+use app_state::{AgentMessageDisplay, AppState, MessageFontSize, PetInteractionPrefs, PetWindowSize};
 use config_store::{set_builtin_pets_dir, set_builtin_sounds_dir, ConfigStore, PetImportResult};
 use i18n::{default_locale, t, Locale, LocalePreference, MessageKey};
 use pet_import::{PetImportCommitResult, PetImportPreviewBatch, PetImportSession};
@@ -204,6 +204,15 @@ fn select_sound_pack(app: tauri::AppHandle, sound_pack_id: String) -> Result<App
 fn set_pet_window_size(app: tauri::AppHandle, size: PetWindowSize) -> Result<AppState, String> {
     let state = ConfigStore::from_home()
         .and_then(|store| store.set_pet_window_size(size))
+        .map_err(localize_store_error)?;
+    emit_app_state_changed(&app, &state)?;
+    Ok(state)
+}
+
+#[tauri::command]
+fn set_message_font_size(app: tauri::AppHandle, size: MessageFontSize) -> Result<AppState, String> {
+    let state = ConfigStore::from_home()
+        .and_then(|store| store.set_message_font_size(size))
         .map_err(localize_store_error)?;
     emit_app_state_changed(&app, &state)?;
     Ok(state)
@@ -1116,6 +1125,7 @@ pub fn run() {
             select_pet,
             select_sound_pack,
             set_pet_window_size,
+            set_message_font_size,
             set_locale_preference,
             set_agent_message_display,
             set_agent_message_visible,

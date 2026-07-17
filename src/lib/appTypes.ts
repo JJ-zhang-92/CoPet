@@ -89,12 +89,19 @@ export type AppState = {
   soundPacks: SoundPackSummary[];
   onboardingComplete: boolean;
   petWindowSize: PetWindowSize;
+  messageFontSize: MessageFontSize;
   agentMessageDisplay: AgentMessageDisplay;
   agentMessageVisible: boolean;
   petInteractions: PetInteractionPrefs;
 };
 
 export type PetWindowSize = number;
+
+export type MessageFontSize = number;
+
+export const defaultMessageFontSize = 11;
+export const minMessageFontSize = 8;
+export const maxMessageFontSize = 32;
 
 export type PetImportResult = {
   imported: number;
@@ -136,11 +143,22 @@ export type DerivedPetState = {
   idleAfterMs: number | null;
 };
 
+export type AgentMessageKind = "waiting" | "error" | "running" | "thinking" | "done";
+
+export const AGENT_MESSAGE_FONT_SCALE: Record<AgentMessageKind, number> = {
+  waiting: 1.30,
+  error:   1.15,
+  running: 1.00,
+  thinking: 0.85,
+  done:    0.75,
+};
+
 export type AgentMessage = {
   agent: string;
   displayName: string;
   text: string;
   updatedAtMs: number;
+  kind: AgentMessageKind;
 };
 
 export type RuntimeUpdate = {

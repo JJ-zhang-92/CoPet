@@ -9,6 +9,7 @@ import type {
   SoundPackSummary,
   CooldownStyle,
   LocalePreference,
+  MessageFontSize,
   PetInteractionPrefs,
   PetWindowSize,
 } from "../lib/appTypes";
@@ -19,6 +20,10 @@ import {
   petWindowSizeSliderDragStartDistancePx,
 } from "../lib/petWindowUi";
 import type { PetWindowSizeSliderDragPayload } from "../lib/petWindowUi";
+import {
+  minMessageFontSize,
+  maxMessageFontSize,
+} from "../lib/appTypes";
 import { Button } from "./ui/button";
 import { RadioGroup } from "./ui/radio-group";
 import { Slider } from "./ui/slider";
@@ -44,6 +49,8 @@ interface SettingsPreferencesSectionProps {
   setPetVisible: (visible: boolean) => void;
   petWindowSize: PetWindowSize;
   setPetWindowSize: (size: PetWindowSize) => void;
+  messageFontSize: MessageFontSize;
+  setMessageFontSize: (size: MessageFontSize) => void;
   resetPetWindowPosition: () => Promise<{ errorMessage?: string }>;
   agentMessageVisible: boolean;
   setAgentMessageVisible: (visible: boolean) => void;
@@ -64,6 +71,8 @@ export function SettingsPreferencesSection({
   setPetVisible,
   petWindowSize,
   setPetWindowSize,
+  messageFontSize,
+  setMessageFontSize,
   resetPetWindowPosition,
   agentMessageVisible,
   setAgentMessageVisible,
@@ -379,6 +388,20 @@ export function SettingsPreferencesSection({
                   { label: t("messageDisplayAll"), value: "all" },
                 ]}
                 value={agentMessageDisplay}
+              />
+            </div>
+          </div>
+
+          <div className="settings-preferences-row">
+            <span className="settings-preferences-row-title">{t("fontSize")}</span>
+            <div className="settings-preferences-row-control pet-size-control">
+              <Slider
+                aria-label={t("fontSize")}
+                max={maxMessageFontSize}
+                min={minMessageFontSize}
+                onValueChange={(value) => setMessageFontSize(value)}
+                step={1}
+                value={messageFontSize}
               />
             </div>
           </div>

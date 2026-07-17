@@ -17,10 +17,11 @@ import type {
   PetStateId,
   PetSummary,
   PetWindowSize,
+  MessageFontSize,
   RuntimeStatus,
   RuntimeUpdate,
 } from "../lib/appTypes";
-import { defaultPetInteractionPrefs } from "../lib/appTypes";
+import { defaultMessageFontSize, defaultPetInteractionPrefs } from "../lib/appTypes";
 import { defaultPetWindowSize } from "../lib/petWindowUi";
 import { copetDevLog } from "../lib/devLogger";
 
@@ -280,6 +281,12 @@ export function useSelectedSoundPack(): SoundPackSummary | null {
 
 export function usePetWindowSize(): PetWindowSize {
   return useAppSlice((s) => s.appState?.petWindowSize ?? defaultPetWindowSize);
+}
+
+export function useMessageFontSize(): MessageFontSize {
+  return useAppSlice(
+    (s) => s.appState?.messageFontSize ?? defaultMessageFontSize,
+  );
 }
 
 export function useLocale(): "en-US" | "zh-CN" {

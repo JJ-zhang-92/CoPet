@@ -17,6 +17,7 @@ import type {
   PetImportSession,
   PetSummary,
   PetWindowSize,
+  MessageFontSize,
   RuntimeStatus,
 } from "./appTypes";
 
@@ -104,6 +105,18 @@ export async function setPetWindowSize(
     return { errorMessage: toMessage(error) };
   } finally {
     finishPetWindowSizeCommand(sequence);
+  }
+}
+
+export async function setMessageFontSize(
+  size: MessageFontSize,
+): Promise<CommandResult> {
+  try {
+    const next = await invoke<AppState>("set_message_font_size", { size });
+    patchAppState(next);
+    return { errorMessage: null };
+  } catch (error) {
+    return { errorMessage: toMessage(error) };
   }
 }
 

@@ -36,6 +36,7 @@ import type {
 } from "./lib/appTypes";
 import { defaultPetInteractionPrefs } from "./lib/appTypes";
 import { defaultPetWindowSize } from "./lib/petWindowUi";
+import { defaultMessageFontSize } from "./lib/appTypes";
 
 const emptyPetSummaries: PetSummary[] = [];
 
@@ -88,6 +89,10 @@ const selectPet = async (pet: PetSummary) => {
 };
 const setPetWindowSize = async (size: number) => {
   const r = await commands.setPetWindowSize(size);
+  reportErr(r.errorMessage);
+};
+const setMessageFontSize = async (size: number) => {
+  const r = await commands.setMessageFontSize(size);
   reportErr(r.errorMessage);
 };
 const setLocalePreference = async (
@@ -239,6 +244,7 @@ export function SettingsWindow() {
   const installedPets = appState.pets ?? emptyPetSummaries;
   const currentPetId = appState.currentPetId ?? "";
   const petWindowSize = appState.petWindowSize ?? defaultPetWindowSize;
+  const messageFontSize = appState.messageFontSize ?? defaultMessageFontSize;
 
   return (
     <main className="settings-window">
@@ -317,6 +323,7 @@ export function SettingsWindow() {
               agentMessageVisible={appState.agentMessageVisible}
               petInteractions={appState.petInteractions ?? defaultPetInteractionPrefs}
               petVisible={petVisible}
+              messageFontSize={messageFontSize}
               petWindowSize={petWindowSize}
               resetPetWindowPosition={resetPetWindowPosition}
               setAgentMessageDisplay={setAgentMessageDisplay}
@@ -324,6 +331,7 @@ export function SettingsWindow() {
               setLocalePreference={setLocalePreference}
               setPetInteractions={setPetInteractions}
               setPetVisible={setPetVisible}
+              setMessageFontSize={setMessageFontSize}
               setPetWindowSize={setPetWindowSize}
               selectSoundPack={selectSoundPack}
               t={t}
